@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   CircleDot,
   AlertCircle,
+  Ban,
 } from "lucide-react"
 import { PollCard } from "@/components/poll-card"
 import { GamingTabs, GlowCard, GamingButton } from "@/components/shared"
@@ -88,7 +89,18 @@ function PollStatusBadge({ status, outcome }: { status: Poll["status"]; outcome?
           : "text-accent bg-accent/10 border-accent/30",
       dotClass: outcome === "yes" ? "bg-success" : "bg-accent",
     },
-  }[status]
+    cancelled: {
+      icon: Ban,
+      label: "Cancelled — Refund",
+      className: "text-muted-foreground bg-surface border-border",
+      dotClass: "bg-muted-foreground",
+    },
+  }[status] ?? {
+    icon: CircleDot,
+    label: status,
+    className: "text-muted-foreground bg-surface border-border",
+    dotClass: "bg-muted-foreground",
+  }
 
   const Icon = config.icon
 
@@ -269,7 +281,7 @@ export function PollsList({ polls, match }: PollsListProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1, duration: 0.3 }}
                 className={
-                  poll.status === "locked" || poll.status === "resolved"
+                  poll.status === "locked" || poll.status === "resolved" || poll.status === "cancelled"
                     ? "opacity-80"
                     : ""
                 }

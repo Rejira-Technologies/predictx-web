@@ -4,8 +4,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MOCK_STAKES, STORAGE_KEYS, type Stake } from "@/lib/mock-data";
 import {
-	calculatePotentialWinnings,
-	type WinningsCalculation,
+  calculatePotentialWinnings,
+  type WinningsCalculation,
 } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
@@ -50,6 +50,8 @@ function walletStakes(stakes: Stake[]): Stake[] {
 	if (!address) return [];
 	return stakes.filter((s) => s.wallet === address);
 }
+
+// ── Store ──────────────────────────────────────────────────────────────────
 
 export const useStaking = create<StakingState>()(
 	persist(

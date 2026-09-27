@@ -5,8 +5,9 @@ import { CreatePollButton } from "@/components/create-poll-button";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { useMockData } from "@/hooks/use-mock-data";
+import { usePollList } from "@/hooks/use-chain-data";
 import { GamingButton, GlowCard } from "@/components/shared";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { MatchStatsBar } from "@/components/match";
 
@@ -77,9 +78,14 @@ export default function MatchPage() {
       <div className="mx-auto max-w-7xl px-4 pb-16 lg:px-8 space-y-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="font-display text-2xl font-black uppercase text-primary text-glow-cyan mb-2">
-              Active Prediction Markets
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-2xl font-black uppercase text-primary text-glow-cyan mb-2">
+                Active Prediction Markets
+              </h2>
+              {isRefetching && (
+                <RefreshCw className="h-4 w-4 text-primary animate-spin mb-2" />
+              )}
+            </div>
             <p className="text-muted-foreground">
               Choose a poll and stake on the outcome you believe will happen
             </p>
@@ -92,7 +98,16 @@ export default function MatchPage() {
             <CreatePollButton matchId={params.id} />
           )}
         </div>
-        <PollsList matchId={params.id} />
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-40 rounded bg-surface border border-border animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <PollsList matchId={params.id} />
+        )}
       </div>
     </main>
   );

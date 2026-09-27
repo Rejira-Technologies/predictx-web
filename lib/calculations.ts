@@ -53,10 +53,9 @@ export function calculatePotentialWinnings(
 export function calculatePoolPercentages(yesPool: number, noPool: number) {
 	const total = yesPool + noPool;
 	if (!total) return { yes: 50, no: 50 };
-	return {
-		yes: Math.round((yesPool / total) * 100),
-		no: Math.round((noPool / total) * 100),
-	};
+	// Clamp so the pair always sums to 100
+	const yes = Math.round((yesPool / total) * 100);
+	return { yes, no: 100 - yes };
 }
 
 export function formatCurrency(

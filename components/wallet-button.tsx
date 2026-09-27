@@ -15,22 +15,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WalletConnectModal } from "./wallet-connect-modal";
 import { useWallet } from "@/hooks/use-wallet";
-import type { StellarNetwork } from "@/hooks/use-wallet";
+import type { StellarNetwork } from "@/lib/stellar";
 import { shortenAddress } from "@/lib/utils";
 import { formatXLM } from "@/lib/calculations";
 import { resetAllData } from "@/lib/mock-data";
 import Link from "next/link";
 import { toast } from "sonner";
 
+// ── Network display config ────────────────────────────────────────────────
+
 const NETWORK_CONFIG: Record<StellarNetwork, { label: string; color: string }> = {
   testnet: { label: "Testnet", color: "text-yellow-400" },
   mainnet: { label: "Mainnet", color: "text-green-400" },
 };
 
+// ── Component ─────────────────────────────────────────────────────────────
+
 export function WalletButton() {
   const [showConnectModal, setShowConnectModal] = useState(false);
 
-  const { isConnected, address, balance, disconnect, network, switchNetwork } = useWallet();
+  const {
+    isConnected,
+    address,
+    balance,
+    disconnect,
+    network,
+    switchNetwork,
+    networkMismatch,
+    refreshBalance,
+  } = useWallet();
 
   const copy = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
@@ -45,7 +58,8 @@ export function WalletButton() {
     }
   };
 
-  if (!isConnected)
+  // ── Not connected ─────────────────────────────────────────────────────
+  if (!isConnected) {
     return (
       <>
         <Button onClick={() => setShowConnectModal(true)}>
@@ -59,18 +73,42 @@ export function WalletButton() {
         />
       </>
     );
+  }
 
   const currentNet = NETWORK_CONFIG[network];
 
+  // ── Connected ─────────────────────────────────────────────────────────
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline">
-          <div className="flex flex-col items-start">
-            <div className="flex items-center gap-1.5">
-              <span>{shortenAddress(address)}</span>
-              <span className={`text-[10px] font-semibold uppercase ${currentNet.color}`}>
-                {currentNet.label}
+    <>
+      {/* Network mismatch warning banner (renders outside the dropdown) */}
+      {networkMismatch && (
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-xs font-semibold animate-pulse">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          Wrong network — switch Freighter to {NETWORK_CONFIG[network].label}
+        </div>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className={networkMismatch ? "border-amber-500/40" : undefined}
+          >
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1.5">
+                <span>{shortenAddress(address)}</span>
+                <span
+                  className={`text-[10px] font-semibold uppercase ${currentNet.color}`}
+                >
+                  {currentNet.label}
+                </span>
+                {networkMismatch && (
+                  <AlertTriangle className="h-3 w-3 text-amber-400" />
+                )}
+              </div>
+
+              <span className="text-xs text-primary">
+                {balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM
               </span>
             </div>
 
@@ -79,25 +117,21 @@ export function WalletButton() {
             </span>
           </div>
 
-          <ChevronDown className="ml-2 h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
+          <DropdownMenuItem onClick={copy}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy Address
+          </DropdownMenuItem>
 
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={copy}>
-          <Copy className="mr-2 h-4 w-4" />
-          Copy Address
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        {/* Network switcher */}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            <span>Network</span>
-            <span className={`ml-auto text-xs font-semibold ${currentNet.color}`}>
-              {currentNet.label}
+          <DropdownMenuItem
+            onClick={async () => {
+              await refreshBalance();
+              toast.success("Balance refreshed");
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh Balance
+            <span className="ml-auto text-xs text-muted-foreground font-mono">
+              {balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM
             </span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

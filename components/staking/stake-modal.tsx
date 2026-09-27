@@ -47,6 +47,7 @@ import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
 import { useStaking } from "@/hooks/use-staking";
 import { useMockData } from "@/hooks/use-mock-data";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
+import { SIMULATION_MODE } from "@/lib/stellar";
 
 import {
   GamingButton,
@@ -474,6 +475,7 @@ export function StakeModal({
   const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [hasStaked, setHasStaked] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -500,7 +502,7 @@ export function StakeModal({
   // ── Hooks ──────────────────────────────────────────────────────────────
 
   const { isConnected, address, balance } = useWallet();
-  const { placeStake, calculateWinnings } = useStaking();
+  const { placeStake, calculateWinnings, checkHasStaked } = useStaking();
 
   // ── Derived ────────────────────────────────────────────────────────────
 
@@ -588,6 +590,7 @@ export function StakeModal({
     stakeAmount >= MIN_STAKE_AMOUNT &&
     stakeAmount <= balanceUSD &&
     !isPollLocked &&
+    !hasStaked &&
     txStep === "idle";
 
   // ── Reset on open/close ────────────────────────────────────────────────
@@ -599,8 +602,16 @@ export function StakeModal({
       setTxStep("idle");
       setReceipt(null);
       setErrorMsg("");
+      setHasStaked(false);
     }
   }, [open, initialSide]);
+
+  // ── Check double-stake when modal opens ───────────────────────────────
+
+  useEffect(() => {
+    if (!open || !isConnected) return;
+    checkHasStaked(poll.id).then(setHasStaked).catch(() => setHasStaked(false));
+  }, [open, isConnected, poll.id, checkHasStaked]);
 
   // ── Keyboard handlers ──────────────────────────────────────────────────
 
@@ -793,6 +804,14 @@ export function StakeModal({
               <div className="p-6 md:p-8 space-y-6 flex-1">
                 {/* ─── Section 1: Poll Header ─── */}
                 <div className="space-y-3 pr-8">
+                  {/* Simulation mode indicator */}
+                  {SIMULATION_MODE && (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                      <Shield className="w-3 h-3" />
+                      Simulation Mode — no real funds
+                    </div>
+                  )}
+
                   <span className="inline-block px-2.5 py-1 rounded text-xs font-bold uppercase tracking-widest bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20">
                     {categoryLabel(poll.category)}
                   </span>
@@ -1233,7 +1252,12 @@ export function StakeModal({
 
               {/* ─── Section 7: Sticky Confirm ─── */}
               <div className="sticky bottom-0 p-6 md:p-8 pt-4 bg-gradient-to-t from-[#0e1230] via-[#0e1230]/95 to-transparent">
-                {isPollLocked ? (
+                {hasStaked ? (
+                  <div className="flex items-center gap-2 px-4 py-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    You have already staked on this poll. Only one stake per wallet is allowed.
+                  </div>
+                ) : isPollLocked ? (
                   <GamingButton
                     variant="ghost"
                     size="lg"

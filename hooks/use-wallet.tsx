@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { requestAccess, isConnected as checkFreighter } from "@stellar/freighter-api";
 import {
   MOCK_CONTRACT_ID,
   STELLAR_BASE_FEE,
@@ -13,6 +12,26 @@ import { STORAGE_KEYS } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { stellar } from "@/lib/stellar";
+
+// ── Error types ───────────────────────────────────────────────────────────
+
+export type WalletErrorCode =
+  | "NOT_INSTALLED"
+  | "USER_DENIED"
+  | "WRONG_NETWORK"
+  | "UNKNOWN";
+
+export class WalletError extends Error {
+  constructor(
+    public readonly code: WalletErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = "WalletError";
+  }
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────
 
 export interface ConnectPayload {
   address: string;
@@ -30,7 +49,7 @@ export interface TransactionReceipt {
   timestamp: string;
 }
 
-export type StellarNetwork = "testnet" | "mainnet";
+export type { StellarNetwork };
 
 /** Discriminated status for balance lookups. */
 export type BalanceStatus = "idle" | "loading" | "ok" | "error";
@@ -49,6 +68,10 @@ interface WalletState {
    */
   balanceError: string | null;
   network: StellarNetwork;
+  /** True when the Freighter wallet's active network ≠ the app's selected network */
+  networkMismatch: boolean;
+  /** Human-readable passphrase of the wallet's active network (from Freighter) */
+  walletNetworkPassphrase: string;
 
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -58,7 +81,7 @@ interface WalletState {
   refreshBalance: () => Promise<void>;
   sendTransaction: (
     amountUSD: number,
-    memo: string,
+    memo: string
   ) => Promise<TransactionReceipt>;
 }
 
@@ -135,12 +158,15 @@ export const useWallet = create<WalletState>()(
       balanceStatus: "idle",
       balanceError: null,
       network: "testnet" as StellarNetwork,
+      networkMismatch: false,
+      walletNetworkPassphrase: "",
 
+      // ── connect ──────────────────────────────────────────────────────────
       connect: async () => {
         set({ isConnecting: true });
 
         try {
-          // 1. Check if installed
+          // 1. Check if Freighter is installed
           const status = await checkFreighter();
           // Freighter v2 returns an object, v1 returned a boolean. This handles both!
           if (
@@ -153,6 +179,7 @@ export const useWallet = create<WalletState>()(
             return;
           }
 
+          // 2. Request permission / public key
           const accessResponse = await requestAccess();
 
           if ((accessResponse as any).error) {
@@ -165,7 +192,7 @@ export const useWallet = create<WalletState>()(
               : (accessResponse as any).address;
 
           if (!publicKey) {
-            throw new Error("Failed to retrieve public key");
+            throw new WalletError("UNKNOWN", "Failed to retrieve public key from Freighter.");
           }
 
           set({ balanceStatus: "loading", balanceError: null });
@@ -229,6 +256,7 @@ export const useWallet = create<WalletState>()(
         trackEvent({ name: "wallet_disconnect" });
         set({
           isConnected: false,
+          isConnecting: false,
           address: "",
           balance: 0,
           isConnecting: false,
@@ -237,8 +265,9 @@ export const useWallet = create<WalletState>()(
         });
       },
 
+      // ── switchNetwork ─────────────────────────────────────────────────────
       switchNetwork: async (network: StellarNetwork) => {
-        const { address, isConnected } = get();
+        const { address, isConnected, walletNetworkPassphrase } = get();
         set({ network });
 
         if (isConnected && address) {
@@ -318,15 +347,15 @@ export const useWallet = create<WalletState>()(
           balance: state.balance + amount,
         })),
 
+      // ── sendTransaction ───────────────────────────────────────────────────
       /**
-       * Simulates a Stellar transaction. Returns a mock receipt with
-       * a realistic tx hash, ledger number, stroops fee, etc.
-       * 95 % chance of success, 5 % simulated failure (network congestion).
+       * Simulates a Stellar transaction for mock/SIMULATION_MODE operation.
+       * Real contract calls go through lib/stellar.ts → stakeOnPoll().
        */
       sendTransaction: async (amountUSD, memo) => {
         const state = useWallet.getState();
         if (!state.isConnected || !state.address) {
-          throw new Error("Wallet not connected");
+          throw new WalletError("UNKNOWN", "Wallet not connected");
         }
 
         /**
@@ -374,8 +403,9 @@ export const useWallet = create<WalletState>()(
             "Network congestion — try again shortly",
             "Transaction timeout — Stellar Horizon did not respond",
           ];
-          throw new Error(
-            reasons[Math.floor(Math.random() * reasons.length)],
+          throw new WalletError(
+            "UNKNOWN",
+            reasons[Math.floor(Math.random() * reasons.length)]
           );
         }
 
@@ -391,7 +421,7 @@ export const useWallet = create<WalletState>()(
           ledger: 50_000_000 + Math.floor(Math.random() * 1_000_000),
           fee: `${STELLAR_BASE_FEE} stroops (${feeXLM.toFixed(7)} XLM)`,
           from: state.address,
-          to: MOCK_CONTRACT_ID,
+          to: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
           amount: amountUSD,
           amountXLM,
           timestamp: new Date().toISOString(),
