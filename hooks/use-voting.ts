@@ -6,6 +6,13 @@ import { STORAGE_KEYS, type Poll } from "@/lib/mock-data";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useStaking } from "@/hooks/use-staking";
 import { trackEvent } from "@/lib/analytics";
+import { useWallet } from "@/hooks/use-wallet";
+import {
+  VOTER_REWARD_MIN,
+  VOTER_REWARD_MAX,
+  AUTO_APPROVE_THRESHOLD,
+  XLM_USD_RATE,
+} from "@/lib/constants";
 
 export type VoteDecision = "yes" | "no" | "unclear";
 
@@ -48,8 +55,14 @@ export const useVoting = create<VotingState>()(
       getVoteReward: (pollId: string) => {
         const poll = useMockData.getState().getPoll(pollId);
         if (!poll) return 0;
-        // 0.5% of total pool as reward
-        return (poll.yesPool + poll.noPool) * 0.005;
+        const totalPool = poll.yesPool + poll.noPool;
+        if (totalPool <= 0) return 0;
+        // Interpolate rate between VOTER_REWARD_MIN (0.5%) and VOTER_REWARD_MAX (1%)
+        // based on vote participation/consensus ratio towards AUTO_APPROVE_THRESHOLD
+        const consensusRatio = Math.max(poll.yesPool, poll.noPool) / totalPool;
+        const progress = Math.min(1, Math.max(0, (consensusRatio - 0.5) / (AUTO_APPROVE_THRESHOLD - 0.5)));
+        const rate = VOTER_REWARD_MIN + (VOTER_REWARD_MAX - VOTER_REWARD_MIN) * progress;
+        return totalPool * rate;
       },
 
       castVote: async (pollId: string, decision: VoteDecision) => {
@@ -57,6 +70,10 @@ export const useVoting = create<VotingState>()(
         await new Promise((resolve) => setTimeout(resolve, 800));
 
         const reward = get().getVoteReward(pollId);
+        const rewardXLM = reward / XLM_USD_RATE;
+
+        // Credit the reward to the connected wallet balance
+        useWallet.getState().updateBalance(rewardXLM);
 
         set((state) => ({
           userVotes: { ...state.userVotes, [pollId]: decision },
