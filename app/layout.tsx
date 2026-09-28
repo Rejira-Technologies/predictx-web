@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/Header"
 import { HudBar } from "@/components/layout/hud-bar"
 import { PageTransition } from "@/components/layout/page-transition"
 import { ErrorHandlerMount } from "@/components/shared/error-handler-mount"
+import { WalletConnectModalRoot } from "@/components/wallet-connect-modal-root"
 
 
 // Display font - bold, all-caps, aggressive
@@ -83,6 +84,13 @@ export default function RootLayout({
         <Toaster theme="dark" position="bottom-right" />
         <Analytics />
         <MobileBottomNav />
+
+        {/*
+          Single WalletConnectModal instance for the entire app.
+          Open it from anywhere via: useUIStore.getState().openWalletConnect()
+          This prevents duplicate dialog roots and fragmented focus management.
+        */}
+        <WalletConnectModalRoot />
       </body>
     </html>
   )
