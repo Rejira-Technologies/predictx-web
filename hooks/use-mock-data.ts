@@ -22,6 +22,8 @@ interface MockDataState {
   getMatch: (id: string) => Match | undefined;
   getPolls: (matchId: string) => Poll[];
   getPoll: (pollId: string) => Poll | undefined;
+  /** Returns only matches whose status is "upcoming" — live and completed are excluded. */
+  getUpcomingMatches: () => Match[];
   trendingPolls: () => Poll[];
   /**
    * Update pool amounts and track distinct staker wallets.
@@ -74,6 +76,8 @@ export const useMockData = create<MockDataState>()(
       getPolls: (matchId) => get().polls.filter((p) => p.matchId === matchId),
 
       getPoll: (pollId) => get().polls.find((p) => p.id === pollId),
+
+      getUpcomingMatches: () => get().matches.filter((m) => m.status === "upcoming"),
 
       trendingPolls: () =>
         [...get().polls]

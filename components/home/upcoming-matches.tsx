@@ -51,14 +51,14 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 
 export function UpcomingMatches() {
     const shouldReduceMotion = useReducedMotion();
-    const matches = useMockData((state) => state.matches);
+    const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
     const getPolls = useMockData((state) => state.getPolls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-    const visibleMatches = filterMatches(matches ?? [], activeFilter);
+    const visibleMatches = filterMatches(upcomingMatches ?? [], activeFilter);
 
-    if (!matches || matches.length === 0) {
+    if (!upcomingMatches || upcomingMatches.length === 0) {
         return (
             <div id="matches" className="bg-background-secondary py-16 border-t border-primary/20">
                 <div className="mx-auto max-w-7xl px-4 lg:px-8 text-center flex flex-col items-center justify-center min-h-[400px]">
