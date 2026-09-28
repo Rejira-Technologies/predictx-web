@@ -5,9 +5,35 @@ import { Flame } from "lucide-react"
 import { PollCard } from "@/components/match/poll-card"
 import { useMockData } from "@/hooks/use-mock-data"
 
+/**
+ * TrendingPolls
+ *
+ * Subscribes narrowly to only the polls slice of the store so re-renders are
+ * triggered by actual pool/poll mutations rather than any store change.
+ *
+ * The ranking is recomputed inside useMemo with `polls` as the dependency, so
+ * staking on a poll correctly moves it up the trending list within the same
+ * session. Ties are broken by poll id for a stable sort.
+ */
 export function TrendingPolls() {
-  const { trendingPolls, getMatch } = useMockData()
-  const polls = useMemo(() => trendingPolls(), [trendingPolls])
+  // Narrow subscription — only re-render when the polls array reference changes.
+  const polls = useMockData((state) => state.polls)
+  // getMatch is a stable selector function; subscribe to it separately.
+  const getMatch = useMockData((state) => state.getMatch)
+
+  // Recompute ranking whenever the polls array changes (pool mutations, new polls, etc.)
+  const trendingPolls = useMemo(
+    () =>
+      [...polls]
+        .filter((p) => p.status === "active")
+        .sort((a, b) => {
+          const poolDiff = (b.yesPool + b.noPool) - (a.yesPool + a.noPool)
+          // Stable tie-break by id so ordering is deterministic for equal pools.
+          return poolDiff !== 0 ? poolDiff : a.id.localeCompare(b.id)
+        })
+        .slice(0, 6),
+    [polls],
+  )
 
   return (
     <section className="bg-background py-16">
@@ -36,7 +62,7 @@ export function TrendingPolls() {
 
         {/* Poll cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {polls.map((poll, index) => {
+          {trendingPolls.map((poll, index) => {
             const match = getMatch(poll.matchId)
             if (!match) return null
 
