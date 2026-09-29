@@ -12,14 +12,18 @@ import { getTeamColor } from "@/lib/team-colors";
 
 interface MatchCardProps {
     match: Match;
-    pollsCount: number;
+    /** Polls that are still accepting stakes. */
+    activePollsCount: number;
+    /** Polls that are closed and waiting on an outcome. */
+    awaitingResolutionCount: number;
     totalPool: number;
     index: number;
 }
 
 export function MatchCard({
     match,
-    pollsCount,
+    activePollsCount,
+    awaitingResolutionCount,
     totalPool,
     index,
 }: MatchCardProps) {
@@ -40,6 +44,12 @@ export function MatchCard({
     const isLive = match.status === "live";
     const isCompleted = match.status === "completed";
     const isUpcoming = match.status === "upcoming";
+
+    const hasActivePolls = activePollsCount > 0;
+    const activePollsLabel = hasActivePolls
+        ? `${activePollsCount} Active Poll${activePollsCount === 1 ? "" : "s"}`
+        : "Staking Closed";
+    const awaitingResolutionLabel = `${awaitingResolutionCount} poll${awaitingResolutionCount === 1 ? "" : "s"} awaiting resolution`;
 
     // Formatter for "Sat, Feb 21 • 15:00 GMT"
     const formattedDate = new Intl.DateTimeFormat("en-US", {
@@ -159,7 +169,9 @@ export function MatchCard({
                         </div>
                     ) : isCompleted ? (
                         <div className="col-span-2 mb-2 text-center text-amber-500 text-sm font-bold tracking-wide">
-                            {pollsCount} polls awaiting resolution
+                            {awaitingResolutionCount > 0
+                                ? awaitingResolutionLabel
+                                : "All polls resolved"}
                         </div>
                     ) : null}
 
@@ -178,10 +190,20 @@ export function MatchCard({
 
                 {/* Footer Stats */}
                 <div className="flex items-center justify-between pt-4 mt-2">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-background rounded-full border border-primary/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <div
+                        className={`flex items-center gap-2 px-3 py-1.5 bg-background rounded-full border ${
+                            hasActivePolls ? "border-primary/20" : "border-border"
+                        }`}
+                    >
+                        <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                                hasActivePolls
+                                    ? "bg-primary animate-pulse"
+                                    : "bg-muted-foreground"
+                            }`}
+                        />
                         <span className="text-xs font-bold text-foreground tracking-wide">
-                            {pollsCount} Active Polls
+                            {activePollsLabel}
                         </span>
                     </div>
                     <div className="font-mono font-bold text-gold text-glow-gold">
