@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { MatchCard } from "./match-card";
 import { useMockData } from "@/hooks/use-mock-data";
@@ -51,12 +51,35 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 
 export function UpcomingMatches() {
     const shouldReduceMotion = useReducedMotion();
-    const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
-    const getPolls = useMockData((state) => state.getPolls);
+    const matches = useMockData((state) => state.matches);
+    const polls = useMockData((state) => state.polls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
+    const upcomingMatches = useMemo(
+        () => matches.filter((m) => m.status === "upcoming"),
+        [matches]
+    );
+
     const visibleMatches = filterMatches(upcomingMatches ?? [], activeFilter);
+
+    const pollStatsByMatchId = useMemo(() => {
+        const map = new Map<string, { count: number; totalPool: number }>();
+        for (let i = 0; i < polls.length; i++) {
+            const p = polls[i];
+            const existing = map.get(p.matchId);
+            if (existing) {
+                existing.count += 1;
+                existing.totalPool += p.yesPool + p.noPool;
+            } else {
+                map.set(p.matchId, {
+                    count: 1,
+                    totalPool: p.yesPool + p.noPool,
+                });
+            }
+        }
+        return map;
+    }, [polls]);
 
     if (!upcomingMatches || upcomingMatches.length === 0) {
         return (
@@ -181,14 +204,15 @@ export function UpcomingMatches() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {visibleMatches.map((match, index) => {
-                            const matchPolls = getPolls(match.id);
-                            const totalPool = matchPolls.reduce((acc, p) => acc + p.yesPool + p.noPool, 0);
+                            const stats = pollStatsByMatchId.get(match.id);
+                            const pollsCount = stats ? stats.count : 0;
+                            const totalPool = stats ? stats.totalPool : 0;
 
                             return (
                                 <MatchCard
                                     key={match.id}
                                     match={match}
-                                    pollsCount={matchPolls.length}
+                                    pollsCount={pollsCount}
                                     totalPool={totalPool}
                                     index={index}
                                 />
