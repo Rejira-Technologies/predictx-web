@@ -72,3 +72,60 @@ describe("getUpcomingMatches selector", () => {
     expect(result).toHaveLength(3);
   });
 });
+
+describe("Upcoming matches pool totals and poll counts", () => {
+  it("updates match pool total when a stake is placed via updatePollPool", () => {
+    const matchId = "test-match-1";
+    const pollId = "test-poll-1";
+
+    useMockData.setState({
+      matches: [
+        {
+          id: matchId,
+          homeTeam: "Team X",
+          awayTeam: "Team Y",
+          kickoff: new Date().toISOString(),
+          status: "upcoming",
+          venue: "Main Stadium",
+        },
+      ],
+      polls: [
+        {
+          id: pollId,
+          matchId,
+          question: "Will Team X score first?",
+          status: "active",
+          yesPool: 100,
+          noPool: 50,
+          participants: 2,
+          stakeCount: 2,
+          stakers: ["G1", "G2"],
+          category: "team_event",
+          lockTime: "kickoff",
+        },
+      ],
+    });
+
+    const initialPolls = useMockData.getState().polls;
+    const initialMatchPolls = initialPolls.filter((p) => p.matchId === matchId);
+    const initialTotalPool = initialMatchPolls.reduce(
+      (acc, p) => acc + p.yesPool + p.noPool,
+      0,
+    );
+    expect(initialTotalPool).toBe(150);
+
+    useMockData.getState().updatePollPool(pollId, "yes", 50, "G3");
+
+    const updatedPolls = useMockData.getState().polls;
+    expect(updatedPolls).not.toBe(initialPolls);
+
+    const updatedMatchPolls = updatedPolls.filter((p) => p.matchId === matchId);
+    const updatedTotalPool = updatedMatchPolls.reduce(
+      (acc, p) => acc + p.yesPool + p.noPool,
+      0,
+    );
+    expect(updatedTotalPool).toBe(200);
+    expect(updatedMatchPolls).toHaveLength(1);
+  });
+});
+
