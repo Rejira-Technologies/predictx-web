@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Clock, Users, Info, Lock, Zap } from "lucide-react"
-import { GamingButton } from "@/components/shared"
+import { GamingButton, TeamBadge } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { StakeModal } from "@/components/staking"
-import { WalletConnectModal } from "@/components/wallet-connect-modal"
 import { useWallet } from "@/hooks/use-wallet"
+import { useUIStore } from "@/lib/ui-store"
 import { useCountdown } from "@/hooks/use-countdown"
 import type { Poll, Match, PollCategory, LockTime } from "@/lib/mock-data"
 import { lockTimeLabel } from "@/lib/mock-data"
 import { getLockTargetISO, isPollLocked } from "@/lib/calculations"
+import { getTeamColor } from "@/lib/team-colors"
 
 export interface PollCardProps {
   poll: Poll & { timeLeft?: string; recentActivity?: string; isHottest?: boolean }
@@ -42,19 +43,6 @@ const CATEGORY_STYLES: Record<string, { label: string; className: string }> = {
   },
 }
 
-function TeamBadge({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase()
-  return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-background border border-border text-[9px] font-bold font-mono text-muted-foreground shrink-0">
-      {initials}
-    </span>
-  )
-}
 
 function CompactCountdown({
   kickoff,
@@ -107,8 +95,8 @@ export function PollCard({
 }: PollCardProps) {
   const router = useRouter()
   const { isConnected } = useWallet()
+  const { openWalletConnect } = useUIStore()
   const [showStakeModal, setShowStakeModal] = useState(false)
-  const [showWalletModal, setShowWalletModal] = useState(false)
   const [pendingStake, setPendingStake] = useState(false)
   const [initialSide, setInitialSide] = useState<"yes" | "no">("yes")
 
@@ -148,7 +136,6 @@ export function PollCard({
   useEffect(() => {
     if (isConnected && pendingStake) {
       setPendingStake(false)
-      setShowWalletModal(false)
       setShowStakeModal(true)
     }
   }, [isConnected, pendingStake])
@@ -168,7 +155,7 @@ export function PollCard({
       setShowStakeModal(true)
     } else {
       setPendingStake(true)
-      setShowWalletModal(true)
+      openWalletConnect()
     }
   }
 
@@ -219,11 +206,25 @@ export function PollCard({
             {match && (
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <TeamBadge name={match.homeTeam} />
+                  <TeamBadge
+                    team={{
+                      id: `home-${match.id}`,
+                      name: match.homeTeam,
+                      primaryColor: getTeamColor(match.homeTeam),
+                    }}
+                    size="sm"
+                  />
                   <span className="text-xs font-bold text-foreground truncate">
                     {match.homeTeam} vs {match.awayTeam}
                   </span>
-                  <TeamBadge name={match.awayTeam} />
+                  <TeamBadge
+                    team={{
+                      id: `away-${match.id}`,
+                      name: match.awayTeam,
+                      primaryColor: getTeamColor(match.awayTeam),
+                    }}
+                    size="sm"
+                  />
                 </div>
                 <CompactCountdown kickoff={match.kickoff} lockTime={poll.lockTime} />
               </div>
@@ -317,13 +318,6 @@ export function PollCard({
           matchName={effectiveMatchName}
           open={showStakeModal}
           onClose={() => setShowStakeModal(false)}
-        />
-        <WalletConnectModal
-          open={showWalletModal}
-          onClose={() => {
-            setShowWalletModal(false)
-            if (!isConnected) setPendingStake(false)
-          }}
         />
       </>
     )
