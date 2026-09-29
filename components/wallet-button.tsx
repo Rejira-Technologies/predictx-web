@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Wallet, ChevronDown, LogOut, Copy, Globe, ArrowRightLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +12,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { WalletConnectModal } from "./wallet-connect-modal";
 import { useWallet } from "@/hooks/use-wallet";
+import { useUIStore } from "@/hooks/use-ui-store";
 import type { StellarNetwork } from "@/hooks/use-wallet";
 import { shortenAddress } from "@/lib/utils";
 import { formatXLM } from "@/lib/calculations";
@@ -28,9 +27,8 @@ const NETWORK_CONFIG: Record<StellarNetwork, { label: string; color: string }> =
 };
 
 export function WalletButton() {
-  const [showConnectModal, setShowConnectModal] = useState(false);
-
   const { isConnected, address, balance, disconnect, network, switchNetwork } = useWallet();
+  const openWalletConnect = useUIStore((s) => s.openWalletConnect);
 
   const copy = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
@@ -47,17 +45,10 @@ export function WalletButton() {
 
   if (!isConnected)
     return (
-      <>
-        <Button onClick={() => setShowConnectModal(true)}>
-          <Wallet className="mr-2 h-4 w-4" />
-          Connect Wallet
-        </Button>
-
-        <WalletConnectModal
-          open={showConnectModal}
-          onClose={() => setShowConnectModal(false)}
-        />
-      </>
+      <Button onClick={() => openWalletConnect()}>
+        <Wallet className="mr-2 h-4 w-4" />
+        Connect Wallet
+      </Button>
     );
 
   const currentNet = NETWORK_CONFIG[network];
