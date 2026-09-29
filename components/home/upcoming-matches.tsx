@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { MatchCard } from "./match-card";
 import { useMockData } from "@/hooks/use-mock-data";
+import { countPollsByStatus } from "@/lib/poll-status";
 import { GamingButton } from "@/components/shared/gaming-button";
 import type { Match } from "@/lib/mock-data";
 
@@ -52,7 +53,7 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 export function UpcomingMatches() {
     const shouldReduceMotion = useReducedMotion();
     const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
-    const getPolls = useMockData((state) => state.getPolls);
+    const polls = useMockData((state) => state.polls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
@@ -181,14 +182,16 @@ export function UpcomingMatches() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {visibleMatches.map((match, index) => {
-                            const matchPolls = getPolls(match.id);
+                            const matchPolls = polls.filter((p) => p.matchId === match.id);
+                            const { active, awaitingResolution } = countPollsByStatus(matchPolls);
                             const totalPool = matchPolls.reduce((acc, p) => acc + p.yesPool + p.noPool, 0);
 
                             return (
                                 <MatchCard
                                     key={match.id}
                                     match={match}
-                                    pollsCount={matchPolls.length}
+                                    activePollsCount={active}
+                                    awaitingResolutionCount={awaitingResolution}
                                     totalPool={totalPool}
                                     index={index}
                                 />
