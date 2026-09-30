@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { MATCHES, type Poll, type PollCategory, type LockTime } from "@/lib/mock-data";
 import { POLL_QUESTION_MIN_LENGTH, POLL_QUESTION_MAX_LENGTH } from "@/lib/constants";
+import { LOCK_OFFSET_MINUTES } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
@@ -137,11 +138,11 @@ function getLockDisplay(lockTime: LockTime | "custom" | "", customLockTime: stri
     const kick = new Date(kickoff);
     if (lockTime === "kickoff") return `Locks at kickoff — ${formatKickoff(kickoff)}`;
     if (lockTime === "halftime") {
-        kick.setMinutes(kick.getMinutes() + 45);
+        kick.setMinutes(kick.getMinutes() + LOCK_OFFSET_MINUTES.halftime);
         return `Locks at halftime — ${formatKickoff(kick.toISOString())}`;
     }
     if (lockTime === "60min") {
-        kick.setMinutes(kick.getMinutes() + 60);
+        kick.setMinutes(kick.getMinutes() + LOCK_OFFSET_MINUTES["60min"]);
         return `Locks at 60' — ${formatKickoff(kick.toISOString())}`;
     }
     if (lockTime === "custom" && customLockTime)
