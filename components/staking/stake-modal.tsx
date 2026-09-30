@@ -507,6 +507,17 @@ export function StakeModal({
   const stakeAmount = Number.parseFloat(amount) || 0;
   const balanceUSD = balance * XLM_USD_RATE;
 
+  /**
+   * Maximum allowed stake in USD.
+   *
+   * Derived from the user's available balance and MAX_STAKE_MULTIPLIER (1×).
+   * A multiplier of 1 means users may stake at most 100 % of their balance
+   * in a single transaction, clamped to the actual balance so it cannot
+   * exceed what they hold. Adjust MAX_STAKE_MULTIPLIER in lib/constants.ts
+   * if the product ever introduces credit / margin features.
+   */
+  const maxStakeUSD = Math.min(balanceUSD * MAX_STAKE_MULTIPLIER, balanceUSD);
+
   const winnings = useMemo(
     () =>
       stakeAmount > 0
@@ -574,18 +585,21 @@ export function StakeModal({
   const validationError = useMemo(() => {
     if (stakeAmount <= 0) return null; // no error when empty
     if (stakeAmount < MIN_STAKE_AMOUNT) return `Minimum stake is ${formatCurrency(MIN_STAKE_AMOUNT)}`;
+    if (stakeAmount > maxStakeUSD)
+      return `Maximum stake is ${formatCurrency(maxStakeUSD)} (${MAX_STAKE_MULTIPLIER * 100}% of balance)`;
     if (stakeAmount > balanceUSD) return "Insufficient balance";
     return null;
-  }, [stakeAmount, balanceUSD]);
+  }, [stakeAmount, balanceUSD, maxStakeUSD]);
 
   const balanceWarning =
-    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && !validationError
+    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && stakeAmount <= maxStakeUSD && !validationError
       ? "This is more than half your balance"
       : null;
 
   const canSubmit =
     isConnected &&
     stakeAmount >= MIN_STAKE_AMOUNT &&
+    stakeAmount <= maxStakeUSD &&
     stakeAmount <= balanceUSD &&
     !isPollLocked &&
     txStep === "idle";
@@ -958,7 +972,12 @@ export function StakeModal({
                         variant="ghost"
                         size="sm"
                         className="flex-1 text-xs"
-                        onClick={() => setAmount(v.toString())}
+                        onClick={() =>
+                          setAmount(
+                            String(Math.min(v, maxStakeUSD))
+                          )
+                        }
+                        disabled={v > maxStakeUSD}
                       >
                         ${v}
                       </GamingButton>
@@ -969,7 +988,7 @@ export function StakeModal({
                       className="flex-1 text-xs"
                       onClick={() =>
                         setAmount(
-                          Math.floor(balanceUSD * 100) / 100 + ""
+                          (Math.floor(maxStakeUSD * 100) / 100).toString()
                         )
                       }
                     >
