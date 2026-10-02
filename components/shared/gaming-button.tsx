@@ -19,36 +19,55 @@ interface GamingButtonProps {
   type?: "button" | "submit" | "reset";
 }
 
+/** RGB channel tuples used to build alpha-correct rgba() strings at use-site. */
+const variantChannels = {
+  primary: { r: 0,   g: 217, b: 255, text: "#00d9ff" },
+  success: { r: 57,  g: 255, b: 20,  text: "#39ff14" },
+  danger:  { r: 255, g: 0,   b: 110, text: "#ff006e" },
+  gold:    { r: 255, g: 215, b: 0,   text: "#ffd700" },
+  ghost:   { r: 0,   g: 217, b: 255, text: "#00d9ff" },
+};
+
+/** Build a valid rgba() string from channel tuple + alpha. */
+function rgba(channels: { r: number; g: number; b: number }, alpha: number): string {
+  return `rgba(${channels.r}, ${channels.g}, ${channels.b}, ${alpha})`;
+}
+
 const variantStyles = {
   primary: {
-    bg: "linear-gradient(135deg, rgba(0, 217, 255, 0.2) 0%, rgba(0, 217, 255, 0.05) 100%)",
-    border: "rgba(0, 217, 255, 0.4)",
-    glow: "rgba(0, 217, 255, 0.5)",
-    text: "#00d9ff",
+    bg: `linear-gradient(135deg, ${rgba(variantChannels.primary, 0.2)} 0%, ${rgba(variantChannels.primary, 0.05)} 100%)`,
+    border: rgba(variantChannels.primary, 0.4),
+    glow: rgba(variantChannels.primary, 0.5),
+    glowChannels: variantChannels.primary,
+    text: variantChannels.primary.text,
   },
   success: {
-    bg: "linear-gradient(135deg, rgba(57, 255, 20, 0.2) 0%, rgba(57, 255, 20, 0.05) 100%)",
-    border: "rgba(57, 255, 20, 0.4)",
-    glow: "rgba(57, 255, 20, 0.5)",
-    text: "#39ff14",
+    bg: `linear-gradient(135deg, ${rgba(variantChannels.success, 0.2)} 0%, ${rgba(variantChannels.success, 0.05)} 100%)`,
+    border: rgba(variantChannels.success, 0.4),
+    glow: rgba(variantChannels.success, 0.5),
+    glowChannels: variantChannels.success,
+    text: variantChannels.success.text,
   },
   danger: {
-    bg: "linear-gradient(135deg, rgba(255, 0, 110, 0.2) 0%, rgba(255, 0, 110, 0.05) 100%)",
-    border: "rgba(255, 0, 110, 0.4)",
-    glow: "rgba(255, 0, 110, 0.5)",
-    text: "#ff006e",
+    bg: `linear-gradient(135deg, ${rgba(variantChannels.danger, 0.2)} 0%, ${rgba(variantChannels.danger, 0.05)} 100%)`,
+    border: rgba(variantChannels.danger, 0.4),
+    glow: rgba(variantChannels.danger, 0.5),
+    glowChannels: variantChannels.danger,
+    text: variantChannels.danger.text,
   },
   gold: {
-    bg: "linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%)",
-    border: "rgba(255, 215, 0, 0.4)",
-    glow: "rgba(255, 215, 0, 0.5)",
-    text: "#ffd700",
+    bg: `linear-gradient(135deg, ${rgba(variantChannels.gold, 0.2)} 0%, ${rgba(variantChannels.gold, 0.05)} 100%)`,
+    border: rgba(variantChannels.gold, 0.4),
+    glow: rgba(variantChannels.gold, 0.5),
+    glowChannels: variantChannels.gold,
+    text: variantChannels.gold.text,
   },
   ghost: {
     bg: "transparent",
-    border: "rgba(0, 217, 255, 0.3)",
-    glow: "rgba(0, 217, 255, 0.3)",
-    text: "#00d9ff",
+    border: rgba(variantChannels.ghost, 0.3),
+    glow: rgba(variantChannels.ghost, 0.3),
+    glowChannels: variantChannels.ghost,
+    text: variantChannels.ghost.text,
   },
 };
 
@@ -122,8 +141,8 @@ function GamingButtonShell({
     boxShadow: isDisabled
       ? "none"
       : isHovered
-        ? `0 0 30px ${styles.glow}, inset 0 0 20px ${styles.glow}30`
-        : `0 0 15px ${styles.glow}50, inset 0 0 10px ${styles.glow}20`,
+        ? `0 0 30px ${styles.glow}, inset 0 0 20px ${rgba(styles.glowChannels, 0.19)}`
+        : `0 0 15px ${rgba(styles.glowChannels, 0.31)}, inset 0 0 10px ${rgba(styles.glowChannels, 0.13)}`,
     color: styles.text,
     textShadow: isHovered
       ? `0 0 10px ${styles.glow}, 0 0 20px ${styles.glow}`
@@ -158,7 +177,7 @@ function GamingButtonShell({
           background: `linear-gradient(
             90deg,
             transparent 0%,
-            ${styles.glow}10 50%,
+            ${rgba(styles.glowChannels, 0.063)} 50%,
             transparent 100%
           )`,
           backgroundSize: "200% 100%",
