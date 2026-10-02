@@ -12,31 +12,50 @@ interface GlowCardProps {
   children: ReactNode;
 }
 
+/** RGB channel tuples used to build alpha-correct rgba() strings at use-site. */
+const variantChannels = {
+  default: { r: 0,   g: 217, b: 255 },
+  success: { r: 57,  g: 255, b: 20  },
+  danger:  { r: 255, g: 0,   b: 110 },
+  gold:    { r: 255, g: 215, b: 0   },
+  primary: { r: 0,   g: 217, b: 255 },
+};
+
+/** Build a valid rgba() string from a channel tuple + alpha. */
+function rgba(ch: { r: number; g: number; b: number }, alpha: number): string {
+  return `rgba(${ch.r}, ${ch.g}, ${ch.b}, ${alpha})`;
+}
+
 const variantStyles = {
   default: {
-    border: "rgba(0, 217, 255, 0.3)",
-    glow: "rgba(0, 217, 255, 0.4)",
-    innerGlow: "rgba(0, 217, 255, 0.1)",
+    border: rgba(variantChannels.default, 0.3),
+    glow: rgba(variantChannels.default, 0.4),
+    innerGlow: rgba(variantChannels.default, 0.1),
+    channels: variantChannels.default,
   },
   success: {
-    border: "rgba(57, 255, 20, 0.3)",
-    glow: "rgba(57, 255, 20, 0.4)",
-    innerGlow: "rgba(57, 255, 20, 0.1)",
+    border: rgba(variantChannels.success, 0.3),
+    glow: rgba(variantChannels.success, 0.4),
+    innerGlow: rgba(variantChannels.success, 0.1),
+    channels: variantChannels.success,
   },
   danger: {
-    border: "rgba(255, 0, 110, 0.3)",
-    glow: "rgba(255, 0, 110, 0.4)",
-    innerGlow: "rgba(255, 0, 110, 0.1)",
+    border: rgba(variantChannels.danger, 0.3),
+    glow: rgba(variantChannels.danger, 0.4),
+    innerGlow: rgba(variantChannels.danger, 0.1),
+    channels: variantChannels.danger,
   },
   gold: {
-    border: "rgba(255, 215, 0, 0.3)",
-    glow: "rgba(255, 215, 0, 0.4)",
-    innerGlow: "rgba(255, 215, 0, 0.1)",
+    border: rgba(variantChannels.gold, 0.3),
+    glow: rgba(variantChannels.gold, 0.4),
+    innerGlow: rgba(variantChannels.gold, 0.1),
+    channels: variantChannels.gold,
   },
   primary: {
-    border: "rgba(0, 217, 255, 0.3)",
-    glow: "rgba(0, 217, 255, 0.4)",
-    innerGlow: "rgba(0, 217, 255, 0.1)",
+    border: rgba(variantChannels.primary, 0.3),
+    glow: rgba(variantChannels.primary, 0.4),
+    innerGlow: rgba(variantChannels.primary, 0.1),
+    channels: variantChannels.primary,
   },
 };
 
@@ -48,7 +67,11 @@ export function GlowCard({
   children,
 }: GlowCardProps) {
   const styles = variantStyles[variant as keyof typeof variantStyles] || variantStyles.default;
+  // customGlow is used for full-opacity values; alpha variants are built from channels.
   const customGlow = glowColor || styles.glow;
+  // When a custom glowColor string is provided we fall back to the variant channels
+  // for alpha-correct variants (we cannot parse an arbitrary CSS color string).
+  const glowCh = styles.channels;
 
   return (
     <motion.div
@@ -78,7 +101,7 @@ export function GlowCard({
       <div
         className="absolute inset-[1px] pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${styles.border}40 0%, transparent 50%, ${styles.border}40 100%)`,
+          background: `linear-gradient(135deg, ${rgba(glowCh, 0.25)} 0%, transparent 50%, ${rgba(glowCh, 0.25)} 100%)`,
           clipPath:
             "polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px)",
         }}
@@ -90,9 +113,9 @@ export function GlowCard({
           className="absolute inset-0 pointer-events-none"
           animate={{
             boxShadow: [
-              `inset 0 0 20px ${styles.innerGlow}, 0 0 20px ${customGlow}30`,
-              `inset 0 0 30px ${styles.innerGlow}, 0 0 40px ${customGlow}50`,
-              `inset 0 0 20px ${styles.innerGlow}, 0 0 20px ${customGlow}30`,
+              `inset 0 0 20px ${styles.innerGlow}, 0 0 20px ${rgba(glowCh, 0.19)}`,
+              `inset 0 0 30px ${styles.innerGlow}, 0 0 40px ${rgba(glowCh, 0.31)}`,
+              `inset 0 0 20px ${styles.innerGlow}, 0 0 20px ${rgba(glowCh, 0.19)}`,
             ],
           }}
           transition={{
@@ -122,9 +145,9 @@ export function GlowCard({
           background: `linear-gradient(
             135deg,
             transparent 0%,
-            ${customGlow}08 25%,
-            ${customGlow}05 50%,
-            ${customGlow}08 75%,
+            ${rgba(glowCh, 0.031)} 25%,
+            ${rgba(glowCh, 0.02)} 50%,
+            ${rgba(glowCh, 0.031)} 75%,
             transparent 100%
           )`,
           backgroundSize: "200% 200%",
@@ -135,8 +158,8 @@ export function GlowCard({
       <div
         className="absolute inset-0 pointer-events-none opacity-30"
         style={{
-          backgroundImage: `linear-gradient(${customGlow}10 1px, transparent 1px),
-            linear-gradient(90deg, ${customGlow}10 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(${rgba(glowCh, 0.063)} 1px, transparent 1px),
+            linear-gradient(90deg, ${rgba(glowCh, 0.063)} 1px, transparent 1px)`,
           backgroundSize: "20px 20px",
         }}
       />
@@ -149,8 +172,8 @@ export function GlowCard({
             0deg,
             transparent,
             transparent 2px,
-            ${customGlow}05 2px,
-            ${customGlow}05 4px
+            ${rgba(glowCh, 0.02)} 2px,
+            ${rgba(glowCh, 0.02)} 4px
           )`,
         }}
       />

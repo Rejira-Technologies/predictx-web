@@ -845,17 +845,22 @@ export function StakeModal({
                       const color =
                         s === "yes"
                           ? {
+                            r: 0, g: 217, b: 255,
                             bg: "rgba(0,217,255,0.15)",
                             border: "rgba(0,217,255,0.6)",
                             glow: "rgba(0,217,255,0.5)",
                             text: "#00d9ff",
                           }
                           : {
+                            r: 255, g: 0, b: 110,
                             bg: "rgba(255,0,110,0.15)",
                             border: "rgba(255,0,110,0.6)",
                             glow: "rgba(255,0,110,0.5)",
                             text: "#ff006e",
                           };
+                      /** Build alpha-correct rgba from the color's own channels. */
+                      const colorRgba = (alpha: number) =>
+                        `rgba(${color.r},${color.g},${color.b},${alpha})`;
 
                       return (
                         <motion.button
@@ -872,9 +877,9 @@ export function StakeModal({
                             clipPath:
                               "polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)",
                             background: isSelected ? color.bg : "transparent",
-                            border: `2px solid ${isSelected ? color.border : color.border + "40"}`,
+                            border: `2px solid ${isSelected ? color.border : colorRgba(0.25)}`,
                             boxShadow: isSelected
-                              ? `0 0 25px ${color.glow}, inset 0 0 15px ${color.glow}30`
+                              ? `0 0 25px ${color.glow}, inset 0 0 15px ${colorRgba(0.19)}`
                               : "none",
                             color: color.text,
                           }}
@@ -900,7 +905,7 @@ export function StakeModal({
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.4 }}
                                 style={{
-                                  background: `radial-gradient(circle at center, ${color.glow}40 0%, transparent 70%)`,
+                                  background: `radial-gradient(circle at center, ${colorRgba(0.25)} 0%, transparent 70%)`,
                                 }}
                               />
                             )}
