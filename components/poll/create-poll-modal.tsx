@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { MATCHES, type Poll, type PollCategory, type LockTime } from "@/lib/mock-data";
 import { POLL_QUESTION_MIN_LENGTH, POLL_QUESTION_MAX_LENGTH } from "@/lib/constants";
+import { getLockTargetISO } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
@@ -317,6 +318,20 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
         try {
             await sendTransaction(CREATE_POLL_FEE_XLM, `Create poll: ${form.question}`);
 
+            // Compute the actual lock timestamp to persist on the poll so
+            // downstream countdowns and stake gates always honour the exact
+            // time the creator set — regardless of what lockTime variant is used.
+            let lockTargetISO: string | undefined;
+            if (resolvedMatch) {
+                if (form.lockTime === "custom" && form.customLockTime) {
+                    // Use the creator's explicit datetime directly
+                    lockTargetISO = new Date(form.customLockTime).toISOString();
+                } else if (form.lockTime && form.lockTime !== "custom") {
+                    // Derive from kickoff + standard offset
+                    lockTargetISO = getLockTargetISO(resolvedMatch.kickoff, form.lockTime as LockTime);
+                }
+            }
+
             const newPoll: Poll = {
                 id: generatePollId(),
                 matchId: form.matchId,
@@ -329,6 +344,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                 stakers: [],
                 status: "active",
                 lockTime: (form.lockTime === "custom" ? "kickoff" : form.lockTime) as LockTime,
+                lockTargetISO,
                 recentActivity: "Just created",
             };
 

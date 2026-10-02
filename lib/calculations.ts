@@ -140,18 +140,42 @@ export type LockTimeKey = keyof typeof LOCK_OFFSET_MINUTES;
  */
 export function getLockTimestamp(
 	kickoff: string,
-	lockTime: LockTimeKey,
+	lockTime: LockTimeKey | string,
 ): number {
 	const k = new Date(kickoff).getTime();
 	if (Number.isNaN(k)) return Number.NaN;
-	return k + LOCK_OFFSET_MINUTES[lockTime] * 60_000;
+	if (lockTime in LOCK_OFFSET_MINUTES) {
+		return k + LOCK_OFFSET_MINUTES[lockTime as LockTimeKey] * 60_000;
+	}
+	// Custom lock time stored as ISO string
+	const custom = new Date(lockTime).getTime();
+	if (!Number.isNaN(custom)) return custom;
+	return Number.NaN;
 }
 
 /** `getLockTimestamp` as an ISO string, for `useCountdown` and `<time>` elements. */
-export function getLockTargetISO(kickoff: string, lockTime: LockTimeKey): string {
-	const t = getLockTimestamp(kickoff, lockTime);
-	if (Number.isNaN(t)) return kickoff;
-	return new Date(t).toISOString();
+export function getLockTargetISO(
+	kickoff: string,
+	lockTime: LockTimeKey | string,
+	lockTargetISO?: string,
+): string {
+	// Prefer an explicit lock timestamp when one has been persisted on the poll
+	// (created with "custom" lock or pre-computed on creation).
+	if (lockTargetISO) return lockTargetISO;
+
+	// For known preset keys, derive from kickoff + offset
+	if (lockTime in LOCK_OFFSET_MINUTES) {
+		const t = getLockTimestamp(kickoff, lockTime as LockTimeKey);
+		if (Number.isNaN(t)) return kickoff;
+		return new Date(t).toISOString();
+	}
+
+	// Unknown value: treat as an already-computed ISO string (custom lock stored
+	// directly on poll.lockTime for backward-compat with older persisted data).
+	const d = new Date(lockTime);
+	if (!Number.isNaN(d.getTime())) return lockTime;
+
+	return kickoff;
 }
 
 /**
@@ -167,25 +191,40 @@ export function getLockTargetISO(kickoff: string, lockTime: LockTimeKey): string
  * @param now Injected for testing; defaults to the current time.
  */
 export function isPollLocked(
-	poll: { status?: string; lockTime: LockTimeKey },
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 	now: number = Date.now(),
 ): boolean {
 	if (!match) return false;
 	if (poll.status && poll.status !== "active") return true;
-	const lock = getLockTimestamp(match.kickoff, poll.lockTime);
+
+	// Prefer an explicit lock timestamp if present
+	if (poll.lockTargetISO) {
+		const t = new Date(poll.lockTargetISO).getTime();
+		if (!Number.isNaN(t)) return now >= t;
+	}
+
+	if (!(poll.lockTime in LOCK_OFFSET_MINUTES)) {
+		// Treat as ISO datetime (custom lock stored directly on lockTime)
+		const t = new Date(poll.lockTime).getTime();
+		if (!Number.isNaN(t)) return now >= t;
+		return false;
+	}
+
+	const lock = getLockTimestamp(match.kickoff, poll.lockTime as LockTimeKey);
 	if (Number.isNaN(lock)) return false;
 	return now >= lock;
 }
 
 /** Whole milliseconds until the lock, floored at 0. Drives countdown displays. */
 export function msUntilLock(
-	poll: { lockTime: LockTimeKey },
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 	now: number = Date.now(),
 ): number {
 	if (!match) return 0;
-	const lock = getLockTimestamp(match.kickoff, poll.lockTime);
+	const lockISO = getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO);
+	const lock = new Date(lockISO).getTime();
 	if (Number.isNaN(lock)) return 0;
 	return Math.max(0, lock - now);
 }
@@ -209,11 +248,12 @@ export const VOTING_WINDOW_MS = 2 * 60 * 60 * 1000;
  * poll is not treated as having locked at kickoff.
  */
 export function getVotingDeadline(
-	poll: { lockTime: LockTimeKey },
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 ): number {
 	if (!match) return Number.NaN;
-	const lock = getLockTimestamp(match.kickoff, poll.lockTime);
+	const lockISO = getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO);
+	const lock = new Date(lockISO).getTime();
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
 }
@@ -228,7 +268,7 @@ export function getVotingDeadline(
  * the moment of the write.
  */
 export function isVotingOpen(
-	poll: { status?: string; lockTime: LockTimeKey },
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 	now: number = Date.now(),
 ): boolean {
@@ -243,7 +283,7 @@ export function isVotingOpen(
 
 /** ISO form of {@link getVotingDeadline}, for `CountdownTimer`. */
 export function getVotingDeadlineISO(
-	poll: { lockTime: LockTimeKey },
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 ): string {
 	const t = getVotingDeadline(poll, match);
