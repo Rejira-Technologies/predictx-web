@@ -95,9 +95,20 @@ export interface Poll {
   /** Wallet addresses of every distinct staker; used to compute `participants`. */
   stakers: string[];
   status: PollStatus;
-  lockTime: LockTime;
+  lockTime: LockTime | string;
   recentActivity: string;
   outcome?: "yes" | "no";
+  /**
+   * The computed ISO timestamp at which this poll locks (no new stakes accepted).
+   *
+   * - For polls created with a preset lock (kickoff/halftime/60min) this is
+   *   derived from the match kickoff + the lock offset.
+   * - For polls created with a "custom" lock time, this stores the exact
+   *   datetime the creator selected.
+   * - When present, getLockTargetISO prefers this field over re-deriving from
+   *   kickoff + offset so the countdown is always correct.
+   */
+  lockTargetISO?: string;
 }
 
 export interface Stake {
@@ -115,6 +126,10 @@ export interface Stake {
   profit?: number;
   roi?: number;
   resolutionNote?: string;
+  /** Gross payout before platform fee — populated on won completed stakes. */
+  grossPayout?: number;
+  /** Whether the user has claimed winnings for this won completed stake. */
+  claimed?: boolean;
 }
 
 export interface VotingOpportunity {
@@ -794,6 +809,7 @@ export const MOCK_STAKES: Stake[] = [
     amount: 100,
     status: "completed",
     outcome: "won",
+    grossPayout: 150,
     profit: calculateCompletedPayout(100, 150).profit,
     roi: calculateCompletedPayout(100, 150).roi,
     wallet: SEED_WALLET,
@@ -808,6 +824,7 @@ export const MOCK_STAKES: Stake[] = [
     amount: 200,
     status: "completed",
     outcome: "won",
+    grossPayout: 320,
     profit: calculateCompletedPayout(200, 320).profit,
     roi: calculateCompletedPayout(200, 320).roi,
     wallet: SEED_WALLET,
@@ -822,6 +839,7 @@ export const MOCK_STAKES: Stake[] = [
     amount: 250,
     status: "completed",
     outcome: "won",
+    grossPayout: 437,
     profit: calculateCompletedPayout(250, 437).profit,
     roi: calculateCompletedPayout(250, 437).roi,
     wallet: SEED_WALLET,
@@ -836,6 +854,7 @@ export const MOCK_STAKES: Stake[] = [
     amount: 400,
     status: "completed",
     outcome: "won",
+    grossPayout: 750,
     profit: calculateCompletedPayout(400, 750).profit,
     roi: calculateCompletedPayout(400, 750).roi,
     wallet: SEED_WALLET,
