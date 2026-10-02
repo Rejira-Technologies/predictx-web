@@ -47,11 +47,13 @@ const CATEGORY_STYLES: Record<string, { label: string; className: string }> = {
 function CompactCountdown({
   kickoff,
   lockTime,
+  lockTargetISO,
 }: {
   kickoff: string
-  lockTime: LockTime
+  lockTime: LockTime | string
+  lockTargetISO?: string
 }) {
-  const targetISO = getLockTargetISO(kickoff, lockTime)
+  const targetISO = getLockTargetISO(kickoff, lockTime, lockTargetISO)
   const { days, hours, minutes, seconds, isExpired, status } = useCountdown(targetISO)
 
   const colorClass = {
@@ -226,7 +228,7 @@ export function PollCard({
                     size="sm"
                   />
                 </div>
-                <CompactCountdown kickoff={match.kickoff} lockTime={poll.lockTime} />
+                <CompactCountdown kickoff={match.kickoff} lockTime={poll.lockTime} lockTargetISO={poll.lockTargetISO} />
               </div>
             )}
 
