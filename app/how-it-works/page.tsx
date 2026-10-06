@@ -1,10 +1,8 @@
 import { HowItWorksContent } from "@/components/how-it-works-content"
-import { BackgroundEffects } from "@/components/shared"
 
 export default function HowItWorksPage() {
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden">
-      <BackgroundEffects />
+    <main className="min-h-screen relative overflow-hidden">
 
       {/* Section 1: Page Hero */}
       <div className="relative pt-20 pb-16 md:pt-32 md:pb-24 border-b border-primary/10">

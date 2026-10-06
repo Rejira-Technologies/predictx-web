@@ -11,6 +11,7 @@ import { HudBar } from "@/components/layout/hud-bar"
 import { PageTransition } from "@/components/layout/page-transition"
 import { ErrorHandlerMount } from "@/components/shared/error-handler-mount"
 import { WalletConnectModalRoot } from "@/components/wallet-connect-modal-root"
+import { BackgroundEffects } from "@/components/shared"
 
 
 // Display font - bold, all-caps, aggressive
@@ -74,6 +75,14 @@ export default function RootLayout({
         <Header />
         {/* HudBar handles both desktop (fixed below header) and mobile (fixed above bottom nav) */}
         <HudBar />
+
+        {/*
+          BackgroundEffects is mounted once here at root level so it renders
+          behind all page content. Individual pages must NOT add it again or
+          wrap it in an opaque container — doing so hides it behind the
+          parent background paint order.
+        */}
+        <BackgroundEffects />
 
         {/* Content: pad for header (4rem) on desktop */}
         <div className="md:pt-16 pb-16 md:pb-0" />
