@@ -5,10 +5,13 @@ import { persist } from "zustand/middleware";
 import { MOCK_STAKES, STORAGE_KEYS, type Stake } from "@/lib/mock-data";
 import {
 	calculatePotentialWinnings,
+	calculateCompletedPayout,
 	type WinningsCalculation,
 } from "@/lib/calculations";
+import { XLM_USD_RATE } from "@/lib/constants";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
+import { useTransactions } from "@/hooks/use-transactions";
 import { trackEvent } from "@/lib/analytics";
 
 interface StakingState {
@@ -38,6 +41,13 @@ interface StakingState {
 		yesPool: number,
 		noPool: number,
 	) => WinningsCalculation;
+
+	/**
+	 * Claim winnings for a won, unclaimed completed stake.
+	 * Computes net payout (gross − 5% fee), credits wallet balance in XLM,
+	 * and records a claim transaction.
+	 */
+	claimStake: (stakeId: string) => Promise<{ netPayout: number; netPayoutXLM: number }>;
 
 	/** Remove all stakes that belong to the given wallet address.
 	 *  Called on disconnect so the next wallet starts with a clean slate. */
@@ -119,6 +129,48 @@ export const useStaking = create<StakingState>()(
 
 			calculateWinnings: (amount, side, yesPool, noPool) =>
 				calculatePotentialWinnings(amount, side, yesPool, noPool),
+
+			claimStake: async (stakeId: string) => {
+				const stake = get().stakes.find((s) => s.id === stakeId);
+				if (!stake) throw new Error("Stake not found");
+				if (stake.status !== "completed") throw new Error("Stake is not completed");
+				if (stake.outcome !== "won") throw new Error("Stake was not won");
+				if (stake.claimed) throw new Error("Winnings already claimed");
+
+				// Determine gross payout: use stored grossPayout or derive from profit
+				const grossPayout =
+					stake.grossPayout ??
+					(stake.profit != null
+						? stake.amount + stake.profit / (1 - 0.05)
+						: stake.amount);
+
+				const payout = calculateCompletedPayout(stake.amount, grossPayout);
+				const netPayout = payout.net;
+				// Convert USD net payout to XLM for wallet credit (balance is in XLM)
+				const netPayoutXLM = netPayout / XLM_USD_RATE;
+
+				// Credit wallet balance
+				useWallet.getState().updateBalance(netPayoutXLM);
+
+				// Record claim transaction in history
+				useTransactions.getState().addTransaction({
+					type: "claim",
+					amount: netPayout,
+					amountXLM: netPayoutXLM,
+					description: `Claimed winnings from "${stake.question}" — NET $${netPayout.toFixed(2)} (gross $${grossPayout.toFixed(2)} − 5% fee)`,
+					timestamp: new Date().toISOString(),
+					status: "confirmed",
+				});
+
+				// Mark stake as claimed so it cannot be claimed again
+				set((s) => ({
+					stakes: s.stakes.map((st) =>
+						st.id === stakeId ? { ...st, claimed: true } : st,
+					),
+				}));
+
+				return { netPayout, netPayoutXLM };
+			},
 
 			clearWalletStakes: (address: string) =>
 				set((s) => ({
