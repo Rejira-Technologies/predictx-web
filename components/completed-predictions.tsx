@@ -8,6 +8,7 @@ import { EmptyState } from "./shared/empty-state";
 import { GamingButton } from "./shared/gaming-button";
 import { GlowCard } from "./shared/glow-card";
 import { useStaking } from "@/hooks/use-staking";
+import { useWallet } from "@/hooks/use-wallet";
 import { calculateCompletedPayout } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
 import type { Stake } from "@/lib/mock-data";
@@ -101,8 +102,15 @@ function ClaimConfirmDialog({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function CompletedPredictions() {
-  const completedStakes = useStaking((s) => s.completedStakes());
+  // Select the stable `stakes` slice — calling completedStakes() inside a
+  // selector allocates a new array on every read, which fails
+  // useSyncExternalStore's identity check and causes an infinite render loop.
+  const stakes = useStaking((s) => s.stakes);
   const claimStake = useStaking((s) => s.claimStake);
+  const walletAddress = useWallet((s) => s.address);
+  const completedStakes = stakes.filter(
+    (s) => s.status === "completed" && s.wallet === walletAddress,
+  );
   const [confirmingStakeId, setConfirmingStakeId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 

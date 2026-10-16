@@ -3,6 +3,7 @@
 import { useMockData } from "@/hooks/use-mock-data";
 import { useStaking } from "@/hooks/use-staking";
 import { useVoting } from "@/hooks/use-voting";
+import { useWallet } from "@/hooks/use-wallet";
 
 // ─── Badge definition ─────────────────────────────────────────────────────────
 
@@ -81,8 +82,24 @@ function longestConsecutiveWonStreak(
 
 export function useBadges(): BadgeDefinition[] {
   const userCreatedPollCount = useMockData((s) => s.userCreatedPollCount);
-  const completedStakes = useStaking((s) => s.completedStakes());
-  const userVotes = useVoting((s) => s.userVotes);
+
+  // #256 fix: select the stable `stakes` slice rather than calling
+  // completedStakes() inside the selector.  Calling an action inside a selector
+  // allocates a new array on every read, which breaks useSyncExternalStore's
+  // identity check and causes an infinite render loop.
+  const stakes = useStaking((s) => s.stakes);
+  const walletAddress = useWallet((s) => s.address);
+  const completedStakes = stakes.filter(
+    (s) => s.status === "completed" && s.wallet === walletAddress,
+  );
+
+  // #257 fix: select the stable `allVotes` map rather than `userVotes`.
+  // `userVotes` is a function stored inside the zustand state object — selecting
+  // it returns the same function reference on every render so
+  // useSyncExternalStore always sees an "unchanged" snapshot and the component
+  // never re-renders when the user's votes change.
+  const allVotes = useVoting((s) => s.allVotes);
+  const userVotes = walletAddress ? (allVotes[walletAddress] ?? {}) : {};
 
   const ctx: BadgeContext = {
     userCreatedPollCount,
