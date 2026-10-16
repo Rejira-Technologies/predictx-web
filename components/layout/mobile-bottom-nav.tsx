@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Vote,
   Wallet as WalletIcon,
+  Settings,
 } from "lucide-react"
 import { useWallet } from "@/hooks/use-wallet"
 import { useUIStore } from "@/hooks/use-ui-store"
@@ -23,6 +24,7 @@ export function MobileBottomNav() {
     { icon: Trophy, label: "Matches", href: "/#" },
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Vote, label: "Voting", href: "/voting" },
+    { icon: Settings, label: "Settings", href: "/settings" },
   ]
 
   const handleWalletClick = () => {

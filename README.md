@@ -27,6 +27,27 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `pnpm start` | Run the production server |
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | Run TypeScript type checking without emitting |
+| `pnpm test` | Run unit tests (Vitest, single pass) |
+| `pnpm test:watch` | Run unit tests in watch mode |
+
+## Testing
+
+Tests are written with [Vitest](https://vitest.dev/) and run in a jsdom environment.
+
+```bash
+pnpm test          # single run
+pnpm test:watch    # watch mode
+```
+
+Test files live in `__tests__/`. Any change that touches financial logic (`lib/calculations.ts`, `hooks/use-staking.ts`, `hooks/use-voting.ts`) must include or update unit tests.
+
+## Development Workflow
+
+1. Create a branch: `git checkout -b fix/your-topic`
+2. Make changes, then verify: `pnpm lint && pnpm typecheck && pnpm test`
+3. Open a PR against `main` and fill in the PR template
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor guide, commit message conventions, and code-review process.
 
 ## Environment Variables
 
