@@ -204,11 +204,8 @@ export function VotingCard({ poll, match }: VotingCardProps) {
             {/* Evidence Section */}
             <EvidenceSection matchId={match.id} className="mb-8" />
 
-            {/* Vote Tally */}
-            <div className="mb-6 p-4 rounded-lg bg-background/50 border border-border">
-                <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 font-bold">Community Tally</h4>
-                <VoteTallyComponent poll={poll} />
-            </div>
+            {/* Vote Tally — VoteTallyComponent renders its own panel and heading */}
+            <VoteTallyComponent poll={poll} />
 
             {/* Interaction Area */}
             <div className="relative min-h-[140px] flex flex-col justify-end">

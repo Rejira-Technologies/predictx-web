@@ -51,7 +51,11 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 
 export function UpcomingMatches() {
     const shouldReduceMotion = useReducedMotion();
-    const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
+    // Select the stable `matches` slice — calling getUpcomingMatches() inside a
+    // selector allocates a new array on every read, which fails
+    // useSyncExternalStore's identity check and causes an infinite render loop.
+    const matches = useMockData((state) => state.matches);
+    const upcomingMatches = matches.filter((m) => m.status === "upcoming");
     const getPolls = useMockData((state) => state.getPolls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
