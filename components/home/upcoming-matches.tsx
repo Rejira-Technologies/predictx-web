@@ -51,7 +51,7 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 
 export function UpcomingMatches() {
     const shouldReduceMotion = useReducedMotion();
-    const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
+    const upcomingMatches = useMockData((state) => state.matches);
     const getPolls = useMockData((state) => state.getPolls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");

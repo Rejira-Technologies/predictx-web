@@ -4,11 +4,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ActiveStakes } from "./active-stakes"
 import { PendingResolution } from "./pending-resolution"
 import { CompletedPredictions } from "./completed-predictions"
+import { TransactionHistory } from "./transaction-history"
 import { resetAllData } from "@/lib/mock-data"
 import { RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export function DashboardTabs() {
+type Tab = "active" | "pending" | "completed" | "transactions"
+
+function DashboardTabsInner() {
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab") as Tab | null
+  const defaultTab: Tab =
+    tabParam === "pending" || tabParam === "completed" || tabParam === "transactions"
+      ? tabParam
+      : "active"
+
   const handleReset = () => {
     if (
       typeof window !== "undefined" &&
@@ -20,7 +32,7 @@ export function DashboardTabs() {
   };
 
   return (
-    <Tabs defaultValue="active" className="w-full">
+    <Tabs defaultValue={defaultTab} className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <TabsList className="bg-surface border-2 border-border h-14 p-1">
           <TabsTrigger
@@ -40,6 +52,12 @@ export function DashboardTabs() {
             className="data-[state=active]:bg-primary data-[state=active]:text-background font-bold uppercase text-sm tracking-wider px-6 h-full"
           >
             Completed
+          </TabsTrigger>
+          <TabsTrigger
+            value="transactions"
+            className="data-[state=active]:bg-primary data-[state=active]:text-background font-bold uppercase text-sm tracking-wider px-6 h-full"
+          >
+            Transactions
           </TabsTrigger>
         </TabsList>
 
@@ -65,6 +83,18 @@ export function DashboardTabs() {
       <TabsContent value="completed">
         <CompletedPredictions />
       </TabsContent>
+
+      <TabsContent value="transactions">
+        <TransactionHistory />
+      </TabsContent>
     </Tabs>
+  )
+}
+
+export function DashboardTabs() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardTabsInner />
+    </Suspense>
   )
 }
