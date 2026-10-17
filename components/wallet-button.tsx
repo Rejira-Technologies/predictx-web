@@ -116,7 +116,7 @@ export function WalletButton() {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild>
-          <Link href="/dashboard?tab=completed">Transaction History</Link>
+          <Link href="/dashboard?tab=transactions">Transaction History</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
