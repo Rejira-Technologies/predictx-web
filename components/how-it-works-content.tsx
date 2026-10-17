@@ -29,11 +29,12 @@ import { cn } from "@/lib/utils";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
 
 const variantColors = {
-  default: "#00d9ff",
-  primary: "#00d9ff",
-  success: "#39ff14",
-  danger: "#ff006e",
-  gold: "#ffd700",
+  default: "var(--accent-cyan, #00d9ff)",
+  primary: "var(--accent-cyan, #00d9ff)",
+  neutral: "var(--accent-neutral, var(--accent-cyan, #00d9ff))",
+  success: "var(--accent-green, #39ff14)",
+  danger: "var(--accent-magenta, #ff006e)",
+  gold: "var(--accent-gold, #ffd700)",
 };
 
 const steps = [
