@@ -346,6 +346,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                 lockTime: (form.lockTime === "custom" ? "kickoff" : form.lockTime) as LockTime,
                 lockTargetISO,
                 recentActivity: "Just created",
+                createdAt: new Date().toISOString(),
             };
 
             addPoll(newPoll);

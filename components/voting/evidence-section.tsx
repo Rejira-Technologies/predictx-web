@@ -42,8 +42,26 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                         Match Evidence & Logs
                     </span>
                     <div className="group relative ml-2">
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <span
+                            tabIndex={0}
+                            role="button"
+                            aria-describedby="evidence-tooltip"
+                            aria-label="Evidence instructions"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.stopPropagation();
+                                }
+                            }}
+                            className="inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
+                        </span>
+                        <div
+                            id="evidence-tooltip"
+                            role="tooltip"
+                            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg"
+                        >
                             Review the evidence before voting to earn maximum rewards
                         </div>
                     </div>

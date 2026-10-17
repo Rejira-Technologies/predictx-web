@@ -8,6 +8,12 @@ const addDays = (n: number, hour = 15): string => {
   return d.toISOString();
 };
 
+const subHours = (hours: number): string => {
+  const d = new Date();
+  d.setTime(d.getTime() - hours * 60 * 60 * 1000);
+  return d.toISOString();
+};
+
 import { XLM_USD_RATE } from "@/lib/constants";
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
@@ -109,6 +115,8 @@ export interface Poll {
    *   kickoff + offset so the countdown is always correct.
    */
   lockTargetISO?: string;
+  /** ISO datetime when the poll was created. */
+  createdAt: string;
 }
 
 export interface Stake {
@@ -130,6 +138,10 @@ export interface Stake {
   grossPayout?: number;
   /** Whether the user has claimed winnings for this won completed stake. */
   claimed?: boolean;
+  /** ISO datetime when the prediction was resolved. */
+  resolvedAt?: string;
+  /** Stellar transaction hash of the resolution/payout transaction. */
+  transactionHash?: string;
 }
 
 export interface VotingOpportunity {
@@ -242,6 +254,7 @@ export const POLLS: Poll[] = [
     recentActivity: "34 people staked Yes in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(2),
   },
   {
     id: "m1-p2",
@@ -256,6 +269,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $800 in last 2 hours",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(5),
   },
   {
     id: "m1-p3",
@@ -270,6 +284,7 @@ export const POLLS: Poll[] = [
     recentActivity: "12 people staked No in last 30min",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(9),
   },
   {
     id: "m1-p4",
@@ -284,6 +299,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $1,200 in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(14),
   },
 
   // m2 — Arsenal vs Liverpool
@@ -300,6 +316,7 @@ export const POLLS: Poll[] = [
     recentActivity: "28 people staked Yes in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(3),
   },
   {
     id: "m2-p2",
@@ -314,6 +331,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $2,000 in 30min",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(6),
   },
   {
     id: "m2-p3",
@@ -328,6 +346,7 @@ export const POLLS: Poll[] = [
     recentActivity: "19 people staked Yes in last 2 hours",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(11),
   },
   {
     id: "m2-p4",
@@ -342,6 +361,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $600 in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(15),
   },
   {
     id: "m2-p5",
@@ -356,6 +376,7 @@ export const POLLS: Poll[] = [
     recentActivity: "41 people staked Yes in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(20),
   },
 
   // m3 — Manchester City vs Tottenham
@@ -372,6 +393,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $400 in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(4),
   },
   {
     id: "m3-p2",
@@ -386,6 +408,7 @@ export const POLLS: Poll[] = [
     recentActivity: "52 people staked Yes in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(8),
   },
   {
     id: "m3-p3",
@@ -400,6 +423,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $1,500 in last 2 hours",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(13),
   },
   {
     id: "m3-p4",
@@ -414,6 +438,7 @@ export const POLLS: Poll[] = [
     recentActivity: "22 people staked Yes in last 30min",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(22),
   },
 
   // m4 — Newcastle vs Aston Villa
@@ -430,6 +455,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $300 in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(7),
   },
   {
     id: "m4-p2",
@@ -444,6 +470,7 @@ export const POLLS: Poll[] = [
     recentActivity: "17 people staked Yes in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(12),
   },
   {
     id: "m4-p3",
@@ -458,6 +485,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $900 in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(18),
   },
   {
     id: "m4-p4",
@@ -472,6 +500,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $700 in last 2 hours",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(25),
   },
   {
     id: "m4-p5",
@@ -486,6 +515,7 @@ export const POLLS: Poll[] = [
     recentActivity: "25 people staked No in last hour",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(30),
   },
 
   // m5 — Brighton vs West Ham (live)
@@ -502,6 +532,7 @@ export const POLLS: Poll[] = [
     recentActivity: "61 people staked Yes before kickoff",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(36),
   },
   {
     id: "m5-p2",
@@ -516,6 +547,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool reached $10K before halftime",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(40),
   },
   {
     id: "m5-p3",
@@ -530,6 +562,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Pool grew $1,800 before 60min",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(44),
   },
   {
     id: "m5-p4",
@@ -544,6 +577,7 @@ export const POLLS: Poll[] = [
     recentActivity: "43 people staked No before halftime",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(48),
   },
 
   // m6 — Everton vs Wolves (completed)
@@ -560,6 +594,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Voting in progress — 2 hours remaining",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(52),
   },
   {
     id: "m6-p2",
@@ -574,6 +609,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Voting in progress",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(56),
   },
   {
     id: "m6-p3",
@@ -588,6 +624,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Voting in progress — cast your vote now",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(60),
   },
   {
     id: "m6-p4",
@@ -602,6 +639,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Voting in progress",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(64),
   },
   {
     id: "m6-p5",
@@ -616,6 +654,7 @@ export const POLLS: Poll[] = [
     recentActivity: "Admin review in progress",
     stakeCount: 0,
     stakers: [],
+    createdAt: subHours(70),
   },
 ];
 
@@ -812,6 +851,8 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 150,
     profit: calculateCompletedPayout(100, 150).profit,
     roi: calculateCompletedPayout(100, 150).roi,
+    resolvedAt: addDays(-1, 14),
+    transactionHash: "0xa1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abc3d4",
     wallet: SEED_WALLET,
   },
   {
@@ -827,6 +868,8 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 320,
     profit: calculateCompletedPayout(200, 320).profit,
     roi: calculateCompletedPayout(200, 320).roi,
+    resolvedAt: addDays(-2, 11),
+    transactionHash: "0xb2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef1a",
     wallet: SEED_WALLET,
   },
   {
@@ -842,6 +885,8 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 437,
     profit: calculateCompletedPayout(250, 437).profit,
     roi: calculateCompletedPayout(250, 437).roi,
+    resolvedAt: addDays(-3, 16),
+    transactionHash: "0xc3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef1a2b",
     wallet: SEED_WALLET,
   },
   {
@@ -857,6 +902,8 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 750,
     profit: calculateCompletedPayout(400, 750).profit,
     roi: calculateCompletedPayout(400, 750).roi,
+    resolvedAt: addDays(-4, 18),
+    transactionHash: "0xd4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef1a2b3c",
     wallet: SEED_WALLET,
   },
   {
@@ -871,6 +918,8 @@ export const MOCK_STAKES: Stake[] = [
     outcome: "lost",
     profit: -100,
     roi: -100.0,
+    resolvedAt: addDays(-5, 12),
+    transactionHash: "0xe5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef1a2b3c4d",
     wallet: SEED_WALLET,
   },
   {
@@ -885,6 +934,8 @@ export const MOCK_STAKES: Stake[] = [
     outcome: "lost",
     profit: -300,
     roi: -100.0,
+    resolvedAt: addDays(-6, 10),
+    transactionHash: "0xf60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef1a2b3c4d5e",
     wallet: SEED_WALLET,
   },
 ];
