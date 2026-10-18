@@ -2,14 +2,18 @@
 
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { getTeamAbbreviation } from "@/lib/team-colors";
 
-// Team type definition for the component
+// Team type definition aligned with domain contract
 export interface Team {
   id: string;
   name: string;
   primaryColor: string;
-  logoUrl?: string;
+  shortName?: string;
+  logo?: string;
+  // Backward compatibility aliases
   abbreviation?: string;
+  logoUrl?: string;
 }
 
 interface TeamBadgeProps {
@@ -91,9 +95,9 @@ export function TeamBadge({ team, size = "md", className }: TeamBadgeProps) {
 
         {/* Team content */}
         <div className="relative z-10 flex flex-col items-center justify-center">
-          {team.logoUrl ? (
+          {team.logo || team.logoUrl ? (
             <img
-              src={team.logoUrl}
+              src={team.logo || team.logoUrl}
               alt={team.name}
               className="w-2/3 h-2/3 object-contain"
             />
@@ -105,7 +109,7 @@ export function TeamBadge({ team, size = "md", className }: TeamBadgeProps) {
               )}
               style={{ color: team.primaryColor }}
             >
-              {team.abbreviation || team.name.slice(0, 3).toUpperCase()}
+              {team.shortName || team.abbreviation || getTeamAbbreviation(team.name)}
             </span>
           )}
         </div>

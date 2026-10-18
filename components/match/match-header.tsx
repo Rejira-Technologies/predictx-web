@@ -5,7 +5,7 @@ import { Trophy, MapPin, Calendar, Clock, Shield } from "lucide-react"
 import { GlowCard, TeamBadge, CountdownTimer } from "@/components/shared"
 import type { Match } from "@/lib/mock-data"
 import type { Team } from "@/components/shared/team-badge"
-import { getTeamColor } from "@/lib/team-colors"
+import { getTeamColor, getTeamAbbreviation } from "@/lib/team-colors"
 
 interface MatchHeaderProps {
   match: Match
@@ -19,12 +19,8 @@ function toTeam(name: string, color: string): Team {
     id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
     primaryColor: color,
-    abbreviation: name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 3)
-      .toUpperCase(),
+    shortName: getTeamAbbreviation(name),
+    abbreviation: getTeamAbbreviation(name),
   }
 }
 
