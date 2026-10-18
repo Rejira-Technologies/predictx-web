@@ -116,10 +116,10 @@ export function MatchCard({
                     {/* VS Divider */}
                     <div className="flex flex-col items-center justify-center px-4 shrink-0">
                         <motion.div
-                            animate={{ rotate: isLive ? 360 : 0 }}
+                            animate={{ rotate: isLive && !shouldReduceMotion ? 360 : 0 }}
                             transition={{
-                                duration: 20,
-                                repeat: Infinity,
+                                duration: shouldReduceMotion ? 0 : 20,
+                                repeat: shouldReduceMotion ? 0 : Infinity,
                                 ease: "linear",
                             }}
                             className="text-2xl font-display font-black text-[var(--accent-cyan)] text-glow-cyan"

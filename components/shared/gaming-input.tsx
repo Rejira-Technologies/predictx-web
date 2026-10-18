@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Minus, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,7 @@ export function GamingInput({
   className,
   disabled = false,
 }: GamingInputProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [isFocused, setIsFocused] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
@@ -73,7 +74,7 @@ export function GamingInput({
         className={cn(
           "relative flex items-center overflow-hidden",
           "bg-[#1a1f3a]/80",
-          isShaking && "animate-shake",
+          isShaking && !shouldReduceMotion && "animate-shake",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         style={{
@@ -145,7 +146,7 @@ export function GamingInput({
               onClick={increment}
               disabled={disabled || (max !== undefined && Number(value) >= max)}
               className="flex items-center justify-center p-2 hover:bg-[var(--accent-cyan)]/10 disabled:opacity-30 transition-colors"
-              whileTap={{ scale: 0.9 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
             >
               <Plus className="w-3 h-3 text-[var(--accent-cyan)]" />
             </motion.button>
@@ -155,7 +156,7 @@ export function GamingInput({
               onClick={decrement}
               disabled={disabled || (min !== undefined && Number(value) <= min)}
               className="flex items-center justify-center p-2 hover:bg-[var(--accent-cyan)]/10 disabled:opacity-30 transition-colors"
-              whileTap={{ scale: 0.9 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
             >
               <Minus className="w-3 h-3 text-[var(--accent-cyan)]" />
             </motion.button>
@@ -171,7 +172,7 @@ export function GamingInput({
               exit={{ opacity: 0 }}
               className="absolute left-4 pointer-events-none text-[var(--accent-cyan)]"
               style={{
-                animation: "typing-cursor 1s step-end infinite",
+                animation: shouldReduceMotion ? "none" : "typing-cursor 1s step-end infinite",
               }}
             >
               |

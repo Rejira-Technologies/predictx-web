@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Transition } from "framer-motion";
+import { motion, useReducedMotion, type Transition } from "framer-motion";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,9 @@ export function GlowIcon({
   animationType = "pulse",
   className,
 }: GlowIconProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isAnimated = animated && !shouldReduceMotion;
+
   const getAnimation = () => {
     switch (animationType) {
       case "pulse":
@@ -48,6 +51,7 @@ export function GlowIcon({
   };
 
   const getTransition = (): Transition => {
+    if (shouldReduceMotion) return { duration: 0 };
     const ease = "easeInOut" as const;
     switch (animationType) {
       case "pulse":
@@ -64,10 +68,10 @@ export function GlowIcon({
   return (
     <motion.div
       className={cn("inline-flex items-center justify-center", className)}
-      animate={animated ? getAnimation() : {}}
+      animate={isAnimated ? getAnimation() : {}}
       transition={getTransition()}
       whileHover={
-        animated
+        isAnimated
           ? {
               scale: 1.2,
               rotate: animationType === "rotate" ? 0 : 10,

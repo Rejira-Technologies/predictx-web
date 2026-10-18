@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -123,6 +123,7 @@ function GamingButtonShell({
     onClick?.();
   };
 
+  const shouldReduceMotion = useReducedMotion();
   const isDisabled = disabled || loading;
 
   const sharedClassName = cn(
@@ -157,9 +158,9 @@ function GamingButtonShell({
     },
     onMouseDown: () => setIsPressed(true),
     onMouseUp: () => setIsPressed(false),
-    whileHover: !isDisabled ? { scale: 1.05, rotate: 1 } : {},
-    whileTap: !isDisabled ? { scale: 0.95 } : {},
-    transition: { type: "spring" as const, stiffness: 400, damping: 25 },
+    whileHover: !isDisabled && !shouldReduceMotion ? { scale: 1.05, rotate: 1 } : {},
+    whileTap: !isDisabled && !shouldReduceMotion ? { scale: 0.95 } : {},
+    transition: shouldReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 400, damping: 25 },
   };
 
   const innerContent = (
@@ -168,11 +169,15 @@ function GamingButtonShell({
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={
-          !isDisabled
+          !isDisabled && !shouldReduceMotion
             ? { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
             : {}
         }
-        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : { duration: 5, repeat: Infinity, ease: "linear" }
+        }
         style={{
           background: `linear-gradient(
             90deg,
@@ -186,7 +191,7 @@ function GamingButtonShell({
 
       {/* Shine sweep on hover */}
       <AnimatePresence>
-        {isHovered && !isDisabled && (
+        {isHovered && !isDisabled && !shouldReduceMotion && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
             initial={{ x: "-100%" }}
@@ -206,24 +211,25 @@ function GamingButtonShell({
       </AnimatePresence>
 
       {/* Ripple effects */}
-      {ripples.map((ripple) => (
-        <motion.span
-          key={ripple.id}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            left: ripple.x,
-            top: ripple.y,
-            width: 10,
-            height: 10,
-            marginLeft: -5,
-            marginTop: -5,
-            background: styles.glow,
-          }}
-          initial={{ scale: 0, opacity: 0.5 }}
-          animate={{ scale: 20, opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        />
-      ))}
+      {!shouldReduceMotion &&
+        ripples.map((ripple) => (
+          <motion.span
+            key={ripple.id}
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              left: ripple.x,
+              top: ripple.y,
+              width: 10,
+              height: 10,
+              marginLeft: -5,
+              marginTop: -5,
+              background: styles.glow,
+            }}
+            initial={{ scale: 0, opacity: 0.5 }}
+            animate={{ scale: 20, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        ))}
 
       {/* Loading spinner */}
       <AnimatePresence mode="wait">
@@ -236,8 +242,12 @@ function GamingButtonShell({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              animate={{ rotate: shouldReduceMotion ? 0 : 360 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 1, repeat: Infinity, ease: "linear" }
+              }
             >
               <Loader2 className="w-5 h-5" style={{ color: styles.text }} />
             </motion.div>

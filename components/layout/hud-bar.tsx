@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Zap, Activity, Star } from "lucide-react";
 import { useProgress } from "@/hooks/use-progress";
 import { useWallet } from "@/hooks/use-wallet";
@@ -94,6 +94,7 @@ interface RankChipProps {
 }
 
 function RankChip({ rankName, color, glowColor, compact }: RankChipProps) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <motion.div
       className={cn(
@@ -108,14 +109,18 @@ function RankChip({ rankName, color, glowColor, compact }: RankChipProps) {
         boxShadow: `0 0 10px ${glowColor}`,
         color,
       }}
-      animate={{
-        boxShadow: [
-          `0 0 8px ${glowColor}50`,
-          `0 0 16px ${glowColor}`,
-          `0 0 8px ${glowColor}50`,
-        ],
-      }}
-      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+      animate={
+        shouldReduceMotion
+          ? {}
+          : {
+              boxShadow: [
+                `0 0 8px ${glowColor}50`,
+                `0 0 16px ${glowColor}`,
+                `0 0 8px ${glowColor}50`,
+              ],
+            }
+      }
+      transition={shouldReduceMotion ? { duration: 0 } : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
     >
       <Star className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
       {rankName}
@@ -133,6 +138,7 @@ interface XpBarProps {
 }
 
 function XpBar({ xp, progressPercent, nextRank, xpToNextRank, color, compact }: XpBarProps) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <div className={cn("flex items-center gap-2", compact ? "w-full" : "w-48")}>
       {/* XP label */}
@@ -160,17 +166,19 @@ function XpBar({ xp, progressPercent, nextRank, xpToNextRank, color, compact }: 
           style={{ background: `linear-gradient(90deg, ${color}80, ${color})` }}
           initial={{ width: 0 }}
           animate={{ width: `${progressPercent}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.8, ease: "easeOut" }}
         />
         {/* Shimmer */}
-        <motion.div
-          className="absolute inset-y-0 w-8 rounded-full"
-          style={{
-            background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)`,
-          }}
-          animate={{ x: ["-100%", "400%"] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-        />
+        {!shouldReduceMotion && (
+          <motion.div
+            className="absolute inset-y-0 w-8 rounded-full"
+            style={{
+              background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)`,
+            }}
+            animate={{ x: ["-100%", "400%"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+          />
+        )}
       </div>
 
       {/* Next rank hint */}
@@ -189,6 +197,7 @@ interface ActivePollsPulseProps {
 }
 
 function ActivePollsPulse({ count, compact }: ActivePollsPulseProps) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <div className="flex items-center gap-1.5">
       {/* Pulsing dot — actual data, not a timer */}
@@ -196,20 +205,22 @@ function ActivePollsPulse({ count, compact }: ActivePollsPulseProps) {
         {count > 0 && (
           <motion.div
             className="relative"
-            initial={{ scale: 0 }}
+            initial={shouldReduceMotion ? { scale: 1 } : { scale: 0 }}
             animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
+            exit={shouldReduceMotion ? { scale: 1 } : { scale: 0 }}
           >
             <span
               className="block w-2 h-2 rounded-full"
               style={{ background: "#39ff14", boxShadow: "0 0 6px rgba(57,255,20,0.8)" }}
             />
-            <motion.span
-              className="absolute inset-0 rounded-full"
-              style={{ background: "rgba(57,255,20,0.4)" }}
-              animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
-            />
+            {!shouldReduceMotion && (
+              <motion.span
+                className="absolute inset-0 rounded-full"
+                style={{ background: "rgba(57,255,20,0.4)" }}
+                animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
