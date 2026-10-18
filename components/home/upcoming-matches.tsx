@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { MatchCard } from "./match-card";
+import { MatchCardSkeleton } from "@/components/ui/skeleton-card";
 import { useMockData } from "@/hooks/use-mock-data";
 import { GamingButton } from "@/components/shared/gaming-button";
 import type { Match } from "@/lib/mock-data";
@@ -50,6 +51,11 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 }
 
 export function UpcomingMatches() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const shouldReduceMotion = useReducedMotion();
     const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
     const getPolls = useMockData((state) => state.getPolls);
@@ -150,8 +156,14 @@ export function UpcomingMatches() {
                     </motion.div>
                 </div>
 
-                {/* Matches Grid or Empty State */}
-                {visibleMatches.length === 0 ? (
+                {/* Matches Grid, Skeleton, or Empty State */}
+                {!mounted ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                            <MatchCardSkeleton key={index} />
+                        ))}
+                    </div>
+                ) : visibleMatches.length === 0 ? (
                     <motion.div
                         initial={shouldReduceMotion ? {} : { opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
