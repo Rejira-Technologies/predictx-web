@@ -365,6 +365,20 @@ export const useVoting = create<VotingState>()(
           return { allVotes, pendingRewards };
         }),
     }),
-    { name: STORAGE_KEYS.votes },
+    {
+      name: STORAGE_KEYS.votes,
+      partialize: (state) => ({
+        ...state,
+        communityVotes: {},
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<VotingState> | undefined),
+        communityVotes: {
+          ...MOCK_COMMUNITY_VOTES,
+          ...((persistedState as Partial<VotingState> | undefined)?.communityVotes ?? {}),
+        },
+      }),
+    },
   ),
 );

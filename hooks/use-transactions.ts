@@ -39,6 +39,24 @@ export const useTransactions = create<TransactionsState>()(
           ],
         })),
     }),
-    { name: STORAGE_KEYS.transactions },
+    {
+      name: STORAGE_KEYS.transactions,
+      partialize: (state) => ({
+        ...state,
+        transactions: state.transactions.filter(
+          (tx) => !MOCK_TRANSACTIONS.some((seed) => seed.hash === tx.hash),
+        ),
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<TransactionsState> | undefined),
+        transactions: [
+          ...MOCK_TRANSACTIONS,
+          ...((persistedState as Partial<TransactionsState> | undefined)?.transactions ?? []).filter(
+            (tx) => !MOCK_TRANSACTIONS.some((seed) => seed.hash === tx.hash),
+          ),
+        ],
+      }),
+    },
   ),
 );

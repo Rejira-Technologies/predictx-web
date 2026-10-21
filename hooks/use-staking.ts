@@ -177,6 +177,24 @@ export const useStaking = create<StakingState>()(
 					stakes: s.stakes.filter((stake) => stake.wallet !== address),
 				})),
 		}),
-		{ name: STORAGE_KEYS.stakes },
+		{
+			name: STORAGE_KEYS.stakes,
+			partialize: (state) => ({
+				...state,
+				stakes: state.stakes.filter(
+					(stake) => !MOCK_STAKES.some((seed) => seed.id === stake.id),
+				),
+			}),
+			merge: (persistedState, currentState) => ({
+				...currentState,
+				...(persistedState as Partial<StakingState> | undefined),
+				stakes: [
+					...MOCK_STAKES,
+					...((persistedState as Partial<StakingState> | undefined)?.stakes ?? []).filter(
+						(stake) => !MOCK_STAKES.some((seed) => seed.id === stake.id),
+					),
+				],
+			}),
+		},
 	),
 );
