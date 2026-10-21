@@ -49,12 +49,10 @@ export default function MatchPage() {
               The match you&apos;re looking for doesn&apos;t exist or has been
               removed.
             </p>
-            <Link href="/">
-              <GamingButton variant="primary" size="md">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </GamingButton>
-            </Link>
+            <GamingButton variant="primary" size="md" href="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </GamingButton>
           </div>
         </GlowCard>
       </main>
