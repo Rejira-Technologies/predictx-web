@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Scale, Activity } from "lucide-react";
 import { useVoting } from "@/hooks/use-voting";
@@ -9,9 +10,17 @@ import { VotingCard } from "@/components/voting/voting-card";
 import { GamingButton } from "@/components/shared/gaming-button";
 
 export default function VotingCenterPage() {
-  const { isConnected, connect } = useWallet();
-  const { availablePolls, getVoteReward, getAccuracy } = useVoting();
+  const { isConnected, address, connect } = useWallet();
+  const { availablePolls, getVoteReward, getAccuracy, settleRewards } = useVoting();
   const getMatch = useMockData((state) => state.getMatch);
+
+  useEffect(() => {
+    settleRewards();
+
+    const handleFocus = () => settleRewards();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [address, settleRewards]);
 
   const polls = availablePolls();
 
