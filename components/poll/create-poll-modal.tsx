@@ -24,7 +24,7 @@ import { POLL_QUESTION_MIN_LENGTH, POLL_QUESTION_MAX_LENGTH } from "@/lib/consta
 import { getLockTargetISO } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
-import { WalletConnectModal } from "@/components/wallet-connect-modal";
+import { useUIStore } from "@/hooks/use-ui-store";
 import { GamingButton } from "@/components/shared/gaming-button";
 import { cn } from "@/lib/utils";
 import { CREATE_POLL_FEE_XLM } from "@/lib/constants";
@@ -261,7 +261,6 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [success, setSuccess] = useState(false);
-    const [showWalletModal, setShowWalletModal] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
 
     // Track the success auto-close timer so we can cancel it on unmount
@@ -307,7 +306,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
 
     const handleSubmit = async () => {
         if (!isConnected) {
-            setShowWalletModal(true);
+            useUIStore.getState().openWalletConnect();
             return;
         }
         if (!resolvedMatch || !form.category || !form.lockTime) return;
@@ -872,11 +871,6 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                 </motion.div>
             </div>
 
-            {/* Wallet connect modal (auto-triggered when wallet not connected) */}
-            <WalletConnectModal
-                open={showWalletModal}
-                onClose={() => setShowWalletModal(false)}
-            />
         </>
     );
 }

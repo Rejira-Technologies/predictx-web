@@ -46,7 +46,7 @@ import { lockTimeLabel } from "@/lib/mock-data";
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
 import { useStaking } from "@/hooks/use-staking";
 import { useMockData } from "@/hooks/use-mock-data";
-import { WalletConnectModal } from "@/components/wallet-connect-modal";
+import { useUIStore } from "@/hooks/use-ui-store";
 
 import {
   GamingButton,
@@ -473,7 +473,6 @@ export function StakeModal({
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -1248,23 +1247,17 @@ export function StakeModal({
                     Poll Locked
                   </GamingButton>
                 ) : !isConnected ? (
-                  <>
-                    <GamingButton
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      onClick={() => {
-                        toast.info("Please connect your wallet");
-                        setShowWalletModal(true);
-                      }}
-                    >
-                      <Wallet className="w-5 h-5 mr-2" /> Connect Wallet
-                    </GamingButton>
-                    <WalletConnectModal
-                      open={showWalletModal}
-                      onClose={() => setShowWalletModal(false)}
-                    />
-                  </>
+                  <GamingButton
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    onClick={() => {
+                      toast.info("Please connect your wallet");
+                      useUIStore.getState().openWalletConnect();
+                    }}
+                  >
+                    <Wallet className="w-5 h-5 mr-2" /> Connect Wallet
+                  </GamingButton>
                 ) : (
                   <GamingButton
                     variant="primary"

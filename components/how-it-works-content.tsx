@@ -26,7 +26,7 @@ import {
 } from "@/components/shared";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { WalletConnectModal } from "@/components/wallet-connect-modal";
+import { useUIStore } from "@/hooks/use-ui-store";
 
 const variantColors = {
   default: "#00d9ff",
@@ -197,7 +197,6 @@ const faqs = [
 
 export function HowItWorksContent() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [showWalletModal, setShowWalletModal] = useState(false);
 
   return (
     <div className="space-y-32">
@@ -456,7 +455,7 @@ export function HowItWorksContent() {
               variant="ghost"
               size="lg"
               className="min-w-[12rem] gap-2"
-              onClick={() => setShowWalletModal(true)}
+              onClick={() => useUIStore.getState().openWalletConnect()}
             >
               <Wallet className="h-5 w-5" />
               Connect Wallet
@@ -464,11 +463,6 @@ export function HowItWorksContent() {
           </div>
         </div>
       </section>
-
-      <WalletConnectModal
-        open={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-      />
     </div>
   );
 }
