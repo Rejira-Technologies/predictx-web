@@ -23,6 +23,7 @@ export interface TransactionReceipt {
   hash: string;
   ledger: number;
   fee: string;
+  feeXLM: number;
   from: string;
   to: string;
   amount: number;
@@ -390,6 +391,7 @@ export const useWallet = create<WalletState>()(
           hash: hashBytes,
           ledger: 50_000_000 + Math.floor(Math.random() * 1_000_000),
           fee: `${STELLAR_BASE_FEE} stroops (${feeXLM.toFixed(7)} XLM)`,
+          feeXLM,
           from: state.address,
           to: MOCK_CONTRACT_ID,
           amount: amountUSD,

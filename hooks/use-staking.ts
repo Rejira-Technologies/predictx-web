@@ -94,11 +94,6 @@ export const useStaking = create<StakingState>()(
 					`Staked $${amount} on "${question}" – ${side.toUpperCase()}`,
 				);
 
-				// Update the poll pool in mock data store, passing the wallet
-				// address so participants counts distinct wallets only
-				const walletAddress = useWallet.getState().address ?? undefined;
-				useMockData.getState().updatePollPool(pollId, side, amount, walletAddress);
-
 				const stake: Stake = {
 					id: `stake-${receipt.hash.slice(0, 8)}`,
 					pollId,
@@ -112,7 +107,33 @@ export const useStaking = create<StakingState>()(
 					wallet: walletState.address,
 				};
 
-				set((s) => ({ stakes: [...s.stakes, stake] }));
+				const previousStakes = get().stakes;
+				const mockData = useMockData.getState();
+				const previousPolls = mockData.polls;
+
+				try {
+					// Persist the stake first so a completed debit has a record to reconcile.
+					set((s) => ({ stakes: [...s.stakes, stake] }));
+					mockData.updatePollPool(
+						pollId,
+						side,
+						amount,
+						walletState.address ?? undefined,
+					);
+				} catch (error) {
+					try {
+						useMockData.setState({ polls: previousPolls });
+					} catch {
+						// Continue compensation if storage persistence also fails.
+					}
+					try {
+						set({ stakes: previousStakes });
+					} catch {
+						// Continue compensation if storage persistence also fails.
+					}
+					useWallet.getState().updateBalance(receipt.amountXLM + receipt.feeXLM);
+					throw error;
+				}
 
 				// Analytics — no wallet address or seeds
 				const poll = useMockData.getState().getPoll(pollId);
