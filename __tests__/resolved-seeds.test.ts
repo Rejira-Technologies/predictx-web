@@ -1,4 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PollCard } from "@/components/poll-card";
+import { CompletedPredictions } from "@/components/completed-predictions";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/components/shared", () => ({
+  GamingButton: ({ children }: { children?: ReactNode }) => children,
+  TeamBadge: () => null,
+}));
+vi.mock("@/components/staking", () => ({ StakeModal: () => null }));
 import {
   MATCHES,
   MATCH_EVIDENCE,
@@ -221,5 +232,24 @@ describe("resolved rewards and claims", () => {
   it("excludes resolved fixture polls from voting", () => {
     useMockData.setState({ polls: copy(resolved) });
     expect(useVoting.getState().availablePolls()).toEqual([]);
+  });
+});
+
+
+describe("resolved fixture rendering", () => {
+  it("renders the actual YES/NO outcomes instead of the closed-staking footer", () => {
+    for (const poll of resolved) {
+      const match = MATCHES.find((candidate) => candidate.id === poll.matchId)!;
+      const html = renderToStaticMarkup(createElement(PollCard, { poll, match, variant: "detailed" }));
+      expect(html).toContain(poll.outcome === "yes" ? "YES WON" : "NO WON");
+      expect(html).not.toContain("Staking Closed");
+      expect(html).not.toContain("Awaiting Resolution");
+    }
+  });
+
+  it("renders both already claimed and claimable winning stakes on the demo dashboard", () => {
+    const html = renderToStaticMarkup(createElement(CompletedPredictions));
+    expect(html).toContain("Winnings Claimed");
+    expect(html).toContain("Claim Winnings");
   });
 });
