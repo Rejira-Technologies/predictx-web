@@ -79,7 +79,7 @@ export function MatchCard({
         };
 
     return (
-        <Link href={`/match/${match.id}`} className="block h-full outline-none">
+        <Link href={`/match/${match.id}`} className="block h-full outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-lg">
             <GlowCard
                 variant={isLive ? "success" : "default"}
                 className={`h-full flex flex-col transition-opacity duration-300 ${isCompleted ? "opacity-60 hover:opacity-100" : ""

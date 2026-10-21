@@ -265,3 +265,28 @@ export function getVotingDeadline(
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
 }
+
+/**
+ * Whether a vote on this poll is still accepted.
+ */
+export function isVotingOpen(
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+	now: number = Date.now(),
+): boolean {
+	if (!match) return false;
+	if (poll.status !== "voting") return false;
+	const deadline = getVotingDeadline(poll, match);
+	if (Number.isNaN(deadline)) return false;
+	return now < deadline;
+}
+
+/** ISO form of {@link getVotingDeadline}, for `CountdownTimer`. */
+export function getVotingDeadlineISO(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+): string {
+	const t = getVotingDeadline(poll, match);
+	if (Number.isNaN(t)) return new Date().toISOString();
+	return new Date(t).toISOString();
+}

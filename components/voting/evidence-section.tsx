@@ -34,7 +34,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                 onClick={() => setIsExpanded(!isExpanded)}
                 aria-expanded={isExpanded}
                 aria-controls="evidence-section-panel"
-                className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none"
+                className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-lg"
             >
                 <div className="flex items-center gap-3">
                     <div className="p-1.5 bg-primary/20 rounded-md">
