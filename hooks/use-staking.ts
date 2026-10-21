@@ -48,10 +48,6 @@ interface StakingState {
 	 * and records a claim transaction.
 	 */
 	claimStake: (stakeId: string) => Promise<{ netPayout: number; netPayoutXLM: number }>;
-
-	/** Remove all stakes that belong to the given wallet address.
-	 *  Called on disconnect so the next wallet starts with a clean slate. */
-	clearWalletStakes: (address: string) => void;
 }
 
 /** Return only stakes that belong to the connected wallet. */
@@ -171,11 +167,6 @@ export const useStaking = create<StakingState>()(
 
 				return { netPayout, netPayoutXLM };
 			},
-
-			clearWalletStakes: (address: string) =>
-				set((s) => ({
-					stakes: s.stakes.filter((stake) => stake.wallet !== address),
-				})),
 		}),
 		{ name: STORAGE_KEYS.stakes },
 	),

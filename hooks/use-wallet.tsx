@@ -211,21 +211,6 @@ export const useWallet = create<WalletState>()(
       },
 
       disconnect: () => {
-        const { address } = get();
-
-        // Clear user-scoped state so the next wallet starts from a clean slate
-        // instead of inheriting the previous account's stakes, votes and unpaid
-        // rewards. Imported lazily: both hooks depend on this module, so a
-        // top-level import would be a cycle at module-evaluation time.
-        if (address) {
-          const { useStaking } = require("@/hooks/use-staking") as
-            typeof import("@/hooks/use-staking");
-          const { useVoting } = require("@/hooks/use-voting") as
-            typeof import("@/hooks/use-voting");
-          useStaking.getState().clearWalletStakes(address);
-          useVoting.getState().clearWalletVotes(address);
-        }
-
         trackEvent({ name: "wallet_disconnect" });
         set({
           isConnected: false,

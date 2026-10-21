@@ -91,12 +91,6 @@ interface VotingState {
   /** Returns the real count of "unclear" votes cast for a poll (0 if none). */
   getUnclearVotes: (pollId: string) => number;
   initializeMockVotes: () => void;
-
-  /**
-   * Remove all votes and unpaid rewards stored for a wallet address.
-   * Called on disconnect so the next wallet starts from a clean slate.
-   */
-  clearWalletVotes: (address: string) => void;
 }
 
 // Pre-seeded mock community votes for each poll (for initial load)
@@ -356,14 +350,6 @@ export const useVoting = create<VotingState>()(
         }));
       },
 
-      clearWalletVotes: (address: string) =>
-        set((state) => {
-          const allVotes = { ...state.allVotes };
-          delete allVotes[address];
-          const pendingRewards = { ...state.pendingRewards };
-          delete pendingRewards[address];
-          return { allVotes, pendingRewards };
-        }),
     }),
     { name: STORAGE_KEYS.votes },
   ),
