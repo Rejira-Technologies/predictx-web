@@ -555,8 +555,8 @@ export function StakeModal({
   );
 
   const isOnMajoritySide =
-    (side === "yes" && poolPct.yes >= 50) ||
-    (side === "no" && poolPct.no >= 50);
+    (side === "yes" && (poolPct.yes ?? 50) >= 50) ||
+    (side === "no" && (poolPct.no ?? 50) >= 50);
 
   /**
    * The match this poll belongs to, resolved from `matchId`.
@@ -963,7 +963,7 @@ export function StakeModal({
 
                           <span className="text-2xl">{s.toUpperCase()}</span>
                           <span className="text-xs font-mono font-normal opacity-70">
-                            {formatCurrency(pool)} ({pct}%)
+                            {formatCurrency(pool)} ({pct !== null ? `${pct}%` : "—"})
                           </span>
                         </motion.button>
                       );
@@ -971,9 +971,9 @@ export function StakeModal({
                   </div>
 
                   <p className="text-center text-xs text-[var(--muted-foreground)]">
-                    <span className="text-[#00d9ff]">{poolPct.yes}% YES</span>
+                    <span className="text-[#00d9ff]">{poolPct.yes !== null ? `${poolPct.yes}%` : "—"} YES</span>
                     {" • "}
-                    <span className="text-[#ff006e]">{poolPct.no}% NO</span>
+                    <span className="text-[#ff006e]">{poolPct.no !== null ? `${poolPct.no}%` : "—"} NO</span>
                   </p>
                 </div>
 
@@ -1241,7 +1241,7 @@ export function StakeModal({
                           Yes Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.yesPool)} ({previewPct.yes}%)
+                          {formatCurrency(poll.yesPool)} ({previewPct.yes !== null ? `${previewPct.yes}%` : "—"})
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1250,7 +1250,7 @@ export function StakeModal({
                           No Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.noPool)} ({previewPct.no}%)
+                          {formatCurrency(poll.noPool)} ({previewPct.no !== null ? `${previewPct.no}%` : "—"})
                         </span>
                       </div>
                       {stakeAmount > 0 && (
