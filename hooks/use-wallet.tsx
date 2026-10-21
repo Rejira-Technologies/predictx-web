@@ -2,7 +2,12 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { requestAccess, isConnected as checkFreighter } from "@stellar/freighter-api";
+import {
+  requestAccess,
+  isConnected as checkFreighter,
+  getAddress,
+  getNetwork,
+} from "@stellar/freighter-api";
 import {
   MOCK_CONTRACT_ID,
   STELLAR_BASE_FEE,
@@ -60,6 +65,32 @@ interface WalletState {
     amountUSD: number,
     memo: string,
   ) => Promise<TransactionReceipt>;
+}
+
+/**
+ * Normalize Freighter network response to StellarNetwork ('testnet' | 'mainnet').
+ */
+function normalizeFreighterNetwork(net: unknown): StellarNetwork | null {
+  if (typeof net === "string") {
+    const upper = net.toUpperCase();
+    if (upper.includes("PUBLIC") || upper.includes("MAINNET")) return "mainnet";
+    if (upper.includes("TESTNET")) return "testnet";
+  } else if (net && typeof net === "object") {
+    const obj = net as { network?: string; networkPassphrase?: string };
+    const netStr = (obj.network ?? "").toUpperCase();
+    const pass = (obj.networkPassphrase ?? "").toUpperCase();
+    if (
+      netStr.includes("PUBLIC") ||
+      netStr.includes("MAINNET") ||
+      pass.includes("PUBLIC")
+    ) {
+      return "mainnet";
+    }
+    if (netStr.includes("TESTNET") || pass.includes("TEST")) {
+      return "testnet";
+    }
+  }
+  return null;
 }
 
 /**
@@ -218,12 +249,16 @@ export const useWallet = create<WalletState>()(
         // rewards. Imported lazily: both hooks depend on this module, so a
         // top-level import would be a cycle at module-evaluation time.
         if (address) {
-          const { useStaking } = require("@/hooks/use-staking") as
-            typeof import("@/hooks/use-staking");
-          const { useVoting } = require("@/hooks/use-voting") as
-            typeof import("@/hooks/use-voting");
-          useStaking.getState().clearWalletStakes(address);
-          useVoting.getState().clearWalletVotes(address);
+          try {
+            const { useStaking } = require("./use-staking") as
+              typeof import("@/hooks/use-staking");
+            const { useVoting } = require("./use-voting") as
+              typeof import("@/hooks/use-voting");
+            useStaking.getState().clearWalletStakes(address);
+            useVoting.getState().clearWalletVotes(address);
+          } catch {
+            // Safe fallback if module resolution fails in test environment
+          }
         }
 
         trackEvent({ name: "wallet_disconnect" });
@@ -414,8 +449,6 @@ export const useWallet = create<WalletState>()(
         set((s) => ({ balance: s.balance - amountXLM - feeXLM }));
 
         return receipt;
-
-          return receipt;
         } finally {
           transactionInFlight = false;
         }
@@ -423,13 +456,85 @@ export const useWallet = create<WalletState>()(
     }),
     {
       name: STORAGE_KEYS.wallet,
-      // Don't persist transient status - always start fresh on page load.
+      // Persist identity only (address, network). Transient status and balance are revalidated on load.
       partialize: (state) => ({
-        isConnected: state.isConnected,
         address: state.address,
-        balance: state.balance,
         network: state.network,
       }),
+      onRehydrateStorage: () => {
+        return (hydratedState, error) => {
+          if (error || !hydratedState) return;
+
+          // Always ensure transient flags are reset upon hydration
+          hydratedState.isConnecting = false;
+          hydratedState.isConnected = false;
+
+          const savedAddress = hydratedState.address;
+          if (!savedAddress) {
+            return;
+          }
+
+          // Re-verify account with Freighter and refetch balance from Horizon
+          queueMicrotask(async () => {
+            try {
+              const status = await checkFreighter();
+              if (
+                !status ||
+                (typeof status === "object" && !status.isConnected)
+              ) {
+                useWallet.getState().disconnect();
+                return;
+              }
+
+              const addrRes = await getAddress();
+              if ((addrRes as any)?.error) {
+                useWallet.getState().disconnect();
+                return;
+              }
+              const currentAddress =
+                typeof addrRes === "string" ? addrRes : addrRes?.address;
+              if (!currentAddress || currentAddress !== savedAddress) {
+                useWallet.getState().disconnect();
+                return;
+              }
+
+              const netRes = await getNetwork();
+              if ((netRes as any)?.error) {
+                useWallet.getState().disconnect();
+                return;
+              }
+              const netStr =
+                typeof netRes === "string" ? netRes : netRes?.network;
+              const freighterNetwork = netStr
+                ? normalizeFreighterNetwork(netStr)
+                : null;
+              const activeNetwork: StellarNetwork =
+                freighterNetwork ?? hydratedState.network ?? "testnet";
+
+              const balanceResult = await fetchBalance(
+                currentAddress,
+                activeNetwork,
+              );
+              if (!balanceResult.ok) {
+                useWallet.getState().disconnect();
+                return;
+              }
+
+              useWallet.setState({
+                isConnected: true,
+                isConnecting: false,
+                address: currentAddress,
+                network: activeNetwork,
+                balance: balanceResult.balance,
+                balanceStatus: "ok",
+                balanceError: null,
+              });
+            } catch {
+              useWallet.getState().disconnect();
+            }
+          });
+        };
+      },
     },
   )
 );
