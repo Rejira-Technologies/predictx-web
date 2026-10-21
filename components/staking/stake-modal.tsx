@@ -831,11 +831,18 @@ export function StakeModal({
 
                 {/* ─── Section 2: Side Selection ─── */}
                 <div className="space-y-3">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                  <span
+                    id="stake-side-label"
+                    className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]"
+                  >
                     Choose Your Side
-                  </label>
+                  </span>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="stake-side-label"
+                    className="grid grid-cols-2 gap-3"
+                  >
                     {(["yes", "no"] as const).map((s) => {
                       const isSelected = side === s;
                       const pool =
@@ -866,6 +873,8 @@ export function StakeModal({
                         <motion.button
                           key={s}
                           type="button"
+                          role="radio"
+                          aria-checked={isSelected}
                           onClick={() => setSide(s)}
                           className={cn(
                             "relative flex flex-col items-center justify-center gap-1 py-5 rounded-sm font-display font-black uppercase tracking-wider transition-all overflow-hidden",
