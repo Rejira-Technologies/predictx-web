@@ -99,6 +99,12 @@ export default function RootLayout({
           backgroundImage: `linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%)`,
           minHeight: "100vh",
         }}>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
 
         {/* Header is fixed top-0 (h-16). HUD bar sits just below it on desktop. */}
         <CardErrorBoundary componentName="Header">
@@ -120,7 +126,7 @@ export default function RootLayout({
         </CardErrorBoundary>
 
         {/* Content: pad for fixed header (4rem = h-16) on all breakpoints */}
-        <div className="pt-16 pb-16 md:pb-0" />
+        <div id="main" tabIndex={-1} className="pt-16 pb-16 md:pb-0 outline-none" />
         <PageTransition>
           {children}
         </PageTransition>
