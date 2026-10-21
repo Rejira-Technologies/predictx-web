@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutGrid,
@@ -116,6 +116,54 @@ export function PollsList({ polls, match }: PollsListProps) {
   const [sortBy, setSortBy] = useState<SortOption>("highest-pool")
   const [sortOpen, setSortOpen] = useState(false)
 
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  useEffect(() => {
+    if (sortOpen) {
+      const activeIdx = SORT_OPTIONS.findIndex((s) => s.key === sortBy)
+      const targetIdx = activeIdx >= 0 ? activeIdx : 0
+      itemRefs.current[targetIdx]?.focus()
+    }
+  }, [sortOpen, sortBy])
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      setSortOpen(true)
+    } else if (e.key === "Escape" && sortOpen) {
+      e.preventDefault()
+      setSortOpen(false)
+    }
+  }
+
+  const handleItemKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      setSortOpen(false)
+      triggerRef.current?.focus()
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault()
+      const nextIdx = (index + 1) % SORT_OPTIONS.length
+      itemRefs.current[nextIdx]?.focus()
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      const prevIdx = (index - 1 + SORT_OPTIONS.length) % SORT_OPTIONS.length
+      itemRefs.current[prevIdx]?.focus()
+    } else if (e.key === "Home") {
+      e.preventDefault()
+      itemRefs.current[0]?.focus()
+    } else if (e.key === "End") {
+      e.preventDefault()
+      itemRefs.current[SORT_OPTIONS.length - 1]?.focus()
+    } else if (e.key === "Tab") {
+      setSortOpen(false)
+    }
+  }
+
   const matchName = `${match.homeTeam} vs ${match.awayTeam}`
 
   // Count polls per category for tab badges
@@ -198,8 +246,15 @@ export function PollsList({ polls, match }: PollsListProps) {
         {/* Sort dropdown */}
         <div className="relative shrink-0">
           <button
+            ref={triggerRef}
+            id="sort-dropdown-trigger"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={sortOpen}
+            aria-controls="sort-dropdown-menu"
             onClick={() => setSortOpen(!sortOpen)}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded clip-corner text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            onKeyDown={handleTriggerKeyDown}
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded clip-corner text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           >
             {SORT_OPTIONS.find((s) => s.key === sortBy)?.label}
             <ChevronDown
@@ -217,15 +272,28 @@ export function PollsList({ polls, match }: PollsListProps) {
                 className="absolute right-0 top-full mt-2 z-50 w-52"
               >
                 <GlowCard className="p-1">
-                  <div className="relative z-20">
-                    {SORT_OPTIONS.map((opt) => (
+                  <div
+                    id="sort-dropdown-menu"
+                    role="menu"
+                    aria-labelledby="sort-dropdown-trigger"
+                    className="relative z-20"
+                  >
+                    {SORT_OPTIONS.map((opt, idx) => (
                       <button
                         key={opt.key}
+                        ref={(el) => {
+                          itemRefs.current[idx] = el
+                        }}
+                        type="button"
+                        role="menuitem"
+                        tabIndex={sortBy === opt.key ? 0 : -1}
                         onClick={() => {
                           setSortBy(opt.key)
                           setSortOpen(false)
+                          triggerRef.current?.focus()
                         }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded transition-colors ${
+                        onKeyDown={(e) => handleItemKeyDown(e, idx)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-2 focus-visible:outline-primary ${
                           sortBy === opt.key
                             ? "bg-primary/20 text-primary"
                             : "text-muted-foreground hover:text-foreground hover:bg-surface"
@@ -244,8 +312,12 @@ export function PollsList({ polls, match }: PollsListProps) {
           {/* Click-outside overlay */}
           {sortOpen && (
             <div
+              aria-hidden="true"
               className="fixed inset-0 z-40"
-              onClick={() => setSortOpen(false)}
+              onClick={() => {
+                setSortOpen(false)
+                triggerRef.current?.focus()
+              }}
             />
           )}
         </div>
