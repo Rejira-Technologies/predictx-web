@@ -7,7 +7,7 @@ import { EmptyState } from "./shared/empty-state"
 // hardcoded constant — mirrors the pattern used in completed-predictions.tsx
 import { useStaking } from "@/hooks/use-staking"
 import { useMockData } from "@/hooks/use-mock-data"
-import { calculatePotentialWinnings } from "@/lib/calculations"
+import { calculatePotentialWinnings, calculatePoolPercentages } from "@/lib/calculations"
 
 export function ActiveStakes() {
   // wallet-scoped selector: returns only stakes for the connected address
@@ -37,7 +37,10 @@ export function ActiveStakes() {
         const yesPool = poll?.yesPool ?? 0
         const noPool = poll?.noPool ?? 0
         const total = yesPool + noPool
-        const yesPercentage = total > 0 ? (yesPool / total) * 100 : 50
+        const poolPct = calculatePoolPercentages(yesPool, noPool)
+        // Fall back to 0 for the progress bar when there are no bets yet (null
+        // means "no market"). The label row shows "—" in that case.
+        const yesProgressValue = poolPct.yes ?? 0
 
         const winnings = poll
           ? calculatePotentialWinnings(stake.amount, stake.side, yesPool, noPool)
@@ -95,7 +98,7 @@ export function ActiveStakes() {
                     <span className="text-success font-bold">YES ${yesPool.toLocaleString()}</span>
                     <span className="text-accent font-bold">NO ${noPool.toLocaleString()}</span>
                   </div>
-                  <Progress value={yesPercentage} className="h-3" />
+                  <Progress value={yesProgressValue} className="h-3" />
                 </div>
               </div>
             </div>
