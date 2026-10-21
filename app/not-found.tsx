@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Search, ArrowLeft } from "lucide-react";
 import { GlowCard } from "@/components/shared/glow-card";
 import { GamingButton } from "@/components/shared/gaming-button";
@@ -25,17 +24,13 @@ export default function NotFound() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            <Link href="/">
-              <GamingButton variant="primary" size="md">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </GamingButton>
-            </Link>
-            <Link href="/dashboard">
-              <GamingButton variant="ghost" size="md">
-                My Dashboard
-              </GamingButton>
-            </Link>
+            <GamingButton variant="primary" size="md" href="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </GamingButton>
+            <GamingButton variant="ghost" size="md" href="/dashboard">
+              My Dashboard
+            </GamingButton>
           </div>
         </div>
       </GlowCard>

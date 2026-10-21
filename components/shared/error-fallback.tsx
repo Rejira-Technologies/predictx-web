@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
-import Link from "next/link";
 import { GlowCard } from "@/components/shared/glow-card";
 import { GamingButton } from "@/components/shared/gaming-button";
 import { reportError } from "@/lib/error-reporter";
@@ -53,12 +52,10 @@ export function ErrorFallback({ error, reset, context }: ErrorFallbackProps) {
               Try Again
             </GamingButton>
 
-            <Link href="/">
-              <GamingButton variant="ghost" size="md">
-                <Home className="mr-2 h-4 w-4" />
-                Go Home
-              </GamingButton>
-            </Link>
+            <GamingButton variant="ghost" size="md" href="/">
+              <Home className="mr-2 h-4 w-4" />
+              Go Home
+            </GamingButton>
           </div>
         </div>
       </GlowCard>
