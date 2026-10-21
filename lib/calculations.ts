@@ -60,9 +60,19 @@ export function calculatePotentialWinnings(
 	};
 }
 
-export function calculatePoolPercentages(yesPool: number, noPool: number) {
+/**
+ * Pool split as integer percentages.
+ *
+ * Returns `{ yes: null, no: null }` when both pools are empty — callers must
+ * render a "no bets yet" indicator rather than displaying a misleading 50/50
+ * split that implies an even contest with no capital behind it.
+ */
+export function calculatePoolPercentages(
+	yesPool: number,
+	noPool: number,
+): { yes: number; no: number } | { yes: null; no: null } {
 	const total = yesPool + noPool;
-	if (!total) return { yes: 50, no: 50 };
+	if (!total) return { yes: null, no: null };
 	return {
 		yes: Math.round((yesPool / total) * 100),
 		no: Math.round((noPool / total) * 100),
@@ -168,8 +178,17 @@ export function getLockTargetISO(
 	lockTargetISO?: string,
 ): string {
 	// Prefer an explicit lock timestamp when one has been persisted on the poll
-	// (created with "custom" lock or pre-computed on creation).
-	if (lockTargetISO) return lockTargetISO;
+	// (created with "custom" lock or pre-computed on creation) — but only if it
+	// is at or after kickoff. A stored value that precedes kickoff means the
+	// poll was saved with a bad timestamp; fall through to the kickoff-derived
+	// target so countdowns and stake gates always have a sensible reference.
+	if (lockTargetISO) {
+		const stored = new Date(lockTargetISO).getTime();
+		const kickoffMs = new Date(kickoff).getTime();
+		if (!Number.isNaN(stored) && !Number.isNaN(kickoffMs) && stored >= kickoffMs) {
+			return lockTargetISO;
+		}
+	}
 
 	// For known preset keys, derive from kickoff + offset
 	if (lockTime in LOCK_OFFSET_MINUTES) {
@@ -226,11 +245,15 @@ export function isPollLocked(
 
 /** Whole milliseconds until the lock, floored at 0. Drives countdown displays. */
 export function msUntilLock(
-	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
 	match: { kickoff: string } | undefined,
 	now: number = Date.now(),
 ): number {
 	if (!match) return 0;
+	// If the poll is already locked (by status or by clock), return 0 so that
+	// countdowns never tick toward a lock time that has already passed or been
+	// overridden by an explicit status transition.
+	if (isPollLocked(poll, match, now)) return 0;
 	const lockISO = getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO);
 	const lock = new Date(lockISO).getTime();
 	if (Number.isNaN(lock)) return 0;
@@ -264,4 +287,36 @@ export function getVotingDeadline(
 	const lock = new Date(lockISO).getTime();
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
+}
+
+/** `getVotingDeadline` as an ISO string, for `useCountdown` and `<time>` elements. */
+export function getVotingDeadlineISO(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+): string {
+	const ms = getVotingDeadline(poll, match);
+	if (Number.isNaN(ms)) return "";
+	return new Date(ms).toISOString();
+}
+
+/**
+ * Whether a poll's community-voting window is currently open.
+ *
+ * Voting is open only when the poll is in `"voting"` status AND the deadline
+ * derived from the lock time has not yet passed. Checking status alone let
+ * expired polls stay votable indefinitely; combining both gates ensures the
+ * on-screen countdown and the actual submit path agree.
+ *
+ * @param now Injected for testing; defaults to the current time.
+ */
+export function isVotingOpen(
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+	now: number = Date.now(),
+): boolean {
+	if (!match) return false;
+	if (poll.status !== "voting") return false;
+	const deadline = getVotingDeadline(poll, match);
+	if (Number.isNaN(deadline)) return false;
+	return now < deadline;
 }

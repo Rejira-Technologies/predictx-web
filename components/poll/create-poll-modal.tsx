@@ -27,7 +27,7 @@ import {
     POLL_QUESTION_MAX_LENGTH,
     XLM_USD_RATE,
 } from "@/lib/constants";
-import { getLockTargetISO } from "@/lib/calculations";
+import { getLockTargetISO, LOCK_OFFSET_MINUTES } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
@@ -325,6 +325,22 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
         setSubmitError("");
 
         try {
+            // Validate custom lock time before sending the transaction
+            if (form.lockTime === "custom" && form.customLockTime) {
+                const customMs = new Date(form.customLockTime).getTime();
+                const kickoffMs = resolvedMatch ? new Date(resolvedMatch.kickoff).getTime() : 0;
+                if (customMs <= Date.now()) {
+                    setSubmitError("Custom lock time must be in the future.");
+                    setSubmitting(false);
+                    return;
+                }
+                if (kickoffMs && customMs < kickoffMs) {
+                    setSubmitError("Custom lock time cannot precede the match kickoff.");
+                    setSubmitting(false);
+                    return;
+                }
+            }
+
             await sendTransaction(
                 CREATE_POLL_FEE_XLM * XLM_USD_RATE,
                 `Create poll: ${form.question}`,
@@ -725,7 +741,8 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                             type="datetime-local"
                                                             value={form.customLockTime}
                                                             onChange={(e) => updateForm({ customLockTime: e.target.value })}
-                                                            max={resolvedMatch ? new Date(new Date(resolvedMatch.kickoff).getTime() + 105 * 60000).toISOString().slice(0, 16) : undefined}
+                                                            min={new Date().toISOString().slice(0, 16)}
+                                                            max={resolvedMatch ? new Date(new Date(resolvedMatch.kickoff).getTime() + LOCK_OFFSET_MINUTES["60min"] * 60_000).toISOString().slice(0, 16) : undefined}
                                                             className="w-full bg-[#1a1f3a]/80 text-foreground border-2 border-border rounded-lg p-3 outline-none focus:border-primary transition-all text-sm"
                                                         />
                                                     </motion.div>

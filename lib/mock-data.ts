@@ -215,7 +215,7 @@ export const MATCHES: Match[] = [
     homeTeam: "Brighton",
     awayTeam: "West Ham",
     venue: "Amex Stadium",
-    kickoff: addDays(0, 13),
+    kickoff: addDays(0, Math.max(0, new Date().getHours() - 1)),
     status: "live",
     score: { home: 1, away: 2 },
   },

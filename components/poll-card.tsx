@@ -11,7 +11,7 @@ import { useUIStore } from "@/lib/ui-store"
 import { useCountdown } from "@/hooks/use-countdown"
 import type { Poll, Match, PollCategory, LockTime } from "@/lib/mock-data"
 import { lockTimeLabel } from "@/lib/mock-data"
-import { getLockTargetISO, isPollLocked } from "@/lib/calculations"
+import { getLockTargetISO, isPollLocked, calculatePoolPercentages } from "@/lib/calculations"
 import { getTeamColor } from "@/lib/team-colors"
 
 export interface PollCardProps {
@@ -107,10 +107,13 @@ export function PollCard({
   const effectiveIsHottest = isHottest || !!poll.isHottest
 
   const total = poll.yesPool + poll.noPool
-  const yesPercentage = total > 0 ? (poll.yesPool / total) * 100 : 50
-  const noPercentage = 100 - yesPercentage
-  const yesPercent = Math.round(yesPercentage)
-  const noPercent = 100 - yesPercent
+  const poolPct = calculatePoolPercentages(poll.yesPool, poll.noPool)
+  // Display values: use "—" (em-dash) when there are no bets yet to avoid
+  // showing a misleading 50/50 split for an empty market.
+  const yesPercent = poolPct.yes ?? null
+  const noPercent = poolPct.no ?? null
+  const yesPercentage = yesPercent ?? 0
+  const noPercentage = noPercent ?? 0
 
   const isActive = !poll.status || poll.status === "active"
   const isResolved = poll.status === "resolved"
@@ -265,20 +268,20 @@ export function PollCard({
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-success font-bold">
-                  YES {yesPercent}% · ${poll.yesPool.toLocaleString()}
+                  YES {yesPercent !== null ? `${yesPercent}%` : "—"} · ${poll.yesPool.toLocaleString()}
                 </span>
                 <span className="text-accent font-bold">
-                  ${poll.noPool.toLocaleString()} · {noPercent}% NO
+                  ${poll.noPool.toLocaleString()} · {noPercent !== null ? `${noPercent}%` : "—"} NO
                 </span>
               </div>
               <div className="relative h-3 bg-background-secondary rounded-full overflow-hidden">
                 <div
                   className="absolute left-0 top-0 h-full bg-gradient-to-r from-success to-success/70 glow-green transition-all duration-500"
-                  style={{ width: `${yesPercent}%` }}
+                  style={{ width: `${yesPercentage}%` }}
                 />
                 <div
                   className="absolute right-0 top-0 h-full bg-gradient-to-l from-accent to-accent/70 glow-magenta transition-all duration-500"
-                  style={{ width: `${noPercent}%` }}
+                  style={{ width: `${noPercentage}%` }}
                 />
               </div>
             </div>
@@ -394,10 +397,10 @@ export function PollCard({
                     <span className="text-success font-bold">YES</span>
                     <span className="text-muted-foreground mx-2">•</span>
                     <span className="text-foreground font-mono">${poll.yesPool.toLocaleString()}</span>
-                    <span className="text-muted-foreground text-xs ml-2">({yesPercentage.toFixed(0)}%)</span>
+                    <span className="text-muted-foreground text-xs ml-2">({yesPercent !== null ? `${yesPercent}%` : "—"})</span>
                   </div>
                   <div className="text-sm text-right">
-                    <span className="text-muted-foreground text-xs mr-2">({noPercentage.toFixed(0)}%)</span>
+                    <span className="text-muted-foreground text-xs mr-2">({noPercent !== null ? `${noPercent}%` : "—"})</span>
                     <span className="text-foreground font-mono">${poll.noPool.toLocaleString()}</span>
                     <span className="text-muted-foreground mx-2">•</span>
                     <span className="text-accent font-bold">NO</span>
