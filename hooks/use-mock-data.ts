@@ -55,11 +55,15 @@ interface MockDataState {
  */
 function refreshMatchTimestamps(persisted: Match[]): Match[] {
   const freshById = new Map(MATCHES.map((m) => [m.id, m]));
-  return persisted.map((m) => {
-    const fresh = freshById.get(m.id);
-    if (!fresh) return m;
-    return { ...m, kickoff: fresh.kickoff, status: fresh.status };
-  });
+  const existingIds = new Set(persisted.map((m) => m.id));
+  return [
+    ...persisted.map((m) => {
+      const fresh = freshById.get(m.id);
+      if (!fresh) return m;
+      return { ...m, kickoff: fresh.kickoff, status: fresh.status };
+    }),
+    ...MATCHES.filter((m) => !existingIds.has(m.id)),
+  ];
 }
 
 export const useMockData = create<MockDataState>()(
@@ -228,14 +232,26 @@ export const useMockData = create<MockDataState>()(
 
         const freshPollsById = new Map(POLLS.map((p) => [p.id, p]));
 
-        state.polls = state.polls.map((poll) => {
+        // Add new fixtures for returning users whose saved dataset predates
+        // them, while retaining custom polls and every existing pool mutation.
+        const existingIds = new Set(state.polls.map((p) => p.id));
+        const polls = [
+          ...state.polls,
+          ...POLLS.filter((p) => !existingIds.has(p.id)),
+        ];
+
+        state.polls = polls.map((poll) => {
           let next = poll;
 
-          // Re-seed status from the source dataset so lock/voting progression
-          // is correct. User-created polls (not in POLLS) are left as-is.
+          // Refresh status and outcome together. A definitive persisted
+          // resolution must never be rolled back to voting on reload.
+          // Historical resolved fixtures also repair older saved snapshots.
           const fresh = freshPollsById.get(poll.id);
-          if (fresh && fresh.status !== poll.status) {
-            next = { ...next, status: fresh.status };
+          const hasResolvedOutcome =
+            poll.status === "resolved" &&
+            (poll.outcome === "yes" || poll.outcome === "no");
+          if (fresh && (fresh.status === "resolved" || !hasResolvedOutcome)) {
+            next = { ...next, status: fresh.status, outcome: fresh.outcome };
           }
 
           // Recompute `participants` from the seeded baseline plus live

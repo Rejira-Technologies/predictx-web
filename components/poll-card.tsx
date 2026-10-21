@@ -454,15 +454,6 @@ export function PollCard({
                     Stake NO →
                   </GamingButton>
                 </>
-              ) : isLocked || timeLocked ? (
-                <div className="flex items-center justify-center gap-2 py-4 text-accent font-bold uppercase tracking-wider text-sm">
-                  <Lock className="h-4 w-4" />
-                  Staking Closed
-                </div>
-              ) : isVoting ? (
-                <div className="flex items-center justify-center gap-2 py-4 text-gold font-bold uppercase tracking-wider text-sm">
-                  Awaiting Resolution
-                </div>
               ) : isResolved && poll.outcome ? (
                 <div
                   className={`flex items-center justify-center gap-2 py-4 font-bold uppercase tracking-wider text-sm ${
@@ -470,6 +461,15 @@ export function PollCard({
                   }`}
                 >
                   {poll.outcome === "yes" ? "YES WON ✓" : "NO WON ✓"}
+                </div>
+              ) : isVoting ? (
+                <div className="flex items-center justify-center gap-2 py-4 text-gold font-bold uppercase tracking-wider text-sm">
+                  Awaiting Resolution
+                </div>
+              ) : isLocked || timeLocked ? (
+                <div className="flex items-center justify-center gap-2 py-4 text-accent font-bold uppercase tracking-wider text-sm">
+                  <Lock className="h-4 w-4" />
+                  Staking Closed
                 </div>
               ) : (
                 <GamingButton

@@ -196,6 +196,20 @@ export const useStaking = create<StakingState>()(
 				})),
 		}),
 		{ name: STORAGE_KEYS.stakes,
+		  // Repair only the completed demo records from older seed versions.
+		  // Preserve claimed winnings, user stakes, and intentionally removed seeds.
+		  onRehydrateStorage: () => (state) => {
+		    if (!state) return;
+		    const completedSeeds = new Map(
+		      MOCK_STAKES.filter((stake) => stake.status === "completed")
+		        .map((stake) => [stake.id, stake]),
+		    );
+		    state.stakes = state.stakes.map((stake) => {
+		      const seed = completedSeeds.get(stake.id);
+		      if (!seed || stake.wallet !== seed.wallet) return stake;
+		      return { ...seed, claimed: seed.claimed || stake.claimed };
+		    });
+		  },
 		  /**
 		   * Only persist the raw stakes array — computed selectors (activeStakes,
 		   * pendingStakes, completedStakes) are re-derived on every access so they
