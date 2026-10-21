@@ -6,6 +6,7 @@ import { MOCK_STAKES, STORAGE_KEYS, type Stake } from "@/lib/mock-data";
 import {
 	calculatePotentialWinnings,
 	calculateCompletedPayout,
+	isPollLocked,
 	type WinningsCalculation,
 } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
@@ -88,11 +89,33 @@ export const useStaking = create<StakingState>()(
 			) => {
 				const walletState = useWallet.getState();
 
+				// Guard: the modal's canSubmit check only runs when the pre-confirm
+				// button is clicked. A confirmation popup left open across the lock
+				// boundary would otherwise still succeed, so re-validate here.
+				const pollBefore = useMockData.getState().getPoll(pollId);
+				const matchBefore = useMockData.getState().getMatch(matchId);
+				if (!pollBefore) throw new Error("Poll not found");
+				if (isPollLocked(pollBefore, matchBefore)) {
+					throw new Error(
+						"Poll is locked — stakes are no longer accepted for this match",
+					);
+				}
+
 				// Calls the wallet's simulated Stellar transaction
 				const receipt = await walletState.sendTransaction(
 					amount,
 					`Staked $${amount} on "${question}" – ${side.toUpperCase()}`,
 				);
+
+				// Re-check after the await: the transfer may have been approved while
+				// the lock time passed mid-flight. Throw before mutating the pool or
+				// the stake list so no active stake is recorded on a locked poll.
+				const pollAfter = useMockData.getState().getPoll(pollId);
+				if (pollAfter && isPollLocked(pollAfter, matchBefore)) {
+					throw new Error(
+						"The poll locked while the transaction was confirming — stake not recorded",
+					);
+				}
 
 				// Update the poll pool in mock data store, passing the wallet
 				// address so participants counts distinct wallets only
