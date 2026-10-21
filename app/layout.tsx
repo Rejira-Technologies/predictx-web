@@ -67,7 +67,6 @@ export const metadata: Metadata = {
     title,
     description,
   },
-  generator: "v0.app",
   icons: {
     icon: [
       {
