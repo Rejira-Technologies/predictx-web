@@ -125,6 +125,8 @@ async function fetchBalance(
  */
 let transactionInFlight = false;
 
+let balanceRequestSeq = 0;
+
 export const useWallet = create<WalletState>()(
   persist(
     (set, get) => ({
@@ -239,37 +241,56 @@ export const useWallet = create<WalletState>()(
 
       switchNetwork: async (network: StellarNetwork) => {
         const { address, isConnected } = get();
+        const requestId = ++balanceRequestSeq;
+        const activeAddress = address;
+        const previousNetwork = get().network;
         set({ network });
 
-        if (isConnected && address) {
-          set({ balanceStatus: "loading", balanceError: null });
+        try {
+          if (isConnected && activeAddress) {
+            set({ balanceStatus: "loading", balanceError: null });
 
-          const result = await fetchBalance(address, network);
+            const result = await fetchBalance(activeAddress, network);
 
-          if (result.ok) {
-            // Only update balance on success — never overwrite with 0 on error.
-            set({
-              balance: result.balance,
-              balanceStatus: "ok",
-              balanceError: null,
-            });
-          } else {
-            // Keep the last-known balance; surface the error instead.
-            set({
-              balanceStatus: "error",
-              balanceError: result.message,
-            });
-            toast.warning("Balance unavailable on this network.", {
-              description: result.message,
-              action:
-                network === "mainnet"
-                  ? {
-                      label: "Switch to Testnet",
-                      onClick: () => get().switchNetwork("testnet"),
-                    }
-                  : undefined,
-            });
+            if (requestId !== balanceRequestSeq) return;
+            if (get().address !== activeAddress || get().network !== network) return;
+
+            if (result.ok) {
+              set({
+                balance: result.balance,
+                balanceStatus: "ok",
+                balanceError: null,
+              });
+            } else {
+              set({
+                balanceStatus: "error",
+                balanceError: result.message,
+              });
+              toast.warning("Balance unavailable on this network.", {
+                description: result.message,
+                action:
+                  network === "mainnet"
+                    ? {
+                        label: "Switch to Testnet",
+                        onClick: () => get().switchNetwork("testnet"),
+                      }
+                    : undefined,
+              });
+            }
           }
+        } catch (error) {
+          if (requestId === balanceRequestSeq && get().network === network) {
+            set({ balanceStatus: "idle", balanceError: null });
+          }
+          console.error("Switch network error:", error);
+          toast.error("Network switch failed", {
+            description:
+              error instanceof Error
+                ? error.message
+                : "Could not update the selected network.",
+          });
+          set({ network: previousNetwork });
+          return;
         }
 
         toast.success(`Switched to ${network}`, {
@@ -284,31 +305,49 @@ export const useWallet = create<WalletState>()(
         const { address, isConnected, network } = get();
         if (!isConnected || !address) return;
 
+        const requestId = ++balanceRequestSeq;
+        const currentAddress = address;
+        const currentNetwork = network;
         set({ balanceStatus: "loading", balanceError: null });
 
-        const result = await fetchBalance(address, network);
+        try {
+          const result = await fetchBalance(currentAddress, currentNetwork);
 
-        if (result.ok) {
-          set({
-            balance: result.balance,
-            balanceStatus: "ok",
-            balanceError: null,
-          });
-        } else {
-          // Preserve last-known balance; surface error.
-          set({
-            balanceStatus: "error",
-            balanceError: result.message,
-          });
+          if (requestId !== balanceRequestSeq) return;
+          if (get().address !== currentAddress || get().network !== currentNetwork) return;
+
+          if (result.ok) {
+            set({
+              balance: result.balance,
+              balanceStatus: "ok",
+              balanceError: null,
+            });
+          } else {
+            set({
+              balanceStatus: "error",
+              balanceError: result.message,
+            });
+            toast.error("Balance lookup failed", {
+              description: result.message,
+              action:
+                currentNetwork === "mainnet"
+                  ? {
+                      label: "Switch to Testnet",
+                      onClick: () => get().switchNetwork("testnet"),
+                    }
+                  : undefined,
+            });
+          }
+        } catch (error) {
+          if (requestId === balanceRequestSeq) {
+            set({ balanceStatus: "idle", balanceError: null });
+          }
+          console.error("Refresh balance error:", error);
           toast.error("Balance lookup failed", {
-            description: result.message,
-            action:
-              network === "mainnet"
-                ? {
-                    label: "Switch to Testnet",
-                    onClick: () => get().switchNetwork("testnet"),
-                  }
-                : undefined,
+            description:
+              error instanceof Error
+                ? error.message
+                : "Could not refresh your wallet balance.",
           });
         }
       },
