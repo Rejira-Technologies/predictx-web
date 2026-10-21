@@ -70,6 +70,9 @@ export function Header() {
             <Button
               className="md:hidden"
               onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               <Menu />
             </Button>
@@ -81,12 +84,13 @@ export function Header() {
       </header>
       {mobileMenuOpen && (
 
-        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center min-h-dvh"
+        <div id="mobile-menu" className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center min-h-dvh"
           style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
 
           <Button
             className="absolute top-6 right-6 min-h-[44px] min-w-[44px]"
             onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
           >
             <X />
           </Button>

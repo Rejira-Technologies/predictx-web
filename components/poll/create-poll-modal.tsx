@@ -439,6 +439,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                         <button
                             onClick={handleClose}
                             disabled={submitting}
+                            aria-label="Close dialog"
                             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-sm hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             <X className="h-5 w-5" />

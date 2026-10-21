@@ -159,6 +159,7 @@ export function AchievementToast({
             {/* Close button */}
             <button
               onClick={handleClose}
+              aria-label="Close notification"
               className="flex-shrink-0 p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             >
               <X className="w-4 h-4" />
