@@ -23,10 +23,32 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
         };
         // Use sendBeacon so the report fires even during unload
         if (navigator.sendBeacon) {
-          navigator.sendBeacon(
+          const beaconSent = navigator.sendBeacon(
             "/api/report-error",
             JSON.stringify(payload),
           );
+          // If sendBeacon returns false or we're in a context where it might fail,
+          // fall back to fetch so the report is not silently dropped
+          if (!beaconSent) {
+            fetch("/api/report-error", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              keepalive: true,
+            }).catch(() => {
+              // Swallow — reporting must never throw
+            });
+          }
+        } else {
+          // Fallback when sendBeacon is not available
+          fetch("/api/report-error", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+          }).catch(() => {
+            // Swallow — reporting must never throw
+          });
         }
       } catch {
         // Never let reporting crash the error UI
