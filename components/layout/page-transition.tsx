@@ -1,9 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 interface PageTransitionProps {
     children: ReactNode;
@@ -12,6 +11,13 @@ interface PageTransitionProps {
 export function PageTransition({ children }: PageTransitionProps) {
     const pathname = usePathname();
     const shouldReduce = useReducedMotion();
+
+    useEffect(() => {
+        const main = document.getElementById("main");
+        if (main) {
+            main.focus();
+        }
+    }, [pathname]);
 
     const variants = shouldReduce
         ? {
