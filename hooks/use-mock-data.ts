@@ -144,47 +144,61 @@ export const useMockData = create<MockDataState>()(
     }),
     {
       name: STORAGE_KEYS.pools,
-      /**
-       * After zustand rehydrates from localStorage, fix up two classes of
-       * staleness that a returning user would otherwise see:
-       *
-       *  1. Timestamps relative to "now" (MATCHES is recomputed on every page
-       *     load) plus poll status, which is driven by match status.
-       *  2. `participants`, which may be inflated relative to `stakers` from
-       *     before the recompute fix was applied.
-       *
-       * Pool-size mutations the user accumulated in-session are preserved.
-       */
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<MockDataState> | undefined;
+        const persistedMatches = persisted?.matches ?? [];
+        const persistedPolls = persisted?.polls ?? [];
 
-        // Refresh match kickoff/status fields from freshly-computed constants.
-        state.matches = refreshMatchTimestamps(state.matches);
+        const matchIds = new Set([
+          ...MATCHES.map((match) => match.id),
+          ...persistedMatches.map((match) => match.id),
+        ]);
+        const pollIds = new Set([
+          ...POLLS.map((poll) => poll.id),
+          ...persistedPolls.map((poll) => poll.id),
+        ]);
 
-        const freshPollsById = new Map(POLLS.map((p) => [p.id, p]));
-
-        state.polls = state.polls.map((poll) => {
-          let next = poll;
-
-          // Re-seed status from the source dataset so lock/voting progression
-          // is correct. User-created polls (not in POLLS) are left as-is.
-          const fresh = freshPollsById.get(poll.id);
-          if (fresh && fresh.status !== poll.status) {
-            next = { ...next, status: fresh.status };
-          }
-
-          // Recompute `participants` from `stakers`.
-          if (!Array.isArray(next.stakers)) {
-            next = { ...next, stakers: [], stakeCount: next.stakeCount ?? 0 };
-          } else {
-            const uniqueCount = new Set(next.stakers).size;
-            if (uniqueCount > 0 && uniqueCount !== next.participants) {
-              next = { ...next, participants: uniqueCount };
+        const nextMatches = Array.from(matchIds)
+          .map((id) => {
+            const persistedMatch = persistedMatches.find((m) => m.id === id);
+            const freshMatch = MATCHES.find((m) => m.id === id);
+            if (!persistedMatch && !freshMatch) return undefined;
+            if (freshMatch && persistedMatch) {
+              return {
+                ...persistedMatch,
+                kickoff: freshMatch.kickoff,
+                status: freshMatch.status,
+              };
             }
-          }
+            return freshMatch ?? persistedMatch;
+          })
+          .filter((match): match is Match => Boolean(match));
 
-          return next;
-        });
+        const nextPolls = Array.from(pollIds)
+          .map((id) => {
+            const persistedPoll = persistedPolls.find((poll) => poll.id === id);
+            const freshPoll = POLLS.find((poll) => poll.id === id);
+            if (!persistedPoll && !freshPoll) return undefined;
+            if (freshPoll && persistedPoll) {
+              const next = { ...persistedPoll, ...freshPoll };
+              const stakers = Array.isArray(persistedPoll.stakers)
+                ? persistedPoll.stakers
+                : [];
+              return {
+                ...next,
+                participants: stakers.length > 0 ? new Set(stakers).size : freshPoll.participants,
+              };
+            }
+            return freshPoll ?? persistedPoll;
+          })
+          .filter((poll): poll is Poll => Boolean(poll));
+
+        return {
+          ...currentState,
+          ...(persisted ?? {}),
+          matches: nextMatches,
+          polls: nextPolls,
+        };
       },
     },
   ),
