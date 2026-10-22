@@ -155,12 +155,26 @@ export function HomePlatformStats() {
 
   const shouldAnimate = hasAnimated;
 
-  const { platformStats } = useMockData();
+  const polls = useMockData((state) => state.polls);
+  const totalValueLocked = polls.reduce(
+    (total, poll) => total + poll.yesPool + poll.noPool,
+    0,
+  );
+  const activePredictions = polls.filter((poll) => poll.status === "active").length;
+  const communityMembers = polls.reduce(
+    (total, poll) => total + poll.participants,
+    0,
+  );
+  const totalPayouts = polls.reduce(
+    (total, poll) =>
+      poll.status === "resolved" ? total + poll.yesPool + poll.noPool : total,
+    0,
+  );
 
   const stats = [
     {
       label: "Total Value Locked",
-      value: platformStats.totalValueLocked,
+      value: totalValueLocked,
       prefix: "$",
       format: "compact" as const,
       icon: Shield,
@@ -170,7 +184,7 @@ export function HomePlatformStats() {
     },
     {
       label: "Active Predictions",
-      value: platformStats.activePredictions,
+      value: activePredictions,
       format: "number" as const,
       icon: Activity,
       iconColor: "#39ff14",
@@ -178,7 +192,7 @@ export function HomePlatformStats() {
     },
     {
       label: "Community Members",
-      value: platformStats.communityMembers,
+      value: communityMembers,
       format: "number" as const,
       icon: Users,
       iconColor: "#00d9ff",
@@ -186,7 +200,7 @@ export function HomePlatformStats() {
     },
     {
       label: "Total Payouts",
-      value: platformStats.totalPayouts,
+      value: totalPayouts,
       prefix: "$",
       format: "compact" as const,
       icon: Trophy,
