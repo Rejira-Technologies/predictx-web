@@ -1021,9 +1021,10 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   {
     hash: "d6a7e8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
     type: "claim",
-    amount: 150,
-    amountXLM: 150 / XLM_USD_RATE,
-    description: 'Claimed winnings from "Will Everton win?" pool',
+    amount: calculateCompletedPayout(100, 150).net,
+    amountXLM: calculateCompletedPayout(100, 150).net / XLM_USD_RATE,
+    description:
+      'Claimed winnings from "Will Everton win?" — NET $142.50 (gross $150.00 − 5% fee)',
     timestamp: addDays(-1, 18),
     ledger: 50_145_678,
     fee: "100 stroops (0.0000100 XLM)",
