@@ -19,7 +19,10 @@ const MAX_TRANSACTIONS = 200;
 
 interface TransactionsState {
   transactions: Transaction[];
-  addTransaction: (tx: Omit<Transaction, "hash" | "ledger" | "fee">) => void;
+  addTransaction: (
+    tx: Omit<Transaction, "hash" | "ledger" | "fee"> &
+      Partial<Pick<Transaction, "hash" | "ledger" | "fee">>,
+  ) => void;
 }
 
 function generateHash(): string {
@@ -40,9 +43,9 @@ export const useTransactions = create<TransactionsState>()(
           transactions: [
             {
               ...tx,
-              hash: generateHash(),
-              ledger: 50_000_000 + Math.floor(Math.random() * 1_000_000),
-              fee: "100 stroops (0.0000100 XLM)",
+              hash: tx.hash ?? generateHash(),
+              ledger: tx.ledger ?? 50_000_000 + Math.floor(Math.random() * 1_000_000),
+              fee: tx.fee ?? "100 stroops (0.0000100 XLM)",
             },
             ...s.transactions,
           ].slice(0, MAX_TRANSACTIONS),

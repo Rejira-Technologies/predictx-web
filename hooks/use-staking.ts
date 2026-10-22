@@ -130,6 +130,18 @@ export const useStaking = create<StakingState>()(
 
 				set((s) => ({ stakes: [...s.stakes, stake].slice(-MAX_STAKES) }));
 
+				useTransactions.getState().addTransaction({
+					type: "stake",
+					amount: receipt.amount,
+					amountXLM: receipt.amountXLM,
+					description: `Staked $${receipt.amount} on "${question}" — ${side.toUpperCase()}`,
+					timestamp: receipt.timestamp,
+					status: "confirmed",
+					hash: receipt.hash,
+					ledger: receipt.ledger,
+					fee: receipt.fee,
+				});
+
 				// Analytics — no wallet address or seeds
 				const poll = useMockData.getState().getPoll(pollId);
 				trackEvent({
