@@ -13,6 +13,7 @@ import { ErrorHandlerMount } from "@/components/shared/error-handler-mount"
 import { WalletConnectModalRoot } from "@/components/wallet-connect-modal-root"
 import { BackgroundEffects } from "@/components/shared"
 import { CardErrorBoundary } from "@/components/shared/card-error-boundary"
+import { StoreHydrationProvider } from "@/components/store-hydration-provider"
 
 
 // Display font - bold, all-caps, aggressive
@@ -100,6 +101,7 @@ export default function RootLayout({
           minHeight: "100vh",
         }}>
 
+        <StoreHydrationProvider>
         {/* Header is fixed top-0 (h-16). HUD bar sits just below it on desktop. */}
         <CardErrorBoundary componentName="Header">
           <Header />
@@ -141,6 +143,7 @@ export default function RootLayout({
         <CardErrorBoundary componentName="WalletConnectModalRoot">
           <WalletConnectModalRoot />
         </CardErrorBoundary>
+        </StoreHydrationProvider>
       </body>
     </html>
   )

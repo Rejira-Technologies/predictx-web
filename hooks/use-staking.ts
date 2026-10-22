@@ -196,6 +196,24 @@ export const useStaking = create<StakingState>()(
 				})),
 		}),
 		{ name: STORAGE_KEYS.stakes,
+		  skipHydration: true,
+		  version: 1,
+		  migrate: (persistedState: unknown) => {
+		    const stored = persistedState as { stakes?: unknown } | undefined;
+		    const seededById = new Map(MOCK_STAKES.map((stake) => [stake.id, stake]));
+		    const stakes = Array.isArray(stored?.stakes)
+		      ? stored.stakes.flatMap((value) => {
+		          if (!value || typeof value !== "object" || !("id" in value)) return [];
+		          const stake = { ...seededById.get(String(value.id)), ...value };
+		          return typeof stake.pollId === "string" &&
+		            typeof stake.matchId === "string" &&
+		            typeof stake.amount === "number"
+		            ? [stake as Stake]
+		            : [];
+		        })
+		      : MOCK_STAKES;
+		    return { stakes };
+		},
 		  /**
 		   * Only persist the raw stakes array — computed selectors (activeStakes,
 		   * pendingStakes, completedStakes) are re-derived on every access so they
