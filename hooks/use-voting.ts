@@ -365,6 +365,28 @@ export const useVoting = create<VotingState>()(
           return { allVotes, pendingRewards };
         }),
     }),
-    { name: STORAGE_KEYS.votes },
+    {
+      name: STORAGE_KEYS.votes,
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const stored = persistedState as Partial<VotingState> | undefined;
+        return {
+          allVotes: stored?.allVotes && typeof stored.allVotes === "object" ? stored.allVotes : {},
+          pendingRewards: stored?.pendingRewards && typeof stored.pendingRewards === "object" ? stored.pendingRewards : {},
+          userEarnings: typeof stored?.userEarnings === "number" ? stored.userEarnings : 0,
+          unclearVotesByPoll: stored?.unclearVotesByPoll && typeof stored.unclearVotesByPoll === "object" ? stored.unclearVotesByPoll : {},
+          communityVotes: stored?.communityVotes && typeof stored.communityVotes === "object"
+            ? { ...MOCK_COMMUNITY_VOTES, ...stored.communityVotes }
+            : MOCK_COMMUNITY_VOTES,
+        };
+      },
+      partialize: (state) => ({
+        allVotes: state.allVotes,
+        pendingRewards: state.pendingRewards,
+        userEarnings: state.userEarnings,
+        unclearVotesByPoll: state.unclearVotesByPoll,
+        communityVotes: state.communityVotes,
+      }),
+    },
   ),
 );

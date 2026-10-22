@@ -458,6 +458,16 @@ export const useWallet = create<WalletState>()(
     }),
     {
       name: STORAGE_KEYS.wallet,
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const stored = persistedState as Partial<WalletState> | undefined;
+        return {
+          isConnected: typeof stored?.isConnected === "boolean" ? stored.isConnected : false,
+          address: typeof stored?.address === "string" ? stored.address : "",
+          balance: typeof stored?.balance === "number" ? stored.balance : 0,
+          network: stored?.network === "mainnet" ? "mainnet" : "testnet",
+        };
+      },
       // Don't persist transient status - always start fresh on page load.
       partialize: (state) => ({
         isConnected: state.isConnected,

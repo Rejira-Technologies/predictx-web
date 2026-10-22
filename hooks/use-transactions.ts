@@ -50,6 +50,36 @@ export const useTransactions = create<TransactionsState>()(
     }),
     {
       name: STORAGE_KEYS.transactions,
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const stored = persistedState as { transactions?: unknown } | undefined;
+        const transactions = Array.isArray(stored?.transactions)
+          ? stored.transactions.filter(
+              (transaction): transaction is Transaction =>
+                !!transaction &&
+                typeof transaction === "object" &&
+                "hash" in transaction &&
+                typeof transaction.hash === "string" &&
+                "type" in transaction &&
+                typeof transaction.type === "string" &&
+                "amount" in transaction &&
+                typeof transaction.amount === "number" &&
+                "amountXLM" in transaction &&
+                typeof transaction.amountXLM === "number" &&
+                "description" in transaction &&
+                typeof transaction.description === "string" &&
+                "timestamp" in transaction &&
+                typeof transaction.timestamp === "string" &&
+                "ledger" in transaction &&
+                typeof transaction.ledger === "number" &&
+                "fee" in transaction &&
+                typeof transaction.fee === "string" &&
+                "status" in transaction &&
+                typeof transaction.status === "string",
+            )
+          : MOCK_TRANSACTIONS;
+        return { transactions };
+      },
       /**
        * Only persist the transactions array — no derived or transient state
        * needs to be serialised.

@@ -151,6 +151,39 @@ export const useMockData = create<MockDataState>()(
     }),
     {
       name: STORAGE_KEYS.pools,
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        const stored = persistedState as {
+          polls?: unknown;
+          userCreatedPollCount?: unknown;
+        } | undefined;
+        const polls = Array.isArray(stored?.polls)
+          ? stored.polls.flatMap((value) => {
+              if (!value || typeof value !== "object" || !("id" in value)) return [];
+              const pollId = String(value.id);
+              const seed = POLLS.find((poll) => poll.id === pollId);
+              const poll = { ...seed, ...value } as Poll;
+              if (
+                typeof poll.matchId !== "string" ||
+                typeof poll.question !== "string" ||
+                typeof poll.yesPool !== "number" ||
+                typeof poll.noPool !== "number"
+              ) return [];
+              return [{
+                ...poll,
+                stakers: Array.isArray(poll.stakers) ? poll.stakers : [],
+                stakeCount: typeof poll.stakeCount === "number" ? poll.stakeCount : 0,
+                participants: typeof poll.participants === "number" ? poll.participants : seed?.participants ?? 0,
+              }];
+            })
+          : POLLS;
+        return {
+          polls,
+          userCreatedPollCount: typeof stored?.userCreatedPollCount === "number"
+            ? stored.userCreatedPollCount
+            : 0,
+        };
+      },
       /**
        * Partialize to mutable deltas only.
        *
