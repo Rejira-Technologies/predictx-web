@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { toast } from "sonner";
 import { persist } from "zustand/middleware";
 import { STORAGE_KEYS, type Poll } from "@/lib/mock-data";
 import { useMockData } from "@/hooks/use-mock-data";
@@ -210,8 +209,7 @@ export const useVoting = create<VotingState>()(
 
         const address = useWallet.getState().address;
         if (!address) {
-          toast.error("Connect a wallet to vote.");
-          return;
+          throw new Error("Connect a wallet to vote.");
         }
 
         // Re-check after the await. The deadline can pass during those 800ms,
@@ -220,10 +218,12 @@ export const useVoting = create<VotingState>()(
           throw new Error("Voting has closed for this poll");
         }
 
+        let recorded = false;
         set((state) => {
           const myVotes = state.allVotes[address] ?? {};
           // Already voted — no-op (guard against double-submit races)
           if (myVotes[pollId]) return state;
+          recorded = true;
 
           const newPendingForWallet = { ...(state.pendingRewards[address] ?? {}) };
 
@@ -265,6 +265,10 @@ export const useVoting = create<VotingState>()(
                 : state.unclearVotesByPoll,
           };
         });
+
+        if (!recorded) {
+          throw new Error("You have already voted on this poll.");
+        }
 
         // Analytics — no wallet addresses
         const votedPoll = useMockData.getState().getPoll(pollId);
