@@ -55,13 +55,6 @@ export const AUTO_APPROVE_THRESHOLD = 0.85; // 85% consensus
  */
 export const ADMIN_REVIEW_THRESHOLD = 0.6; // 60% consensus
 
-/**
- * Hours after a poll enters `resolved` status during which participants may
- * raise a formal on-chain dispute. After this window, resolution is final.
- * Soroban: mirrors `dispute_window_seconds` (86400) in the contract.
- */
-export const DISPUTE_WINDOW_HOURS = 24;
-
 
 /* Stellar Network*/
 

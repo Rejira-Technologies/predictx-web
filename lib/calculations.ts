@@ -88,14 +88,6 @@ export function formatXLM(amount: number, locale: string = "en-US"): string {
 	return `${new Intl.NumberFormat(locale).format(Math.round(amount))} XLM`;
 }
 
-export function convertXlmToUsd(xlm: number): number {
-	return xlm * XLM_USD_RATE;
-}
-
-export function convertUsdToXlm(usd: number): number {
-	return usd / XLM_USD_RATE;
-}
-
 /* ── Poll locking ────────────────────────────────────────────────────────── */
 
 /**
