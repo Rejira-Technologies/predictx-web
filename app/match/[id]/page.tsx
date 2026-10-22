@@ -1,4 +1,18 @@
-"use client";
+import { notFound } from "next/navigation";
+import { MATCHES } from "@/lib/mock-data";
+import MatchPageClient from "./page-client";
+
+interface MatchPageProps {
+  params: { id: string };
+}
+
+export default function MatchPage({ params }: MatchPageProps) {
+  if (!MATCHES.some((match) => match.id === params.id)) {
+    notFound();
+  }
+
+  return <MatchPageClient matchId={params.id} />;
+}
 import { MatchHeader } from "@/components/match-header";
 // #245: use the store-backed PollsList (components/match/polls-list) so polls
 // created via CreatePollModal appear immediately — the static version at
