@@ -75,7 +75,7 @@ export function BadgeComponent({
         clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
         background: colors.bg,
         border: `1px solid ${colors.border}`,
-        boxShadow: `0 0 15px ${colors.glow}, inset 0 0 10px ${colors.glow}30`,
+        boxShadow: `0 0 15px ${colors.glow}, inset 0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.15)")}`,
       }}
       whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
       animate={
@@ -100,6 +100,21 @@ export function BadgeComponent({
               },
             }
       }
+      whileHover={{ scale: 1.05 }}
+      animate={{
+        boxShadow: [
+          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
+          `0 0 20px ${colors.glow}`,
+          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
+        ],
+      }}
+      transition={{
+        boxShadow: {
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        },
+      }}
     >
       {/* Holographic shine on hover */}
       <motion.div

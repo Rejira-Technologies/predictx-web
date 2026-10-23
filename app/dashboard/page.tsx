@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { DashboardTabs } from "@/components/dashboard-tabs"
 import { BadgesStrip } from "@/components/dashboard/badges-strip"
 
@@ -18,7 +19,14 @@ export default function DashboardPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
         <BadgesStrip />
-        <DashboardTabs />
+        {/*
+          DashboardTabs uses useSearchParams to read/write ?tab=.
+          Next.js requires any component that calls useSearchParams to be
+          wrapped in a Suspense boundary during static rendering.
+        */}
+        <Suspense fallback={<div className="h-14 bg-surface border-2 border-border rounded animate-pulse" />}>
+          <DashboardTabs />
+        </Suspense>
       </div>
     </main>
   )
