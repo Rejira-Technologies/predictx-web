@@ -225,6 +225,8 @@ Wrapper for Lucide icons with gaming treatment.
 .energy-shield    /* pulsing shield around high-value elements */
 ```
 
+> **Status:** only `.glow-text-cyan` is in `app/globals.css` today. The rest were added without call sites and later removed (#367); re-add one alongside the component that uses it.
+
 ---
 
 ## Suggested Execution

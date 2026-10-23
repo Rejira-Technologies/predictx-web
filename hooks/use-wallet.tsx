@@ -6,13 +6,14 @@ import { requestAccess, isConnected as checkFreighter } from "@stellar/freighter
 import {
   MOCK_CONTRACT_ID,
   STELLAR_BASE_FEE,
+  STELLAR_NETWORKS,
   XLM_USD_RATE,
 } from "@/lib/constants";
 import { formatAddress } from "@/lib/calculations";
 import { STORAGE_KEYS } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
-import { stellar } from "@/lib/stellar";
+import { getHorizonUrl } from "@/lib/stellar";
 
 export interface ConnectPayload {
   address: string;
@@ -78,7 +79,7 @@ async function fetchBalance(
 > {
   try {
     const response = await fetch(
-      `${stellar.getHorizonUrl(network)}/accounts/${publicKey}`,
+      `${getHorizonUrl(network)}/accounts/${publicKey}`,
     );
 
     if (!response.ok) {
@@ -116,14 +117,19 @@ async function fetchBalance(
 }
 
 /**
- * Module-level latch for {@link useWallet.sendTransaction}.
+ * Per-address in-flight transaction latch.
  *
  * Deliberately outside the store: the guard has to be readable synchronously
  * from inside the transaction body, and it must survive the store being
- * replaced by a `persist` rehydrate mid-flight. One transaction at a time per
- * wallet is the invariant.
+ * replaced by a `persist` rehydrate mid-flight.
+ *
+ * Keyed by wallet address so that disconnecting one wallet (or switching
+ * networks) does not leave a stale latch that blocks the next wallet's first
+ * transaction.  The comment "one transaction at a time per wallet" is now
+ * enforced at the data-structure level rather than relying on callers to clear
+ * a single boolean.
  */
-let transactionInFlight = false;
+const transactionsInFlight = new Set<string>();
 
 export const useWallet = create<WalletState>()(
   persist(
@@ -137,16 +143,14 @@ export const useWallet = create<WalletState>()(
       network: "testnet" as StellarNetwork,
 
       connect: async () => {
-        set({ isConnecting: true });
+        if (get().isConnecting) return;
+
+        set({ isConnecting: true, balanceStatus: "loading", balanceError: null });
 
         try {
-          // 1. Check if installed
           const status = await checkFreighter();
-          // Freighter v2 returns an object, v1 returned a boolean. This handles both!
-          if (
-            !status ||
-            (typeof status === "object" && !status.isConnected)
-          ) {
+          if (!status || (typeof status === "object" && !status.isConnected)) {
+            set({ balanceStatus: "idle", balanceError: null });
             toast.info(
               "Freighter is not installed. Please install the browser extension.",
             );
@@ -167,8 +171,6 @@ export const useWallet = create<WalletState>()(
           if (!publicKey) {
             throw new Error("Failed to retrieve public key");
           }
-
-          set({ balanceStatus: "loading", balanceError: null });
 
           const currentNetwork = get().network;
           const result = await fetchBalance(publicKey, currentNetwork);
@@ -193,9 +195,9 @@ export const useWallet = create<WalletState>()(
             });
           }
 
-          // Analytics — no public key in the payload
           trackEvent({ name: "wallet_connect" });
         } catch (error) {
+          set({ balanceStatus: "idle", balanceError: null });
           console.error("Freighter connect error:", error);
           const message =
             error instanceof Error
@@ -224,6 +226,11 @@ export const useWallet = create<WalletState>()(
             typeof import("@/hooks/use-voting");
           useStaking.getState().clearWalletStakes(address);
           useVoting.getState().clearWalletVotes(address);
+
+          // Release the per-address transaction latch so that reconnecting
+          // this (or any other) wallet is never blocked by a transaction that
+          // was in flight at the moment of disconnect.
+          transactionsInFlight.delete(address);
         }
 
         trackEvent({ name: "wallet_disconnect" });
@@ -241,6 +248,14 @@ export const useWallet = create<WalletState>()(
         const { address, isConnected } = get();
         set({ network });
 
+        // A network switch invalidates any in-flight transaction for this
+        // address: the transaction was submitted against the old network and
+        // its result is undefined on the new one.  Clear the latch so the
+        // wallet is not permanently blocked after a mid-transaction switch.
+        if (address) {
+          transactionsInFlight.delete(address);
+        }
+
         if (isConnected && address) {
           set({ balanceStatus: "loading", balanceError: null });
 
@@ -253,13 +268,24 @@ export const useWallet = create<WalletState>()(
               balanceStatus: "ok",
               balanceError: null,
             });
+            // Show the success toast only when the balance fetch also succeeded.
+            // Placing it outside this branch caused a contradictory pair of
+            // toasts: "Balance unavailable on Mainnet" immediately followed by
+            // "Switched to Mainnet / You are now on Stellar Mainnet".
+            toast.success(`Switched to ${network}`, {
+              description:
+                network === "mainnet"
+                  ? "You are now on Stellar Mainnet"
+                  : "You are now on Stellar Testnet",
+            });
           } else {
             // Keep the last-known balance; surface the error instead.
             set({
               balanceStatus: "error",
               balanceError: result.message,
             });
-            toast.warning("Balance unavailable on this network.", {
+            // Single, accurate toast — no success message follows.
+            toast.warning(`Switched to ${network} — balance unavailable.`, {
               description: result.message,
               action:
                 network === "mainnet"
@@ -270,14 +296,16 @@ export const useWallet = create<WalletState>()(
                   : undefined,
             });
           }
+        } else {
+          // Wallet not connected — network preference is stored but there is
+          // no balance to fetch.  Show the plain success toast immediately.
+          toast.success(`Switched to ${network}`, {
+            description:
+              network === "mainnet"
+                ? "You are now on Stellar Mainnet"
+                : "You are now on Stellar Testnet",
+          });
         }
-
-        toast.success(`Switched to ${network}`, {
-          description:
-            network === "mainnet"
-              ? "You are now on Stellar Mainnet"
-              : "You are now on Stellar Testnet",
-        });
       },
 
       refreshBalance: async () => {
@@ -330,7 +358,7 @@ export const useWallet = create<WalletState>()(
         }
 
         /**
-         * Re-entrancy latch.
+         * Re-entrancy latch (per-address).
          *
          * The simulated latency below is 1-2s, and the balance debit happens
          * *after* it. Without this latch, two overlapping calls both read the
@@ -340,15 +368,16 @@ export const useWallet = create<WalletState>()(
          * second concurrent transaction from one wallet is never legitimate
          * here: every call site debits as part of placing a single stake.
          *
-         * A module-level ref rather than store state, so the check is
-         * synchronous and cannot be defeated by two calls in the same tick.
+         * Keyed by wallet address (not a single module-level boolean) so that
+         * disconnecting one wallet and immediately connecting another does not
+         * inherit the previous wallet's latch.
          */
-        if (transactionInFlight) {
+        if (transactionsInFlight.has(state.address)) {
           throw new Error(
             "A transaction is already in progress. Please wait for it to finish.",
           );
         }
-        transactionInFlight = true;
+        transactionsInFlight.add(state.address);
 
         try {
           // Round to stroop precision (7 decimal places = 10^-7 XLM) to avoid
@@ -391,7 +420,10 @@ export const useWallet = create<WalletState>()(
           ledger: 50_000_000 + Math.floor(Math.random() * 1_000_000),
           fee: `${STELLAR_BASE_FEE} stroops (${feeXLM.toFixed(7)} XLM)`,
           from: state.address,
-          to: MOCK_CONTRACT_ID,
+          // Name the contract on the network the wallet is actually connected
+          // to, not the hardcoded testnet address. Falls back to the testnet
+          // contract when the active network has no configured contract id.
+          to: STELLAR_NETWORKS[state.network]?.contractId || MOCK_CONTRACT_ID,
           amount: amountUSD,
           amountXLM,
           timestamp: new Date().toISOString(),
@@ -405,6 +437,9 @@ export const useWallet = create<WalletState>()(
          * check that matters is the one here.
          */
         const liveBalance = useWallet.getState().balance;
+        if (useWallet.getState().address !== state.address) {
+          throw new Error("Wallet changed while the transaction was in progress");
+        }
         if (amountXLM + feeXLM > liveBalance) {
           throw new Error("Insufficient balance");
         }
@@ -417,7 +452,7 @@ export const useWallet = create<WalletState>()(
 
           return receipt;
         } finally {
-          transactionInFlight = false;
+          transactionsInFlight.delete(state.address);
         }
       },
     }),

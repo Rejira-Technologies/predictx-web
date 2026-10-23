@@ -1,11 +1,10 @@
-"use client";
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MOCK_STAKES, STORAGE_KEYS, type Stake } from "@/lib/mock-data";
 import {
 	calculatePotentialWinnings,
 	calculateCompletedPayout,
+	calculateGrossPayout,
 	type WinningsCalculation,
 } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
@@ -13,6 +12,15 @@ import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
 import { useTransactions } from "@/hooks/use-transactions";
 import { trackEvent } from "@/lib/analytics";
+
+/**
+ * Maximum number of stakes kept in persisted storage.
+ *
+ * When the array exceeds this limit the oldest entries (lowest indices after
+ * the prepend) are evicted.  The cap keeps the localStorage payload bounded
+ * while retaining the most-recent activity for display.
+ */
+const MAX_STAKES = 200;
 
 interface StakingState {
 	/**
@@ -86,7 +94,15 @@ export const useStaking = create<StakingState>()(
 				side,
 				amount,
 			) => {
+				// Guard the money path directly: the modal's canSubmit check is the
+				// only validation a caller has to bypass, and stale/future callers
+				// must not be able to push a non-positive or non-finite amount.
+				if (!Number.isFinite(amount) || amount <= 0) {
+					throw new Error("Invalid stake amount");
+				}
+
 				const walletState = useWallet.getState();
+				const address = walletState.address;
 
 				// Calls the wallet's simulated Stellar transaction
 				const receipt = await walletState.sendTransaction(
@@ -96,7 +112,7 @@ export const useStaking = create<StakingState>()(
 
 				// Update the poll pool in mock data store, passing the wallet
 				// address so participants counts distinct wallets only
-				const walletAddress = useWallet.getState().address ?? undefined;
+				const walletAddress = address || undefined;
 				useMockData.getState().updatePollPool(pollId, side, amount, walletAddress);
 
 				const stake: Stake = {
@@ -109,10 +125,10 @@ export const useStaking = create<StakingState>()(
 					amount,
 					status: "active",
 					// Scope the stake to the wallet that placed it
-					wallet: walletState.address,
+					wallet: address,
 				};
 
-				set((s) => ({ stakes: [...s.stakes, stake] }));
+				set((s) => ({ stakes: [...s.stakes, stake].slice(-MAX_STAKES) }));
 
 				// Analytics — no wallet address or seeds
 				const poll = useMockData.getState().getPoll(pollId);
@@ -131,18 +147,20 @@ export const useStaking = create<StakingState>()(
 				calculatePotentialWinnings(amount, side, yesPool, noPool),
 
 			claimStake: async (stakeId: string) => {
-				const stake = get().stakes.find((s) => s.id === stakeId);
+				// Resolve through the wallet-scoped accessor: every other read path
+				// filters by wallet first, and the unscoped array would let a stake
+				// id belonging to a different account be claimed by this one.
+				const stake = walletStakes(get().stakes).find((s) => s.id === stakeId);
 				if (!stake) throw new Error("Stake not found");
 				if (stake.status !== "completed") throw new Error("Stake is not completed");
 				if (stake.outcome !== "won") throw new Error("Stake was not won");
 				if (stake.claimed) throw new Error("Winnings already claimed");
 
-				// Determine gross payout: use stored grossPayout or derive from profit
-				const grossPayout =
-					stake.grossPayout ??
-					(stake.profit != null
-						? stake.amount + stake.profit / (1 - 0.05)
-						: stake.amount);
+				const grossPayout = calculateGrossPayout(
+					stake.amount,
+					stake.profit,
+					stake.grossPayout,
+				);
 
 				const payout = calculateCompletedPayout(stake.amount, grossPayout);
 				const netPayout = payout.net;
@@ -177,6 +195,44 @@ export const useStaking = create<StakingState>()(
 					stakes: s.stakes.filter((stake) => stake.wallet !== address),
 				})),
 		}),
-		{ name: STORAGE_KEYS.stakes },
+		{ name: STORAGE_KEYS.stakes,
+		  /**
+		   * Only persist the raw stakes array — computed selectors (activeStakes,
+		   * pendingStakes, completedStakes) are re-derived on every access so they
+		   * never need to be serialised.
+		   */
+		  partialize: (state) => ({ stakes: state.stakes }),
+		  /**
+		   * Wrap every setItem call so a QuotaExceededError degrades to memory-only
+		   * instead of propagating through the action and leaving the in-memory
+		   * state out of sync with what was persisted.
+		   */
+		  storage: {
+		    getItem: (name) => {
+		      const value = localStorage.getItem(name);
+		      return value ? JSON.parse(value) : null;
+		    },
+		    setItem: (name, value) => {
+		      try {
+		        localStorage.setItem(name, JSON.stringify(value));
+		      } catch (err) {
+		        if (
+		          err instanceof DOMException &&
+		          (err.name === "QuotaExceededError" ||
+		            err.name === "NS_ERROR_DOM_QUOTA_REACHED")
+		        ) {
+		          // Storage is full — in-memory state is still correct, so we
+		          // swallow the error rather than surfacing a confusing throw.
+		          if (process.env.NODE_ENV !== "production") {
+		            console.warn("[use-staking] localStorage quota exceeded — stake persisted in memory only.");
+		          }
+		        } else {
+		          throw err;
+		        }
+		      }
+		    },
+		    removeItem: (name) => localStorage.removeItem(name),
+		  },
+		},
 	),
 );
