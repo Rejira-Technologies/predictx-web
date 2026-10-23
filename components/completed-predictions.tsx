@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TrendingUp, TrendingDown, Calendar, CheckCircle, Trophy, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,11 +8,13 @@ import { EmptyState } from "./shared/empty-state";
 import { GamingButton } from "./shared/gaming-button";
 import { GlowCard } from "./shared/glow-card";
 import { useStaking } from "@/hooks/use-staking";
-import { calculateCompletedPayout } from "@/lib/calculations";
+import { calculateCompletedPayout, calculateGrossPayout } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
 import type { Stake } from "@/lib/mock-data";
 
 // ── Confirmation dialog ────────────────────────────────────────────────────────
+
+const CLAIM_DIALOG_TITLE_ID = "claim-dialog-title";
 
 function ClaimConfirmDialog({
   stake,
@@ -25,75 +27,138 @@ function ClaimConfirmDialog({
   onCancel: () => void;
   confirming: boolean;
 }) {
-  const grossPayout =
-    stake.grossPayout ??
-    (stake.profit != null ? stake.amount + stake.profit / 0.95 : stake.amount);
+  const grossPayout = calculateGrossPayout(
+    stake.amount,
+    stake.profit,
+    stake.grossPayout,
+  );
   const payout = calculateCompletedPayout(stake.amount, grossPayout);
 
+  // Move focus into the dialog on mount
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Focus the first focusable element inside the dialog
+    const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus();
+  }, []);
+
+  // Escape key closes the dialog
+  useEffect(() => {
+    if (confirming) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [confirming, onCancel]);
+
+  // Focus trap: keep Tab/Shift+Tab inside the dialog
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
   return (
+    /* Backdrop — click outside cancels */
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      onClick={confirming ? undefined : onCancel}
     >
-      <GlowCard variant="gold" className="w-full max-w-md">
-        <div className="p-2 space-y-4">
-          <div className="flex items-center gap-3">
-            <Trophy className="h-6 w-6 text-gold" />
-            <h3 className="font-display text-xl font-black text-gold uppercase tracking-wider">
-              Claim Winnings
-            </h3>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            You are about to claim your winnings from:
-          </p>
-          <div className="bg-background/50 rounded p-3 border border-gold/20 space-y-1 text-sm">
-            <p className="font-bold text-foreground">{stake.question}</p>
-            <p className="text-muted-foreground">{stake.matchName}</p>
-          </div>
-          {/* Fee breakdown */}
-          <div className="space-y-2 text-sm font-mono">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Gross share</span>
-              <span>${grossPayout.toFixed(2)}</span>
+      {/* Dialog panel */}
+      <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={CLAIM_DIALOG_TITLE_ID}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        onKeyDown={handleKeyDown}
+        // Stop backdrop click from firing when clicking inside the dialog
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GlowCard variant="gold" className="w-full max-w-md">
+          <div className="p-2 space-y-4">
+            <div className="flex items-center gap-3">
+              <Trophy className="h-6 w-6 text-gold" aria-hidden="true" />
+              <h3
+                id={CLAIM_DIALOG_TITLE_ID}
+                className="font-display text-xl font-black text-gold uppercase tracking-wider"
+              >
+                Claim Winnings
+              </h3>
             </div>
-            <div className="flex justify-between text-accent">
-              <span>Platform fee (5%)</span>
-              <span>− ${payout.fee.toFixed(2)}</span>
+            <p className="text-muted-foreground text-sm">
+              You are about to claim your winnings from:
+            </p>
+            <div className="bg-background/50 rounded p-3 border border-gold/20 space-y-1 text-sm">
+              <p className="font-bold text-foreground">{stake.question}</p>
+              <p className="text-muted-foreground">{stake.matchName}</p>
             </div>
-            <div className="h-px bg-border" />
-            <div className="flex justify-between text-gold font-bold">
-              <span>Net payout</span>
-              <span>${payout.net.toFixed(2)}</span>
+            {/* Fee breakdown */}
+            <div className="space-y-2 text-sm font-mono">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Gross share</span>
+                <span>${grossPayout.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-accent">
+                <span>Platform fee (5%)</span>
+                <span>− ${payout.fee.toFixed(2)}</span>
+              </div>
+              <div className="h-px bg-border" />
+              <div className="flex justify-between text-gold font-bold">
+                <span>Net payout</span>
+                <span>${payout.net.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground text-xs">
+                <span>≈ XLM received</span>
+                <span>{(payout.net / XLM_USD_RATE).toFixed(2)} XLM</span>
+              </div>
             </div>
-            <div className="flex justify-between text-muted-foreground text-xs">
-              <span>≈ XLM received</span>
-              <span>{(payout.net / XLM_USD_RATE).toFixed(2)} XLM</span>
+            <div className="flex gap-3 pt-2">
+              <GamingButton
+                variant="ghost"
+                size="sm"
+                onClick={onCancel}
+                disabled={confirming}
+                className="flex-1"
+              >
+                Cancel
+              </GamingButton>
+              <GamingButton
+                variant="gold"
+                size="sm"
+                onClick={onConfirm}
+                loading={confirming}
+                className="flex-1"
+              >
+                Confirm Claim
+              </GamingButton>
             </div>
           </div>
-          <div className="flex gap-3 pt-2">
-            <GamingButton
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              disabled={confirming}
-              className="flex-1"
-            >
-              Cancel
-            </GamingButton>
-            <GamingButton
-              variant="gold"
-              size="sm"
-              onClick={onConfirm}
-              loading={confirming}
-              className="flex-1"
-            >
-              Confirm Claim
-            </GamingButton>
-          </div>
-        </div>
-      </GlowCard>
+        </GlowCard>
+      </motion.div>
     </motion.div>
   );
 }
@@ -193,11 +258,11 @@ export function CompletedPredictions() {
         <div className="space-y-3">
           {completedStakes.map((stake) => {
             const won = stake.outcome === "won";
-            const grossPayout =
-              stake.grossPayout ??
-              (stake.profit != null
-                ? stake.amount + stake.profit / 0.95
-                : stake.amount);
+            const grossPayout = calculateGrossPayout(
+              stake.amount,
+              stake.profit,
+              stake.grossPayout,
+            );
             const payout = won ? calculateCompletedPayout(stake.amount, grossPayout) : null;
             const isClaiming = processingId === stake.id;
 

@@ -8,5 +8,5 @@ interface ErrorProps {
 }
 
 export default function RootError({ error, reset }: ErrorProps) {
-  return <ErrorFallback error={error} reset={reset} context="RootLayout" />;
+  return <ErrorFallback error={error} reset={reset} context="RootRoute" />;
 }

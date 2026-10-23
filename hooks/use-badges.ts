@@ -82,7 +82,8 @@ function longestConsecutiveWonStreak(
 export function useBadges(): BadgeDefinition[] {
   const userCreatedPollCount = useMockData((s) => s.userCreatedPollCount);
   const completedStakes = useStaking((s) => s.completedStakes());
-  const userVotes = useVoting((s) => s.userVotes);
+  // #244: userVotes is a store action (function) — call it to get the vote map
+  const userVotes = useVoting((s) => s.userVotes());
 
   const ctx: BadgeContext = {
     userCreatedPollCount,

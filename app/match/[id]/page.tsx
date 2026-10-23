@@ -1,6 +1,9 @@
 "use client";
 import { MatchHeader } from "@/components/match-header";
-import { PollsList } from "@/components/polls-list";
+// #245: use the store-backed PollsList (components/match/polls-list) so polls
+// created via CreatePollModal appear immediately — the static version at
+// components/polls-list.tsx renders a hardcoded array and never reads the store.
+import { PollsList } from "@/components/match/polls-list";
 import { CreatePollButton } from "@/components/create-poll-button";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -92,7 +95,7 @@ export default function MatchPage() {
             <CreatePollButton matchId={params.id} />
           )}
         </div>
-        <PollsList matchId={params.id} />
+        <PollsList polls={polls} match={match} />
       </div>
     </main>
   );

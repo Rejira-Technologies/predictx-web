@@ -39,6 +39,7 @@ import {
   XLM_USD_RATE,
   MOCK_CONTRACT_ID,
   STELLAR_BASE_FEE,
+  STELLAR_NETWORKS,
 } from "@/lib/constants";
 import type { Poll, Match, Stake } from "@/lib/mock-data";
 import { lockTimeLabel } from "@/lib/mock-data";
@@ -118,6 +119,11 @@ function WalletConfirmPopup({
   confirming?: boolean;
 }) {
   const amountXLM = amount / XLM_USD_RATE;
+  // Contract for the wallet's *active* network — hardcoding the testnet
+  // address mislabels the destination after a mainnet switch.
+  const { network } = useWallet();
+  const activeContractId =
+    STELLAR_NETWORKS[network]?.contractId || MOCK_CONTRACT_ID;
 
   return (
     <motion.div
@@ -150,7 +156,7 @@ function WalletConfirmPopup({
               <div className="flex justify-between">
                 <span className="text-[var(--muted-foreground)]">To</span>
                 <span className="text-foreground">
-                  {formatAddress(MOCK_CONTRACT_ID)}
+                  {formatAddress(activeContractId)}
                 </span>
               </div>
               <div className="h-px bg-[var(--border)]" />
@@ -192,9 +198,11 @@ function WalletConfirmPopup({
 
 /** Processing state — rotating hexagon with energy bar */
 function ProcessingOverlay() {
-  return (
+return (
     <motion.div
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm gap-6"
+      role="alert"
+      aria-live="polite"
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -271,6 +279,10 @@ function SuccessOverlay({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  // Explorer base for the wallet's *active* network — a hardcoded testnet
+  // path makes successful mainnet transactions unverifiable.
+  const { network } = useWallet();
+  const activeExplorerUrl = STELLAR_NETWORKS[network]?.explorerUrl || "";
 
   const copyHash = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
@@ -294,6 +306,8 @@ function SuccessOverlay({
 
   return (
     <motion.div
+      role="alert"
+      aria-live="polite"
       className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -393,7 +407,7 @@ function SuccessOverlay({
           className="mt-4 inline-flex items-center gap-1 text-xs text-[var(--accent-cyan)] hover:underline"
           onClick={() =>
             window.open(
-              `https://stellar.expert/explorer/testnet/tx/${receipt.hash}`,
+              `${activeExplorerUrl}/tx/${receipt.hash}`,
               "_blank",
             )
           }
@@ -475,6 +489,7 @@ export function StakeModal({
   const [errorMsg, setErrorMsg] = useState("");
   const [showWalletModal, setShowWalletModal] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   /**
    * In-flight guard for the wallet-confirm step.
@@ -506,6 +521,17 @@ export function StakeModal({
 
   const stakeAmount = Number.parseFloat(amount) || 0;
   const balanceUSD = balance * XLM_USD_RATE;
+
+  /**
+   * Maximum allowed stake in USD.
+   *
+   * Derived from the user's available balance and MAX_STAKE_MULTIPLIER (1×).
+   * A multiplier of 1 means users may stake at most 100 % of their balance
+   * in a single transaction, clamped to the actual balance so it cannot
+   * exceed what they hold. Adjust MAX_STAKE_MULTIPLIER in lib/constants.ts
+   * if the product ever introduces credit / margin features.
+   */
+  const maxStakeUSD = Math.min(balanceUSD * MAX_STAKE_MULTIPLIER, balanceUSD);
 
   const winnings = useMemo(
     () =>
@@ -558,15 +584,19 @@ export function StakeModal({
    * Ticks once a second so an open modal locks itself when the deadline passes
    * while the user is filling it in, instead of staying submittable until they
    * happen to re-render for another reason.
+   *
+   * The interval is started only while the modal is open, so it does not burn
+   * CPU (or trigger re-renders on hidden modals mounted by every PollCard).
    */
   const [, forceTick] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
+    if (!open) return;
     const id = setInterval(forceTick, 1_000);
     return () => clearInterval(id);
-  }, []);
+  }, [open]);
 
   /** Live countdown target, so the modal can show how long is left. */
-  const lockTargetISO = match ? getLockTargetISO(match.kickoff, poll.lockTime) : null;
+  const lockTargetISO = match ? getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO) : null;
   const msRemaining = match ? msUntilLock(poll, match) : 0;
 
   // ── Validation ─────────────────────────────────────────────────────────
@@ -574,18 +604,21 @@ export function StakeModal({
   const validationError = useMemo(() => {
     if (stakeAmount <= 0) return null; // no error when empty
     if (stakeAmount < MIN_STAKE_AMOUNT) return `Minimum stake is ${formatCurrency(MIN_STAKE_AMOUNT)}`;
+    if (stakeAmount > maxStakeUSD)
+      return `Maximum stake is ${formatCurrency(maxStakeUSD)} (${MAX_STAKE_MULTIPLIER * 100}% of balance)`;
     if (stakeAmount > balanceUSD) return "Insufficient balance";
     return null;
-  }, [stakeAmount, balanceUSD]);
+  }, [stakeAmount, balanceUSD, maxStakeUSD]);
 
   const balanceWarning =
-    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && !validationError
+    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && stakeAmount <= maxStakeUSD && !validationError
       ? "This is more than half your balance"
       : null;
 
   const canSubmit =
     isConnected &&
     stakeAmount >= MIN_STAKE_AMOUNT &&
+    stakeAmount <= maxStakeUSD &&
     stakeAmount <= balanceUSD &&
     !isPollLocked &&
     txStep === "idle";
@@ -599,8 +632,23 @@ export function StakeModal({
       setTxStep("idle");
       setReceipt(null);
       setErrorMsg("");
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     }
   }, [open, initialSide]);
+
+  // ── Restore focus on close ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!open && previouslyFocusedRef.current) {
+      const element = previouslyFocusedRef.current;
+      previouslyFocusedRef.current = null;
+      const tick = () => {
+        if (element && element instanceof HTMLElement && document.body.contains(element)) {
+          element.focus({ preventScroll: true });
+        }
+      };
+      requestAnimationFrame(tick);
+    }
+  }, [open]);
 
   // ── Keyboard handlers ──────────────────────────────────────────────────
 
@@ -716,6 +764,8 @@ export function StakeModal({
         <>
           {/* Overlay */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             style={{
               backgroundImage:
@@ -830,10 +880,10 @@ export function StakeModal({
                 </div>
 
                 {/* ─── Section 2: Side Selection ─── */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                <div role="group" aria-labelledby="side-selection-label" className="space-y-3">
+                  <p id="side-selection-label" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                     Choose Your Side
-                  </label>
+                  </p>
 
                   <div className="grid grid-cols-2 gap-3">
                     {(["yes", "no"] as const).map((s) => {
@@ -930,7 +980,7 @@ export function StakeModal({
                 {/* ─── Section 3: Stake Amount ─── */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                    <label htmlFor="stake-amount-input" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                       Stake Amount
                     </label>
                     <span className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] font-mono">
@@ -940,6 +990,7 @@ export function StakeModal({
                   </div>
 
                   <GamingInput
+                    id="stake-amount-input"
                     type="text"
                     prefix="$"
                     value={amount}
@@ -963,7 +1014,12 @@ export function StakeModal({
                         variant="ghost"
                         size="sm"
                         className="flex-1 text-xs"
-                        onClick={() => setAmount(v.toString())}
+                        onClick={() =>
+                          setAmount(
+                            String(Math.min(v, maxStakeUSD))
+                          )
+                        }
+                        disabled={v > maxStakeUSD}
                       >
                         ${v}
                       </GamingButton>
@@ -974,7 +1030,7 @@ export function StakeModal({
                       className="flex-1 text-xs"
                       onClick={() =>
                         setAmount(
-                          Math.floor(balanceUSD * 100) / 100 + ""
+                          (Math.floor(maxStakeUSD * 100) / 100).toString()
                         )
                       }
                     >
@@ -986,6 +1042,8 @@ export function StakeModal({
                   <AnimatePresence>
                     {balanceWarning && (
                       <motion.div
+                        role="status"
+                        aria-live="polite"
                         className="flex items-center gap-2 text-xs text-[#ffd700] px-3 py-2 rounded bg-[#ffd700]/10 border border-[#ffd700]/20"
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -1129,10 +1187,10 @@ export function StakeModal({
                 </AnimatePresence>
 
                 {/* ─── Section 5: Pool Distribution Pie ─── */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                <div role="group" aria-labelledby="pool-distribution-label" className="space-y-2">
+                  <p id="pool-distribution-label" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                     Pool Distribution{stakeAmount > 0 ? " (Preview)" : ""}
-                  </label>
+                  </p>
 
                   <div className="flex items-center gap-4">
                     <div className="w-32 h-32 flex-shrink-0">

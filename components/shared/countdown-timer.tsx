@@ -38,6 +38,15 @@ function getUrgencyLevel(totalMinutes: number): UrgencyLevel {
   return "safe";
 }
 
+function formatTimeLeftSentence(t: TimeLeft): string {
+  const parts: string[] = [];
+  if (t.days > 0) parts.push(`${t.days} day${t.days === 1 ? "" : "s"}`);
+  if (t.hours > 0) parts.push(`${t.hours} hour${t.hours === 1 ? "" : "s"}`);
+  parts.push(`${t.minutes} minute${t.minutes === 1 ? "" : "s"}`);
+  parts.push(`${t.seconds} second${t.seconds === 1 ? "" : "s"}`);
+  return parts.join(", ");
+}
+
 function calculateTimeLeft(targetDate: Date): TimeLeft {
   const now = new Date().getTime();
   const target = targetDate.getTime();
@@ -173,17 +182,28 @@ export function CountdownTimer({
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
+      <div
+        className={cn("flex items-center gap-2", className)}
+        role="timer"
+        aria-label={
+          isExpired
+            ? `${label ? `${label}: ` : ""}expired`
+            : `${label ? `${label}: ` : ""}${formatTimeLeftSentence(timeLeft)} remaining`
+        }
+      >
         {isCritical && !isExpired && (
           <motion.div
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
+            role="alert"
+            aria-label="Less than 5 minutes remaining"
           >
-            <AlertTriangle className="w-5 h-5 text-[#ff006e]" />
+            <AlertTriangle className="w-5 h-5 text-[#ff006e]" aria-hidden="true" />
           </motion.div>
         )}
         <div
           className="font-mono font-bold tabular-nums"
+          aria-hidden="true"
           style={{
             color,
             textShadow: `0 0 10px ${color}80`,
@@ -199,7 +219,17 @@ export function CountdownTimer({
   }
 
   return (
-    <div className={cn("flex flex-col items-center", className)}>
+    <div
+      className={cn("flex flex-col items-center", className)}
+      role="timer"
+      aria-label={
+        label
+          ? isExpired
+            ? `${label}: expired`
+            : `${label}: ${formatTimeLeftSentence(timeLeft)} remaining`
+          : undefined
+      }
+    >
       {label && (
         <span className="text-[var(--muted-foreground)] text-sm mb-3 uppercase tracking-wider">
           {label}
@@ -293,8 +323,10 @@ export function CountdownTimer({
             className="ml-2"
             animate={{ opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
+            role="alert"
+            aria-label="Less than 5 minutes remaining"
           >
-            <AlertTriangle className="w-6 h-6 text-[#ff006e]" />
+            <AlertTriangle className="w-6 h-6 text-[#ff006e]" aria-hidden="true" />
           </motion.div>
         )}
         {isExpired && (

@@ -105,6 +105,11 @@ export function MatchHeader({ match }: MatchHeaderProps) {
             <StatusBadge status={match.status} />
           </div>
 
+          {/* Fixture title (#314) */}
+          <h1 className="sr-only">
+            {match.homeTeam} vs {match.awayTeam}
+          </h1>
+
           {/* Teams + VS / Score */}
           <div className="grid grid-cols-[1fr_auto_1fr] gap-4 sm:gap-8 items-center mb-8">
             {/* Home Team */}

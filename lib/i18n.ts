@@ -1,18 +1,15 @@
 /**
- * Internationalization (i18n) and locale formatting system for PredictX
+ * UI string translations for PredictX.
+ *
+ * There is no locale switcher yet, so `t` always resolves against
+ * DEFAULT_LOCALE unless a locale is passed explicitly. Monetary amounts are
+ * always USD (see lib/constants.ts); do not derive a currency from the locale
+ * without converting the amount at an explicit rate.
  */
 
 export type SupportedLocale = "en" | "es" | "fr" | "de" | "pt";
 
 export const DEFAULT_LOCALE: SupportedLocale = "en";
-
-export const SUPPORTED_LOCALES: Record<SupportedLocale, { name: string; currency: string }> = {
-  en: { name: "English", currency: "USD" },
-  es: { name: "Español", currency: "EUR" },
-  fr: { name: "Français", currency: "EUR" },
-  de: { name: "Deutsch", currency: "EUR" },
-  pt: { name: "Português", currency: "BRL" },
-};
 
 export const translations: Record<SupportedLocale, Record<string, string>> = {
   en: {
@@ -97,29 +94,6 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
   },
 };
 
-let currentLocale: SupportedLocale = DEFAULT_LOCALE;
-
-export function getLocale(): SupportedLocale {
-  return currentLocale;
-}
-
-export function setLocale(locale: SupportedLocale): void {
-  currentLocale = locale;
-}
-
-export function t(key: string, locale: SupportedLocale = currentLocale): string {
+export function t(key: string, locale: SupportedLocale = DEFAULT_LOCALE): string {
   return translations[locale]?.[key] ?? translations[DEFAULT_LOCALE]?.[key] ?? key;
-}
-
-export function formatLocaleCurrency(
-  amount: number,
-  locale: SupportedLocale = currentLocale,
-  currency?: string
-): string {
-  const targetCurrency = currency ?? SUPPORTED_LOCALES[locale]?.currency ?? "USD";
-  const intlLocale = locale === "en" ? "en-US" : locale === "es" ? "es-ES" : locale === "fr" ? "fr-FR" : locale === "de" ? "de-DE" : "pt-BR";
-  return new Intl.NumberFormat(intlLocale, {
-    style: "currency",
-    currency: targetCurrency,
-  }).format(amount);
 }

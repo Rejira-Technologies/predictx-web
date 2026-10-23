@@ -137,7 +137,7 @@ export const useVoting = create<VotingState>()(
         const stakedPollIds = new Set(
           address
             ? stakes.filter((s) => s.wallet === address).map((s) => s.pollId)
-            : stakes.map((s) => s.pollId),
+            : [],
         );
 
         return polls.filter(
