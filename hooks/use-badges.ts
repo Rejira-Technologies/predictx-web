@@ -85,6 +85,8 @@ export function useBadges(): BadgeDefinition[] {
   const completedStakes = useStaking((s) => s.completedStakes());
   const activeStakes = useStaking((s) => s.activeStakes());
   const userVotes = useVoting((s) => s.userVotes);
+  // #244: userVotes is a store action (function) — call it to get the vote map
+  const userVotes = useVoting((s) => s.userVotes());
 
   const allStakes = [...activeStakes, ...completedStakes];
   const hasEarlyStake = allStakes.some((s) => s.stakedWithinFirst5Min === true);

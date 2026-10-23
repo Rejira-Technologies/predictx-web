@@ -185,6 +185,7 @@ export const MATCHES: Match[] = [
     venue: "Stamford Bridge",
     kickoff: addDays(1, 15),
     status: "upcoming",
+    score: { home: 2, away: 1 },
   },
   {
     id: "m2",
@@ -193,6 +194,7 @@ export const MATCHES: Match[] = [
     venue: "Emirates Stadium",
     kickoff: addDays(2, 17),
     status: "upcoming",
+    score: { home: 2, away: 1 },
   },
   {
     id: "m3",
@@ -201,6 +203,7 @@ export const MATCHES: Match[] = [
     venue: "Etihad Stadium",
     kickoff: addDays(3, 12),
     status: "upcoming",
+    score: { home: 3, away: 1 },
   },
   {
     id: "m4",
@@ -209,6 +212,7 @@ export const MATCHES: Match[] = [
     venue: "St. James' Park",
     kickoff: addDays(4, 15),
     status: "upcoming",
+    score: { home: 2, away: 1 },
   },
   {
     id: "m5",
@@ -217,14 +221,14 @@ export const MATCHES: Match[] = [
     venue: "Amex Stadium",
     kickoff: addDays(0, 13),
     status: "live",
-    score: { home: 1, away: 0 },
+    score: { home: 1, away: 2 },
   },
   {
     id: "m6",
     homeTeam: "Everton",
     awayTeam: "Wolves",
     venue: "Goodison Park",
-    kickoff: addDays(-1, 15),
+    kickoff: addDays(0, new Date().getHours() - 1),
     status: "completed",
     score: { home: 2, away: 1 },
   },
@@ -847,6 +851,9 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 460.00, // net payout = 437.00, profit = 187.00 (5% platform fee)
     profit: calculateCompletedPayout(250, 460.00).profit,
     roi: calculateCompletedPayout(250, 460.00).roi,
+    outcome: "lost",
+    profit: -250,
+    roi: -100.0,
     wallet: SEED_WALLET,
   },
   {
@@ -862,6 +869,9 @@ export const MOCK_STAKES: Stake[] = [
     grossPayout: 936.84, // net payout = 890.00, profit = 490.00 (5% platform fee)
     profit: calculateCompletedPayout(400, 936.84).profit,
     roi: calculateCompletedPayout(400, 936.84).roi,
+    outcome: "lost",
+    profit: -400,
+    roi: -100.0,
     wallet: SEED_WALLET,
   },
   {
@@ -1024,9 +1034,9 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   {
     hash: "d6a7e8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
     type: "claim",
-    amount: 437,
-    amountXLM: 437 / XLM_USD_RATE,
-    description: 'Claimed winnings from "Will Brighton win?" pool',
+    amount: 150,
+    amountXLM: 150 / XLM_USD_RATE,
+    description: 'Claimed winnings from "Will Everton win?" pool',
     timestamp: addDays(-1, 18),
     ledger: 50_145_678,
     fee: "100 stroops (0.0000100 XLM)",

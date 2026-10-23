@@ -1,47 +1,21 @@
 "use client"
 
-import { Clock, TrendingUp } from "lucide-react"
+import { TrendingUp } from "lucide-react"
 import { Progress } from "./ui/progress"
 import { EmptyState } from "./shared/empty-state"
-
-const activeStakes = [
-  {
-    id: 1,
-    match: "Chelsea vs Man United",
-    question: "Will Palmer score a goal?",
-    yourSide: "yes",
-    yourStake: 200,
-    yesPool: 7200,
-    noPool: 3000,
-    potentialWinnings: 298,
-    timeLeft: "2h 34m",
-  },
-  {
-    id: 2,
-    match: "Arsenal vs Liverpool",
-    question: "Will Salah be subbed out?",
-    yourSide: "no",
-    yourStake: 150,
-    yesPool: 2500,
-    noPool: 4350,
-    potentialWinnings: 223,
-    timeLeft: "45m",
-  },
-  {
-    id: 3,
-    match: "Man City vs Tottenham",
-    question: "Will Haaland score 2+ goals?",
-    yourSide: "yes",
-    yourStake: 300,
-    yesPool: 8800,
-    noPool: 6300,
-    potentialWinnings: 478,
-    timeLeft: "5h 12m",
-  },
-]
+// #246: read the connected wallet's active stakes from the store instead of a
+// hardcoded constant — mirrors the pattern used in completed-predictions.tsx
+import { useStaking } from "@/hooks/use-staking"
+import { useMockData } from "@/hooks/use-mock-data"
+import { calculatePotentialWinnings } from "@/lib/calculations"
 
 export function ActiveStakes() {
-  if (activeStakes.length === 0) {
+  // wallet-scoped selector: returns only stakes for the connected address
+  const stakes = useStaking((s) => s.activeStakes())
+  const getPoll = useMockData((s) => s.getPoll)
+  const getMatch = useMockData((s) => s.getMatch)
+
+  if (stakes.length === 0) {
     return (
       <EmptyState
         icon={<TrendingUp className="w-10 h-10" />}
@@ -53,11 +27,24 @@ export function ActiveStakes() {
 
   return (
     <div className="space-y-4">
-      {activeStakes.map((stake) => {
-        const total = stake.yesPool + stake.noPool
-        const yesPercentage = (stake.yesPool / total) * 100
-        const profit = stake.potentialWinnings - stake.yourStake
-        const roi = (profit / stake.yourStake) * 100
+      {stakes.map((stake) => {
+        const poll = getPoll(stake.pollId)
+        const match = getMatch(stake.matchId)
+        const matchName = match
+          ? `${match.homeTeam} vs ${match.awayTeam}`
+          : stake.matchName
+
+        const yesPool = poll?.yesPool ?? 0
+        const noPool = poll?.noPool ?? 0
+        const total = yesPool + noPool
+        const yesPercentage = total > 0 ? (yesPool / total) * 100 : 50
+
+        const winnings = poll
+          ? calculatePotentialWinnings(stake.amount, stake.side, yesPool, noPool)
+          : null
+        const potentialWinnings = winnings?.grossWinnings ?? stake.amount
+        const profit = potentialWinnings - stake.amount
+        const roi = (profit / stake.amount) * 100
 
         return (
           <div
@@ -69,12 +56,8 @@ export function ActiveStakes() {
               <div className="flex-1 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{stake.match}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{matchName}</div>
                     <h3 className="font-display text-xl font-bold text-foreground">{stake.question}</h3>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-background rounded text-xs font-mono font-bold text-primary whitespace-nowrap">
-                    <Clock className="h-4 w-4" />
-                    {stake.timeLeft}
                   </div>
                 </div>
 
@@ -83,18 +66,18 @@ export function ActiveStakes() {
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Your Side</div>
                     <div
-                      className={`inline-block px-3 py-1 rounded font-bold text-sm uppercase ${stake.yourSide === "yes" ? "bg-success/20 text-success" : "bg-accent/20 text-accent"}`}
+                      className={`inline-block px-3 py-1 rounded font-bold text-sm uppercase ${stake.side === "yes" ? "bg-success/20 text-success" : "bg-accent/20 text-accent"}`}
                     >
-                      {stake.yourSide}
+                      {stake.side}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Your Stake</div>
-                    <div className="font-mono font-bold text-lg">${stake.yourStake}</div>
+                    <div className="font-mono font-bold text-lg">${stake.amount}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Potential Win</div>
-                    <div className="font-mono font-bold text-lg text-gold">${stake.potentialWinnings}</div>
+                    <div className="font-mono font-bold text-lg text-gold">${potentialWinnings.toFixed(2)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Potential ROI</div>
@@ -109,8 +92,8 @@ export function ActiveStakes() {
                 {/* Pool Status */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-success font-bold">YES ${stake.yesPool.toLocaleString()}</span>
-                    <span className="text-accent font-bold">NO ${stake.noPool.toLocaleString()}</span>
+                    <span className="text-success font-bold">YES ${yesPool.toLocaleString()}</span>
+                    <span className="text-accent font-bold">NO ${noPool.toLocaleString()}</span>
                   </div>
                   <Progress value={yesPercentage} className="h-3" />
                 </div>

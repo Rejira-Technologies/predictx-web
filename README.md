@@ -27,6 +27,28 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `pnpm start` | Run the production server |
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | Run TypeScript type checking without emitting |
+| `pnpm test` | Run the unit-test suite once (Vitest) |
+| `pnpm test:watch` | Run Vitest in watch mode (re-runs on file save) |
+
+## Testing
+
+Tests are written with [Vitest](https://vitest.dev/) and live in the `__tests__/` directory at the project root.
+
+```bash
+# Run all tests once (used in CI)
+pnpm test
+
+# Run in interactive watch mode during development
+pnpm test:watch
+```
+
+The test environment is `jsdom` (configured in `vitest.config.ts`), so DOM APIs are available in every suite. Path alias `@/` resolves to the project root, matching the Next.js config.
+
+**Adding new tests:** create a `__tests__/<feature>.test.ts` file. Import from `vitest` (`describe`, `it`, `expect`, `vi`) — no additional setup is needed. Follow the pattern in the existing suites:
+
+- `__tests__/poll-question-constants.test.ts` — constant / boundary value tests
+- `__tests__/upcoming-matches.test.ts` — Zustand store selector tests
+- `__tests__/analytics.test.ts` — module mocking with `vi.mock` / `vi.hoisted`
 
 ## Environment Variables
 
