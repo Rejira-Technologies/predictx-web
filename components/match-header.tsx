@@ -31,13 +31,18 @@ export function MatchHeader({ matchId }: MatchHeaderProps) {
           <span className="text-sm font-bold text-gold uppercase tracking-wider">{match.league}</span>
         </div>
 
+        {/* Fixture Page Title (accessible and visual #314) */}
+        <h1 className="sr-only">
+          {match.homeTeam} vs {match.awayTeam}
+        </h1>
+
         <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-8 items-center mb-8">
           {/* Home Team */}
           <div className="text-center lg:text-right">
             <div className="inline-block px-6 py-3 bg-surface clip-corner-lg border border-primary/30 mb-3">
-              <h1 className="font-display text-4xl sm:text-5xl font-black uppercase text-primary text-glow-cyan">
+              <h2 className="font-display text-4xl sm:text-5xl font-black uppercase text-primary text-glow-cyan">
                 {match.homeTeam}
-              </h1>
+              </h2>
             </div>
             <div className="text-sm text-muted-foreground">Home</div>
           </div>
@@ -54,9 +59,9 @@ export function MatchHeader({ matchId }: MatchHeaderProps) {
           {/* Away Team */}
           <div className="text-center lg:text-left">
             <div className="inline-block px-6 py-3 bg-surface clip-corner-lg border border-primary/30 mb-3">
-              <h1 className="font-display text-4xl sm:text-5xl font-black uppercase text-primary text-glow-cyan">
+              <h2 className="font-display text-4xl sm:text-5xl font-black uppercase text-primary text-glow-cyan">
                 {match.awayTeam}
-              </h1>
+              </h2>
             </div>
             <div className="text-sm text-muted-foreground">Away</div>
           </div>

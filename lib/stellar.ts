@@ -1,5 +1,13 @@
 /**
- * Stellar SDK helpers and client interaction layer
+ * Stellar SDK helpers and client interaction layer.
+ *
+ * Only the Horizon URL helper is used by the rest of the codebase
+ * (hooks/use-wallet.tsx). The three additional members that were here
+ * (getAccountBalance, getAccountSequence, signAndSubmitTransaction) had no
+ * call sites and have been removed to keep this module honest.
+ *
+ * When proper Soroban / smart-contract integration is added, extend this
+ * module at that point rather than leaving stub implementations.
  */
 
 export const HORIZON_URLS = {
@@ -9,46 +17,13 @@ export const HORIZON_URLS = {
 
 export type StellarNetwork = keyof typeof HORIZON_URLS;
 
-export interface StellarClient {
-  getHorizonUrl: (network?: StellarNetwork) => string;
-  getAccountBalance: (publicKey: string, network?: StellarNetwork) => Promise<number>;
-  getAccountSequence: (publicKey: string, network?: StellarNetwork) => Promise<string>;
-  signAndSubmitTransaction: (txXdr: string) => Promise<never>;
+/**
+ * Returns the Horizon REST endpoint for the requested network.
+ *
+ * @example
+ *   const url = getHorizonUrl("testnet");
+ *   // "https://horizon-testnet.stellar.org"
+ */
+export function getHorizonUrl(network: StellarNetwork = "testnet"): string {
+  return HORIZON_URLS[network];
 }
-
-export const stellar: StellarClient = {
-  getHorizonUrl(network: StellarNetwork = "testnet"): string {
-    return HORIZON_URLS[network];
-  },
-
-  async getAccountBalance(publicKey: string, network: StellarNetwork = "testnet"): Promise<number> {
-    try {
-      const response = await fetch(
-        `${HORIZON_URLS[network]}/accounts/${publicKey}`
-      );
-      if (!response.ok) return 0;
-      const data = await response.json();
-      const native = data.balances?.find(
-        (b: { asset_type: string; balance?: string }) => b.asset_type === "native"
-      )?.balance;
-      return parseFloat(native ?? "0");
-    } catch {
-      return 0;
-    }
-  },
-
-  async getAccountSequence(publicKey: string, network: StellarNetwork = "testnet"): Promise<string> {
-    const response = await fetch(
-      `${HORIZON_URLS[network]}/accounts/${publicKey}`
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to fetch account sequence for ${publicKey}`);
-    }
-    const data = await response.json();
-    return data.sequence ?? "0";
-  },
-
-  async signAndSubmitTransaction(_txXdr: string): Promise<never> {
-    throw new Error("signAndSubmitTransaction is not implemented yet");
-  },
-};

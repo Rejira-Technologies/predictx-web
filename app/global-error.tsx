@@ -21,11 +21,16 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           route: window.location.pathname,
           timestamp: new Date().toISOString(),
         };
-        // Use sendBeacon so the report fires even during unload
+        // Use sendBeacon so the report fires even during unload.
+        // Wrapping the payload in a Blob typed application/json triggers a
+        // CORS preflight, which blocks cross-origin posting to this endpoint.
         if (navigator.sendBeacon) {
+          const blob = new Blob([JSON.stringify(payload)], {
+            type: "application/json",
+          });
           navigator.sendBeacon(
             "/api/report-error",
-            JSON.stringify(payload),
+            blob,
           );
         }
       } catch {
@@ -114,29 +119,50 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </p>
           )}
 
-          {/* Reset button */}
-          <button
-            onClick={reset}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.625rem 1.5rem",
-              background: "rgba(255, 0, 110, 0.15)",
-              border: "1px solid rgba(255, 0, 110, 0.5)",
-              color: "#ff006e",
-              fontSize: "0.875rem",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              cursor: "pointer",
-              clipPath:
-                "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)",
-            }}
-          >
-            <RefreshCw size={16} />
-            Reload Application
-          </button>
+          {/* Reload button — performs a real browser reload so app/layout.tsx
+              is re-mounted from scratch, which is the only reliable escape
+              from a crashed root layout. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center" }}>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.625rem 1.5rem",
+                background: "rgba(255, 0, 110, 0.15)",
+                border: "1px solid rgba(255, 0, 110, 0.5)",
+                color: "#ff006e",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                cursor: "pointer",
+                clipPath:
+                  "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)",
+              }}
+            >
+              <RefreshCw size={16} />
+              Reload Application
+            </button>
+
+            {/* Secondary: re-run the boundary render without a full page reload.
+                Useful for transient errors that may self-resolve. */}
+            <button
+              onClick={reset}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.4)",
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                textDecoration: "underline",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Try again without reloading
+            </button>
+          </div>
         </div>
       </body>
     </html>

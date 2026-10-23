@@ -170,6 +170,17 @@ export function PollCard({
     }
   }
 
+  // The card can't be a real <Link> because it contains the Stake button, so it
+  // exposes link semantics itself. Only react to keys pressed on the card, not
+  // ones bubbling up from the nested button.
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      handleCardClick()
+    }
+  }
+
   const isCompact = variant === "compact" || (variant === undefined && !!match)
 
   if (isCompact) {
@@ -177,9 +188,18 @@ export function PollCard({
       <>
         <div
           onClick={handleCardClick}
+          onKeyDown={effectiveMatchId ? handleCardKeyDown : undefined}
+          role={effectiveMatchId ? "link" : undefined}
+          tabIndex={effectiveMatchId ? 0 : undefined}
+          aria-label={
+            effectiveMatchId
+              ? `${poll.question}${effectiveMatchName ? ` — ${effectiveMatchName}` : ""}`
+              : undefined
+          }
           className={[
             "relative bg-surface border-2 clip-corner-lg cursor-pointer",
             "transition-all duration-300 group overflow-hidden",
+            "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-[0_0_30px_rgba(0,217,255,0.35)]",
             effectiveIsHottest
               ? "border-gold hover:shadow-[0_0_40px_rgba(255,215,0,0.35)]"
               : "border-border hover:border-primary hover:shadow-[0_0_30px_rgba(0,217,255,0.2)]",
@@ -271,7 +291,7 @@ export function PollCard({
             </div>
 
             {poll.recentActivity && (
-              <p className="text-xs italic text-muted-foreground/80 leading-tight">
+              <p className="text-xs italic text-muted-foreground leading-tight">
                 {poll.recentActivity}
               </p>
             )}
@@ -371,7 +391,7 @@ export function PollCard({
 
               {/* Social Proof */}
               {poll.recentActivity && (
-                <p className="text-xs italic text-muted-foreground/80 leading-tight">
+                <p className="text-xs italic text-muted-foreground leading-tight">
                   {poll.recentActivity}
                 </p>
               )}
@@ -430,14 +450,16 @@ export function PollCard({
         </div>
       </div>
 
-      <StakeModal
-        poll={poll}
-        matchId={effectiveMatchId}
-        matchName={effectiveMatchName}
-        initialSide={initialSide}
-        open={showStakeModal}
-        onClose={() => setShowStakeModal(false)}
-      />
+      {showStakeModal && (
+        <StakeModal
+          poll={poll}
+          matchId={effectiveMatchId}
+          matchName={effectiveMatchName}
+          initialSide={initialSide}
+          open={showStakeModal}
+          onClose={() => setShowStakeModal(false)}
+        />
+      )}
     </>
   )
 }

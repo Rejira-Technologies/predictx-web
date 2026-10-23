@@ -73,6 +73,12 @@ export function PoolProgressBar({
 
       {/* Progress bar container */}
       <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(clampedYes)}
+        aria-valuetext={`YES ${clampedYes.toFixed(1)}%, NO ${noPercentage.toFixed(1)}%`}
+        aria-label="Pool split between YES and NO"
         className={cn(
           "relative w-full rounded-full overflow-hidden",
           sizes.height
@@ -229,6 +235,15 @@ export function PoolProgressBar({
           </span>
         </div>
       )}
+      <div className="text-center mt-1" aria-live="polite">
+        <span className="text-xs text-[var(--muted-foreground)]">
+          Total Pool: ${" "}
+          {totalAmount.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      </div>
     </div>
   );
 }

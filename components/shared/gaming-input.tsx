@@ -18,6 +18,10 @@ interface GamingInputProps {
   step?: number;
   className?: string;
   disabled?: boolean;
+  /** Forwarded to the underlying <input> element for label association. */
+  id?: string;
+  /** Accessible name when no visible <label> is associated via htmlFor/id. */
+  "aria-label"?: string;
 }
 
 export function GamingInput({
@@ -33,6 +37,8 @@ export function GamingInput({
   step = 1,
   className,
   disabled = false,
+  id,
+  "aria-label": ariaLabel,
 }: GamingInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -110,6 +116,10 @@ export function GamingInput({
 
         {/* Input field */}
         <input
+          id={id}
+          aria-label={ariaLabel}
+          aria-describedby={error ? `${id ?? "gaming-input"}-error` : undefined}
+          aria-invalid={error ? true : undefined}
           type={type === "number" ? "text" : type}
           value={value}
           onChange={(e) =>
@@ -142,22 +152,24 @@ export function GamingInput({
           <div className="flex flex-col border-l border-[var(--border)]">
             <motion.button
               type="button"
+              aria-label="Increase value"
               onClick={increment}
               disabled={disabled || (max !== undefined && Number(value) >= max)}
               className="flex items-center justify-center p-2 hover:bg-[var(--accent-cyan)]/10 disabled:opacity-30 transition-colors"
               whileTap={{ scale: 0.9 }}
             >
-              <Plus className="w-3 h-3 text-[var(--accent-cyan)]" />
+              <Plus className="w-3 h-3 text-[var(--accent-cyan)]" aria-hidden="true" />
             </motion.button>
             <div className="h-px bg-[var(--border)]" />
             <motion.button
               type="button"
+              aria-label="Decrease value"
               onClick={decrement}
               disabled={disabled || (min !== undefined && Number(value) <= min)}
               className="flex items-center justify-center p-2 hover:bg-[var(--accent-cyan)]/10 disabled:opacity-30 transition-colors"
               whileTap={{ scale: 0.9 }}
             >
-              <Minus className="w-3 h-3 text-[var(--accent-cyan)]" />
+              <Minus className="w-3 h-3 text-[var(--accent-cyan)]" aria-hidden="true" />
             </motion.button>
           </div>
         )}
@@ -184,12 +196,14 @@ export function GamingInput({
       <AnimatePresence>
         {error && (
           <motion.div
+            id={`${id ?? "gaming-input"}-error`}
+            role="alert"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="flex items-center gap-1.5 mt-2 text-sm text-[#ff006e]"
           >
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4" aria-hidden="true" />
             <span>{error}</span>
           </motion.div>
         )}

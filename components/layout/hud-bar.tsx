@@ -31,6 +31,7 @@ export function HudBar() {
     <>
       {/* ── Desktop HUD strip ───────────────────────────────────────────── */}
       <div
+        role="region"
         className="hidden md:flex fixed top-16 left-0 w-full z-40 items-center gap-4 px-6 py-1.5 border-b border-primary/10 bg-background/80 backdrop-blur-sm"
         aria-label="Player HUD"
       >
@@ -58,6 +59,7 @@ export function HudBar() {
 
       {/* ── Mobile HUD strip (above bottom nav) ────────────────────────── */}
       <div
+        role="region"
         className="md:hidden fixed bottom-[56px] left-0 w-full z-40 flex items-center gap-3 px-4 py-1 
                    bg-background/90 backdrop-blur-md border-t border-primary/20"
         aria-label="Player HUD"
@@ -110,9 +112,9 @@ function RankChip({ rankName, color, glowColor, compact }: RankChipProps) {
       }}
       animate={{
         boxShadow: [
-          `0 0 8px ${glowColor}50`,
+          `0 0 8px ${glowColor.replace(/[\d.]+\)$/, "0.2)")}`,
           `0 0 16px ${glowColor}`,
-          `0 0 8px ${glowColor}50`,
+          `0 0 8px ${glowColor.replace(/[\d.]+\)$/, "0.2)")}`,
         ],
       }}
       transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}

@@ -23,7 +23,7 @@ import { PollCardSkeleton } from "@/components/ui/skeleton-card"
 import { GamingTabs, GlowCard, GamingButton } from "@/components/shared"
 import { CardErrorBoundary } from "@/components/shared/card-error-boundary"
 import type { Poll, Match, PollCategory } from "@/lib/mock-data"
-import { getLockTimestamp } from "@/lib/calculations"
+import { getLockTimestamp, getLockTargetISO } from "@/lib/calculations"
 
 /* ── Sort types ──────────────────────────────────────────────────────────── */
 
@@ -163,8 +163,8 @@ export function PollsList({ polls, match }: PollsListProps) {
       case "closing-soon":
         filtered.sort(
           (a, b) =>
-            getLockTimestamp(match.kickoff, a.lockTime) -
-            getLockTimestamp(match.kickoff, b.lockTime),
+            new Date(getLockTargetISO(match.kickoff, a.lockTime, a.lockTargetISO)).getTime() -
+            new Date(getLockTargetISO(match.kickoff, b.lockTime, b.lockTargetISO)).getTime(),
         )
         break
       case "newest":

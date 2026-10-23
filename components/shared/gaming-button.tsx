@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export interface GamingButtonProps {
+const MotionLink = motion.create(Link);
+
+interface GamingButtonProps {
   variant?: "primary" | "success" | "danger" | "gold" | "ghost";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
@@ -97,12 +100,12 @@ function GamingButtonShell({
   children,
   className,
   type = "button",
-  asLink = false,
-}: GamingButtonProps & { asLink?: boolean }) {
+  href,
+}: GamingButtonProps) {
   const [ripples, setRipples] = useState<RippleState[]>([]);
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = useRef<HTMLElement>(null);
   const rippleIdRef = useRef(0);
 
   const effectiveVariant = success ? "success" : variant;
@@ -110,6 +113,12 @@ function GamingButtonShell({
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || loading || success) return;
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (disabled || loading) {
+      // A link has no native `disabled`, so block navigation explicitly.
+      if (href) e.preventDefault();
+      return;
+    }
 
     // Create ripple effect
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -274,23 +283,28 @@ function GamingButtonShell({
     </>
   );
 
-  // When rendered as a link we use a motion.div wrapper around the Next Link
-  // so we keep identical visual behaviour while delegating navigation to Link.
-  if (asLink) {
+  // When given an href the Next Link itself is the interactive element, so it
+  // stays in the tab order and activates on Enter like any other link.
+  if (href) {
     return (
-      <motion.div
-        className={sharedClassName}
+      <MotionLink
+        ref={buttonRef as React.Ref<HTMLAnchorElement>}
+        href={href}
+        aria-disabled={isDisabled || undefined}
+        tabIndex={isDisabled ? -1 : undefined}
+        className={cn("inline-block aria-disabled:opacity-50 aria-disabled:cursor-not-allowed", sharedClassName)}
         style={sharedStyle}
+        onClick={handleClick}
         {...sharedMotionProps}
       >
         {innerContent}
-      </motion.div>
+      </MotionLink>
     );
   }
 
   return (
     <motion.button
-      ref={buttonRef}
+      ref={buttonRef as React.Ref<HTMLButtonElement>}
       type={type}
       disabled={isDisabled}
       className={sharedClassName}
@@ -303,20 +317,6 @@ function GamingButtonShell({
   );
 }
 
-export function GamingButton({
-  href,
-  onClick,
-  ...rest
-}: GamingButtonProps) {
-  if (href) {
-    return (
-      <Link href={href} tabIndex={-1} style={{ display: "inline-block" }}>
-        <GamingButtonShell asLink {...rest}>
-          {rest.children}
-        </GamingButtonShell>
-      </Link>
-    );
-  }
-
-  return <GamingButtonShell onClick={onClick} {...rest} />;
+export function GamingButton(props: GamingButtonProps) {
+  return <GamingButtonShell {...props} />;
 }
