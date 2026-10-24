@@ -49,6 +49,7 @@ function VoteTallyComponent({ poll }: { poll: Poll }) {
 export function VotingCard({ poll, match }: VotingCardProps) {
     const [cardState, setCardState] = useState<CardState>("idle");
     const [selectedDecision, setSelectedDecision] = useState<VoteDecision | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const focusedBeforeOpenRef = useRef<HTMLElement | null>(null);
 
     // Save focused element when card mounts
@@ -89,6 +90,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
 
     const handleConfirm = async () => {
         if (!selectedDecision) return;
+        setIsSubmitting(true);
         setCardState("processing");
 
         try {
@@ -122,6 +124,8 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                         ? error.message
                         : "Vote failed. Please try again.",
             });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -286,7 +290,13 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <GamingButton variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"} onClick={handleConfirm} className="flex-1">
+                                <GamingButton
+                                    variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"}
+                                    onClick={handleConfirm}
+                                    loading={isSubmitting}
+                                    loadingLabel="Submitting…"
+                                    className="flex-1"
+                                >
                                     Confirm Vote
                                 </GamingButton>
                                 <button

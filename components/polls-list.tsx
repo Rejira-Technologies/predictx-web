@@ -51,6 +51,7 @@ const pollsData = [
     timeLeft: "2h 34m",
     lockTime: "kickoff" as const,
     recentActivity: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
   },
   {
     id: "legacy-2",
@@ -66,6 +67,7 @@ const pollsData = [
     timeLeft: "2h 34m",
     lockTime: "60min" as const,
     recentActivity: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
   },
   {
     id: "legacy-3",
@@ -81,6 +83,7 @@ const pollsData = [
     timeLeft: "2h 34m",
     lockTime: "kickoff" as const,
     recentActivity: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
   },
   {
     id: "legacy-4",
@@ -96,6 +99,7 @@ const pollsData = [
     timeLeft: "2h 34m",
     lockTime: "kickoff" as const,
     recentActivity: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
   },
   {
     id: "legacy-5",
@@ -111,6 +115,7 @@ const pollsData = [
     timeLeft: "2h 34m",
     lockTime: "halftime" as const,
     recentActivity: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
   },
 ]
 

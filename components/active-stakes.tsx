@@ -95,7 +95,11 @@ export function ActiveStakes() {
                     <span className="text-success font-bold">YES ${yesPool.toLocaleString()}</span>
                     <span className="text-accent font-bold">NO ${noPool.toLocaleString()}</span>
                   </div>
-                  <Progress value={yesPercentage} className="h-3" />
+                  <Progress
+                    value={yesPercentage}
+                    aria-label={`Pool distribution: ${yesPercentage}% YES`}
+                    className="h-3"
+                  />
                 </div>
               </div>
             </div>

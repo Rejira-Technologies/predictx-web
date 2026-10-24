@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useReducer, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   Users,
@@ -185,8 +185,9 @@ function WalletConfirmPopup({
                 size="md"
                 onClick={onConfirm}
                 loading={confirming}
+                loadingLabel="Staking…"
               >
-                {confirming ? "Confirming…" : "Confirm"}
+                {confirming ? "Staking…" : "Confirm"}
               </GamingButton>
             </div>
           </div>
@@ -198,6 +199,8 @@ function WalletConfirmPopup({
 
 /** Processing state — rotating hexagon with energy bar */
 function ProcessingOverlay() {
+  const shouldReduceMotion = useReducedMotion();
+  return (
 return (
     <motion.div
       role="alert"
@@ -210,8 +213,8 @@ return (
       {/* Rotating hexagon */}
       <motion.div
         className="relative w-20 h-20"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        animate={shouldReduceMotion ? { rotate: 0 } : { rotate: 360 }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: "linear" }}
       >
         <div
           className="absolute inset-0"
@@ -224,23 +227,24 @@ return (
           }}
         />
         {/* Particle trail dots */}
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full bg-[var(--accent-cyan)]"
-            style={{ top: "50%", left: "50%" }}
-            animate={{
-              x: [0, 30 * Math.cos((i * Math.PI * 2) / 3), 0],
-              y: [0, 30 * Math.sin((i * Math.PI * 2) / 3), 0],
-              opacity: [1, 0.3, 1],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              delay: i * 0.3,
-            }}
-          />
-        ))}
+        {!shouldReduceMotion &&
+          [0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full bg-[var(--accent-cyan)]"
+              style={{ top: "50%", left: "50%" }}
+              animate={{
+                x: [0, 30 * Math.cos((i * Math.PI * 2) / 3), 0],
+                y: [0, 30 * Math.sin((i * Math.PI * 2) / 3), 0],
+                opacity: [1, 0.3, 1],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                delay: i * 0.3,
+              }}
+            />
+          ))}
       </motion.div>
 
       {/* Progress bar */}
@@ -480,6 +484,7 @@ export function StakeModal({
   open,
   onClose,
 }: StakeModalProps) {
+  const shouldReduceMotion = useReducedMotion();
   // ── State ──────────────────────────────────────────────────────────────
 
   const [side, setSide] = useState<"yes" | "no">(initialSide);
@@ -823,11 +828,13 @@ export function StakeModal({
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--accent-cyan)]/40 pointer-events-none z-30" />
 
             {/* Scanning line accent */}
-            <motion.div
-              className="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/30 to-transparent pointer-events-none z-30"
-              animate={{ top: ["0%", "100%"] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-            />
+            {!shouldReduceMotion && (
+              <motion.div
+                className="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/30 to-transparent pointer-events-none z-30"
+                animate={{ top: ["0%", "100%"] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              />
+            )}
 
             {/* ─── Content ─── */}
             <div className="relative z-20 flex flex-col h-full">

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface PoolProgressBarProps {
@@ -10,6 +10,9 @@ interface PoolProgressBarProps {
   animated?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
+  showLabels?: boolean;
+  showAmounts?: boolean;
+  showTotal?: boolean;
 }
 
 const sizeClasses = {
@@ -37,7 +40,12 @@ export function PoolProgressBar({
   animated = true,
   size = "md",
   className,
+  showLabels = true,
+  showAmounts = true,
+  showTotal = true,
 }: PoolProgressBarProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isAnimated = animated && !shouldReduceMotion;
   // Clamp percentage between 0 and 100
   const clampedYes = Math.max(0, Math.min(100, yesPercentage));
   const noPercentage = 100 - clampedYes;
@@ -48,20 +56,22 @@ export function PoolProgressBar({
   return (
     <div className={cn("w-full", className)}>
       {/* Labels above bar */}
-      <div className={cn("flex justify-between mb-2", sizes.labelSize)}>
-        <div className="flex items-center gap-2">
-          <span className="text-[#00d9ff] font-medium">YES</span>
-          <span className="text-[var(--muted-foreground)]">
-            {clampedYes.toFixed(1)}%
-          </span>
+      {showLabels && (
+        <div className={cn("flex justify-between mb-2", sizes.labelSize)}>
+          <div className="flex items-center gap-2">
+            <span className="text-[#00d9ff] font-medium">YES</span>
+            <span className="text-[var(--muted-foreground)]">
+              {clampedYes.toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--muted-foreground)]">
+              {noPercentage.toFixed(1)}%
+            </span>
+            <span className="text-[#ff006e] font-medium">NO</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[var(--muted-foreground)]">
-            {noPercentage.toFixed(1)}%
-          </span>
-          <span className="text-[#ff006e] font-medium">NO</span>
-        </div>
-      </div>
+      )}
 
       {/* Progress bar container */}
       <div
@@ -90,9 +100,9 @@ export function PoolProgressBar({
         {/* Yes side (left/cyan) */}
         <motion.div
           className="absolute left-0 top-0 h-full"
-          initial={animated ? { width: 0 } : { width: `${clampedYes}%` }}
+          initial={isAnimated ? { width: 0 } : { width: `${clampedYes}%` }}
           animate={{ width: `${clampedYes}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={isAnimated ? { duration: 1, ease: "easeOut" } : { duration: 0 }}
           style={{
             background: `linear-gradient(
               90deg,
@@ -103,7 +113,7 @@ export function PoolProgressBar({
           }}
         >
           {/* Animated gradient flow */}
-          {animated && (
+          {isAnimated && (
             <motion.div
               className="absolute inset-0"
               animate={{
@@ -131,10 +141,10 @@ export function PoolProgressBar({
         <motion.div
           className="absolute right-0 top-0 h-full"
           initial={
-            animated ? { width: 0 } : { width: `${noPercentage}%` }
+            isAnimated ? { width: 0 } : { width: `${noPercentage}%` }
           }
           animate={{ width: `${noPercentage}%` }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
+          transition={isAnimated ? { duration: 1, ease: "easeOut", delay: 0.1 } : { duration: 0 }}
           style={{
             background: `linear-gradient(
               90deg,
@@ -145,7 +155,7 @@ export function PoolProgressBar({
           }}
         >
           {/* Animated gradient flow */}
-          {animated && (
+          {isAnimated && (
             <motion.div
               className="absolute inset-0"
               animate={{
@@ -177,7 +187,7 @@ export function PoolProgressBar({
             transform: "translateX(-50%)",
           }}
           animate={
-            animated
+            isAnimated
               ? {
                   boxShadow: [
                     "0 0 5px rgba(255, 255, 255, 0.5)",
@@ -187,7 +197,7 @@ export function PoolProgressBar({
                 }
               : {}
           }
-          transition={{ duration: 1.5, repeat: Infinity }}
+          transition={isAnimated ? { duration: 1.5, repeat: Infinity } : { duration: 0 }}
         />
 
         {/* Center line marker */}
@@ -198,22 +208,35 @@ export function PoolProgressBar({
       </div>
 
       {/* Amounts below bar */}
-      <div className={cn("flex justify-between mt-2", sizes.amountSize)}>
-        <span className="text-[#00d9ff]">
-          ${yesAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-        <span className="text-[#ff006e]">
-          ${noAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-      </div>
+      {showAmounts && (
+        <div className={cn("flex justify-between mt-2", sizes.amountSize)}>
+          <span className="text-[#00d9ff]">
+            ${yesAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+          <span className="text-[#ff006e]">
+            ${noAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      )}
 
       {/* Total pool indicator */}
+      {showTotal && (
+        <div className="text-center mt-1">
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Total Pool: ${" "}
+            {totalAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      )}
       <div className="text-center mt-1" aria-live="polite">
         <span className="text-xs text-[var(--muted-foreground)]">
           Total Pool: ${" "}

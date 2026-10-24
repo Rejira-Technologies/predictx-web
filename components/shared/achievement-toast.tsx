@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef, ReactNode } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,44 +23,52 @@ export function AchievementToast({
   className,
 }: AchievementToastProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [progress, setProgress] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-dismiss after 3 seconds
   useEffect(() => {
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressTimer);
-          return 100;
-        }
-        return prev + 100 / 30; // 30 steps for 3 seconds
-      });
-    }, 100);
-
-    const dismissTimer = setTimeout(() => {
+    dismissTimerRef.current = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => onClose?.(), 300); // Wait for exit animation
+      exitTimerRef.current = setTimeout(() => {
+        onClose?.();
+      }, 300); // Wait for exit animation
     }, 3000);
 
     return () => {
-      clearTimeout(dismissTimer);
-      clearInterval(progressTimer);
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
   }, [onClose]);
 
   const handleClose = () => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
     setIsVisible(false);
-    setTimeout(() => onClose?.(), 300);
+    exitTimerRef.current = setTimeout(() => {
+      onClose?.();
+    }, 300);
   };
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ x: "100%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "100%", opacity: 0 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { x: 0, opacity: 1 }}
+          exit={shouldReduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 400, damping: 30 }
+          }
           className={cn(
             "relative w-80 overflow-hidden",
             "bg-[#1a1f3a]/90 backdrop-blur-md",
@@ -74,32 +82,38 @@ export function AchievementToast({
           }}
         >
           {/* Animated trail effect on enter */}
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            initial={{ x: "-100%", opacity: 0.5 }}
-            animate={{ x: "100%", opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              background: `linear-gradient(
-                90deg,
-                transparent,
-                rgba(0, 217, 255, 0.2),
-                transparent
-              )`,
-            }}
-          />
+          {!shouldReduceMotion && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              initial={{ x: "-100%", opacity: 0.5 }}
+              animate={{ x: "100%", opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                background: `linear-gradient(
+                  90deg,
+                  transparent,
+                  rgba(0, 217, 255, 0.2),
+                  transparent
+                )`,
+              }}
+            />
+          )}
 
           {/* Glow border animation */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            animate={{
-              boxShadow: [
-                "inset 0 0 20px rgba(0, 217, 255, 0.1)",
-                "inset 0 0 30px rgba(0, 217, 255, 0.2)",
-                "inset 0 0 20px rgba(0, 217, 255, 0.1)",
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
+            animate={
+              shouldReduceMotion
+                ? {}
+                : {
+                    boxShadow: [
+                      "inset 0 0 20px rgba(0, 217, 255, 0.1)",
+                      "inset 0 0 30px rgba(0, 217, 255, 0.2)",
+                      "inset 0 0 20px rgba(0, 217, 255, 0.1)",
+                    ],
+                  }
+            }
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 2, repeat: Infinity }}
           />
 
           {/* Content */}
@@ -112,14 +126,18 @@ export function AchievementToast({
                 background: "rgba(0, 217, 255, 0.2)",
                 border: "1px solid rgba(0, 217, 255, 0.5)",
               }}
-              animate={{
-                boxShadow: [
-                  "0 0 10px rgba(0, 217, 255, 0.3)",
-                  "0 0 20px rgba(0, 217, 255, 0.6)",
-                  "0 0 10px rgba(0, 217, 255, 0.3)",
-                ],
-              }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+              animate={
+                shouldReduceMotion
+                  ? {}
+                  : {
+                      boxShadow: [
+                        "0 0 10px rgba(0, 217, 255, 0.3)",
+                        "0 0 20px rgba(0, 217, 255, 0.6)",
+                        "0 0 10px rgba(0, 217, 255, 0.3)",
+                      ],
+                    }
+              }
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 1.5, repeat: Infinity }}
             >
               <span className="text-[var(--accent-cyan)]">{icon}</span>
             </motion.div>
@@ -135,23 +153,13 @@ export function AchievementToast({
                 </p>
               )}
 
-              {/* XP progress bar */}
+              {/* XP display */}
               {xp > 0 && (
-                <div className="mt-2">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Sparkles className="w-3 h-3 text-[var(--accent-gold)]" />
-                    <span className="text-[var(--accent-gold)] text-xs font-bold">
-                      +{xp} XP
-                    </span>
-                  </div>
-                  <div className="h-1 bg-[var(--background)] rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)]"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress}%` }}
-                      transition={{ duration: 0.1, ease: "linear" }}
-                    />
-                  </div>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <Sparkles className="w-3 h-3 text-[var(--accent-gold)]" />
+                  <span className="text-[var(--accent-gold)] text-xs font-bold">
+                    +{xp} XP
+                  </span>
                 </div>
               )}
             </div>
@@ -171,7 +179,7 @@ export function AchievementToast({
               className="h-full bg-[var(--accent-cyan)]"
               initial={{ width: "100%" }}
               animate={{ width: "0%" }}
-              transition={{ duration: 3, ease: "linear" }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 3, ease: "linear" }}
             />
           </div>
         </motion.div>

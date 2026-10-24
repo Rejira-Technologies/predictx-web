@@ -32,6 +32,7 @@ import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
 import { GamingButton } from "@/components/shared/gaming-button";
+import { PollCard } from "@/components/poll-card";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -205,50 +206,40 @@ function StepIndicator({ step }: { step: number }) {
     );
 }
 
-/** Inline mini poll preview rendered in step 3 & 4 */
+/** Live poll preview rendered with the canonical PollCard component (#329) */
 function PollPreview({ form, matchLabel }: { form: FormState; matchLabel: string }) {
-    const catLabel = CATEGORY_OPTIONS.find((c) => c.value === form.category)?.label ?? "Category";
+    const selectedMatch = MATCHES.find((m) => m.id === form.matchId);
     const hasQuestion = form.question.length >= 1;
 
+    const draftPoll: Poll = {
+        id: "draft-preview",
+        matchId: form.matchId || selectedMatch?.id || "",
+        question: hasQuestion ? form.question : "Your question will appear here...",
+        category: (form.category as PollCategory) || "player_event",
+        yesPool: 0,
+        noPool: 0,
+        participants: 0,
+        stakeCount: 0,
+        stakers: [],
+        status: "active",
+        lockTime: (form.lockTime as LockTime) || "kickoff",
+        recentActivity: "Draft poll preview",
+        lockTargetISO:
+            form.lockTime === "custom" && form.customLockTime
+                ? form.customLockTime
+                : undefined,
+    };
+
     return (
-        <div className="rounded-lg border border-primary/30 bg-[#0d1025]/80 p-4 space-y-3 text-sm relative overflow-hidden">
-            {/* your poll badge */}
-            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gold/20 text-gold text-[10px] font-bold uppercase tracking-wider rounded">
-                Your Poll
-            </div>
-
-            {/* category */}
-            <div className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider rounded">
-                {catLabel}
-            </div>
-
-            {/* question */}
-            <p className={cn("font-bold text-base leading-snug", !hasQuestion && "text-muted-foreground italic")}>
-                {hasQuestion ? form.question : "Your question will appear here..."}
-            </p>
-
-            {/* match */}
-            <p className="text-muted-foreground text-xs">{matchLabel}</p>
-
-            {/* pool bars */}
-            <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                    <span className="text-[#39ff14] font-bold">YES · $0</span>
-                    <span className="text-[#ff006e] font-bold">NO · $0</span>
-                </div>
-                <div className="relative h-3 bg-background rounded-full overflow-hidden flex">
-                    <div className="h-full bg-gradient-to-r from-[#39ff14] to-[#39ff14]/80 w-1/2" />
-                    <div className="h-full bg-gradient-to-l from-[#ff006e] to-[#ff006e]/80 w-1/2" />
-                </div>
-            </div>
-
-            {/* lock time */}
-            {form.lockTime && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{LOCK_OPTIONS.find((l) => l.value === form.lockTime)?.label ?? "—"}</span>
-                </div>
-            )}
+        <div className="relative pointer-events-none select-none">
+            <PollCard
+                poll={draftPoll}
+                match={selectedMatch}
+                matchId={selectedMatch?.id}
+                matchName={matchLabel}
+                variant="compact"
+                disableNavigation
+            />
         </div>
     );
 }
@@ -358,6 +349,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                 lockTime: (form.lockTime === "custom" ? "kickoff" : form.lockTime) as LockTime,
                 lockTargetISO,
                 recentActivity: "Just created",
+                createdAt: new Date().toISOString(),
             };
 
             addPoll(newPoll);
@@ -815,6 +807,8 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                         variant="gold"
                                         size="sm"
                                         loading={submitting}
+                                        loadingLabel="Creating…"
+                                        success={success}
                                         disabled={!canGoNext() || submitting}
                                         onClick={handleSubmit}
                                     >

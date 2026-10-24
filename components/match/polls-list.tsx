@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutGrid,
@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import { PollCard } from "@/components/poll-card"
+import { PollCardSkeleton } from "@/components/ui/skeleton-card"
 import { GamingTabs, GlowCard, GamingButton } from "@/components/shared"
 import { CardErrorBoundary } from "@/components/shared/card-error-boundary"
 import type { Poll, Match, PollCategory } from "@/lib/mock-data"
@@ -112,6 +113,11 @@ interface PollsListProps {
 /* ── Component ──────────────────────────────────────────────────────────── */
 
 export function PollsList({ polls, match }: PollsListProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const [activeCategory, setActiveCategory] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortOption>("highest-pool")
   const [sortOpen, setSortOpen] = useState(false)
@@ -162,7 +168,7 @@ export function PollsList({ polls, match }: PollsListProps) {
         )
         break
       case "newest":
-        filtered.reverse()
+        filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         break
     }
 
@@ -251,74 +257,82 @@ export function PollsList({ polls, match }: PollsListProps) {
         </div>
       </div>
 
-      {/* Poll cards grid */}
-      <AnimatePresence mode="wait">
-        {displayedPolls.length > 0 ? (
-          <motion.div
-            key={`${activeCategory}-${sortBy}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-          >
-            {displayedPolls.map((poll, index) => (
-              <motion.div
-                key={poll.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.3 }}
-                className={
-                  poll.status === "locked" || poll.status === "resolved"
-                    ? "opacity-80"
-                    : ""
-                }
-              >
-                {/* Status badge */}
-                <div className="mb-2">
-                  <PollStatusBadge status={poll.status} outcome={poll.outcome} />
-                </div>
-
-                <CardErrorBoundary componentName={`PollCard(${poll.id})`}>
-                  <PollCard
-                    poll={poll}
-                    matchId={match.id}
-                    matchName={matchName}
-                  />
-                </CardErrorBoundary>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          /* Empty category state */
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
-          >
-            <div className="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center mb-4">
-              <LayoutGrid className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <h3 className="font-display text-lg font-bold text-foreground mb-2">
-              No predictions in this category yet
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-              Be the first to create a prediction in this category and start the
-              pool!
-            </p>
-            <GamingButton
-              variant="gold"
-              size="sm"
-              onClick={() => alert("Create Poll feature coming soon!")}
+      {/* Poll cards grid or Skeleton */}
+      {!mounted ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <PollCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          {displayedPolls.length > 0 ? (
+            <motion.div
+              key={`${activeCategory}-${sortBy}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Create the first prediction!
-            </GamingButton>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {displayedPolls.map((poll, index) => (
+                <motion.div
+                  key={poll.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  className={
+                    poll.status === "locked" || poll.status === "resolved"
+                      ? "opacity-80"
+                      : ""
+                  }
+                >
+                  {/* Status badge */}
+                  <div className="mb-2">
+                    <PollStatusBadge status={poll.status} outcome={poll.outcome} />
+                  </div>
+
+                  <CardErrorBoundary componentName={`PollCard(${poll.id})`}>
+                    <PollCard
+                      poll={poll}
+                      matchId={match.id}
+                      matchName={matchName}
+                    />
+                  </CardErrorBoundary>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            /* Empty category state */
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center mb-4">
+                <LayoutGrid className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <h3 className="font-display text-lg font-bold text-foreground mb-2">
+                No predictions in this category yet
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                Be the first to create a prediction in this category and start the
+                pool!
+              </p>
+              <GamingButton
+                variant="gold"
+                size="sm"
+                onClick={() => alert("Create Poll feature coming soon!")}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create the first prediction!
+              </GamingButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   )
 }

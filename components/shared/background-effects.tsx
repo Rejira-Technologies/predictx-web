@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface BackgroundEffectsProps {
@@ -20,7 +20,9 @@ interface Particle {
 
 export function BackgroundEffects({ className }: BackgroundEffectsProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const framerReducedMotion = useReducedMotion();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const isReducedMotion = prefersReducedMotion || !!framerReducedMotion;
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number | null>(null);
 
@@ -39,7 +41,7 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
 
   // Initialize particles
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (isReducedMotion) return;
 
     const colors = [
       "rgba(0, 217, 255, ",
@@ -171,34 +173,36 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
       />
 
       {/* CSS-based floating hexagons */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute"
-            style={{
-              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-              background: `linear-gradient(135deg, rgba(0, 217, 255, 0.05), transparent)`,
-              border: "1px solid rgba(0, 217, 255, 0.1)",
-              width: 100 + i * 50,
-              height: 100 + i * 50,
-              left: `${10 + i * 15}%`,
-              top: `${20 + (i % 3) * 20}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              rotate: [0, 5, 0],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
-          />
-        ))}
-      </div>
+      {!isReducedMotion && (
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              style={{
+                clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                background: `linear-gradient(135deg, rgba(0, 217, 255, 0.05), transparent)`,
+                border: "1px solid rgba(0, 217, 255, 0.1)",
+                width: 100 + i * 50,
+                height: 100 + i * 50,
+                left: `${10 + i * 15}%`,
+                top: `${20 + (i % 3) * 20}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                rotate: [0, 5, 0],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 8 + i * 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Neon grid lines - football field pattern */}
       <div
@@ -216,19 +220,27 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
       {/* Gradient mesh overlay */}
       <motion.div
         className="absolute inset-0"
-        animate={{
-          background: [
-            "radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.05) 0%, transparent 50%)",
-            "radial-gradient(circle at 80% 20%, rgba(255, 0, 110, 0.05) 0%, transparent 50%)",
-            "radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%)",
-            "radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.05) 0%, transparent 50%)",
-          ],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear",
-        }}
+        animate={
+          isReducedMotion
+            ? {}
+            : {
+                background: [
+                  "radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.05) 0%, transparent 50%)",
+                  "radial-gradient(circle at 80% 20%, rgba(255, 0, 110, 0.05) 0%, transparent 50%)",
+                  "radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%)",
+                  "radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.05) 0%, transparent 50%)",
+                ],
+              }
+        }
+        transition={
+          isReducedMotion
+            ? { duration: 0 }
+            : {
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear",
+              }
+        }
       />
 
       {/* Vignette effect */}
