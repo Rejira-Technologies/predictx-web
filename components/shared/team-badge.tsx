@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // Team type definition for the component
@@ -37,26 +37,35 @@ const sizeClasses = {
 };
 
 export function TeamBadge({ team, size = "md", className }: TeamBadgeProps) {
+  const shouldReduceMotion = useReducedMotion();
   const sizes = sizeClasses[size];
 
   return (
     <motion.div
       className={cn("relative", sizes.container, className)}
-      whileHover={{ scale: 1.05, rotate: 2 }}
-      animate={{
-        filter: [
-          `drop-shadow(${sizes.glow} ${team.primaryColor}40)`,
-          `drop-shadow(${sizes.glow} ${team.primaryColor}80)`,
-          `drop-shadow(${sizes.glow} ${team.primaryColor}40)`,
-        ],
-      }}
-      transition={{
-        filter: {
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      }}
+      whileHover={shouldReduceMotion ? undefined : { scale: 1.05, rotate: 2 }}
+      animate={
+        shouldReduceMotion
+          ? {}
+          : {
+              filter: [
+                `drop-shadow(${sizes.glow} ${team.primaryColor}40)`,
+                `drop-shadow(${sizes.glow} ${team.primaryColor}80)`,
+                `drop-shadow(${sizes.glow} ${team.primaryColor}40)`,
+              ],
+            }
+      }
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : {
+              filter: {
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              },
+            }
+      }
     >
       {/* Hexagon background */}
       <div
@@ -68,26 +77,28 @@ export function TeamBadge({ team, size = "md", className }: TeamBadgeProps) {
         }}
       >
         {/* Holographic shine effect */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-            background: `linear-gradient(
-              135deg,
-              transparent 40%,
-              rgba(255, 255, 255, 0.2) 50%,
-              transparent 60%
-            )`,
-          }}
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {!shouldReduceMotion && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+              background: `linear-gradient(
+                135deg,
+                transparent 40%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 60%
+              )`,
+            }}
+            animate={{
+              backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        )}
 
         {/* Team content */}
         <div className="relative z-10 flex flex-col items-center justify-center">
