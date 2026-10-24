@@ -168,7 +168,7 @@ export function PollsList({ polls, match }: PollsListProps) {
         )
         break
       case "newest":
-        filtered.reverse()
+        filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         break
     }
 

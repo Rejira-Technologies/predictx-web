@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface PoolProgressBarProps {
@@ -44,6 +44,8 @@ export function PoolProgressBar({
   showAmounts = true,
   showTotal = true,
 }: PoolProgressBarProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isAnimated = animated && !shouldReduceMotion;
   // Clamp percentage between 0 and 100
   const clampedYes = Math.max(0, Math.min(100, yesPercentage));
   const noPercentage = 100 - clampedYes;
@@ -98,9 +100,9 @@ export function PoolProgressBar({
         {/* Yes side (left/cyan) */}
         <motion.div
           className="absolute left-0 top-0 h-full"
-          initial={animated ? { width: 0 } : { width: `${clampedYes}%` }}
+          initial={isAnimated ? { width: 0 } : { width: `${clampedYes}%` }}
           animate={{ width: `${clampedYes}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={isAnimated ? { duration: 1, ease: "easeOut" } : { duration: 0 }}
           style={{
             background: `linear-gradient(
               90deg,
@@ -111,7 +113,7 @@ export function PoolProgressBar({
           }}
         >
           {/* Animated gradient flow */}
-          {animated && (
+          {isAnimated && (
             <motion.div
               className="absolute inset-0"
               animate={{
@@ -139,10 +141,10 @@ export function PoolProgressBar({
         <motion.div
           className="absolute right-0 top-0 h-full"
           initial={
-            animated ? { width: 0 } : { width: `${noPercentage}%` }
+            isAnimated ? { width: 0 } : { width: `${noPercentage}%` }
           }
           animate={{ width: `${noPercentage}%` }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
+          transition={isAnimated ? { duration: 1, ease: "easeOut", delay: 0.1 } : { duration: 0 }}
           style={{
             background: `linear-gradient(
               90deg,
@@ -153,7 +155,7 @@ export function PoolProgressBar({
           }}
         >
           {/* Animated gradient flow */}
-          {animated && (
+          {isAnimated && (
             <motion.div
               className="absolute inset-0"
               animate={{
@@ -185,7 +187,7 @@ export function PoolProgressBar({
             transform: "translateX(-50%)",
           }}
           animate={
-            animated
+            isAnimated
               ? {
                   boxShadow: [
                     "0 0 5px rgba(255, 255, 255, 0.5)",
@@ -195,7 +197,7 @@ export function PoolProgressBar({
                 }
               : {}
           }
-          transition={{ duration: 1.5, repeat: Infinity }}
+          transition={isAnimated ? { duration: 1.5, repeat: Infinity } : { duration: 0 }}
         />
 
         {/* Center line marker */}

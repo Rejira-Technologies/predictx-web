@@ -7,10 +7,18 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export interface GamingButtonProps {
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+
+import { Variant, VARIANT_THEME_MAP, getVariantRgba, rgba } from "./variants";
+
+export type { Variant };
 const MotionLink = motion.create(Link);
 
 interface GamingButtonProps {
-  variant?: "primary" | "success" | "danger" | "gold" | "ghost";
+  variant?: Variant;
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
@@ -24,55 +32,64 @@ interface GamingButtonProps {
   type?: "button" | "submit" | "reset";
 }
 
-/** RGB channel tuples used to build alpha-correct rgba() strings at use-site. */
-const variantChannels = {
-  primary: { r: 0,   g: 217, b: 255, text: "#00d9ff" },
-  success: { r: 57,  g: 255, b: 20,  text: "#39ff14" },
-  danger:  { r: 255, g: 0,   b: 110, text: "#ff006e" },
-  gold:    { r: 255, g: 215, b: 0,   text: "#ffd700" },
-  ghost:   { r: 0,   g: 217, b: 255, text: "#00d9ff" },
-};
-
-/** Build a valid rgba() string from channel tuple + alpha. */
-function rgba(channels: { r: number; g: number; b: number }, alpha: number): string {
-  return `rgba(${channels.r}, ${channels.g}, ${channels.b}, ${alpha})`;
-}
-
-const variantStyles = {
+const variantStyles: Record<
+  Variant,
+  {
+    bg: string;
+    border: string;
+    glow: string;
+    glowChannels: { r: number; g: number; b: number };
+    text: string;
+  }
+> = {
+  default: {
+    bg: `linear-gradient(135deg, ${getVariantRgba("default", 0.2)} 0%, ${getVariantRgba("default", 0.05)} 100%)`,
+    border: getVariantRgba("default", 0.4),
+    glow: getVariantRgba("default", 0.5),
+    glowChannels: VARIANT_THEME_MAP.default.channels,
+    text: VARIANT_THEME_MAP.default.var,
+  },
   primary: {
-    bg: `linear-gradient(135deg, ${rgba(variantChannels.primary, 0.2)} 0%, ${rgba(variantChannels.primary, 0.05)} 100%)`,
-    border: rgba(variantChannels.primary, 0.4),
-    glow: rgba(variantChannels.primary, 0.5),
-    glowChannels: variantChannels.primary,
-    text: variantChannels.primary.text,
+    bg: `linear-gradient(135deg, ${getVariantRgba("primary", 0.2)} 0%, ${getVariantRgba("primary", 0.05)} 100%)`,
+    border: getVariantRgba("primary", 0.4),
+    glow: getVariantRgba("primary", 0.5),
+    glowChannels: VARIANT_THEME_MAP.primary.channels,
+    text: VARIANT_THEME_MAP.primary.var,
+  },
+  neutral: {
+    bg: `linear-gradient(135deg, ${getVariantRgba("neutral", 0.2)} 0%, ${getVariantRgba("neutral", 0.05)} 100%)`,
+    border: getVariantRgba("neutral", 0.4),
+    glow: getVariantRgba("neutral", 0.5),
+    glowChannels: VARIANT_THEME_MAP.neutral.channels,
+    text: VARIANT_THEME_MAP.neutral.var,
   },
   success: {
-    bg: `linear-gradient(135deg, ${rgba(variantChannels.success, 0.2)} 0%, ${rgba(variantChannels.success, 0.05)} 100%)`,
-    border: rgba(variantChannels.success, 0.4),
-    glow: rgba(variantChannels.success, 0.5),
-    glowChannels: variantChannels.success,
-    text: variantChannels.success.text,
+    bg: `linear-gradient(135deg, ${getVariantRgba("success", 0.2)} 0%, ${getVariantRgba("success", 0.05)} 100%)`,
+    border: getVariantRgba("success", 0.4),
+    glow: getVariantRgba("success", 0.5),
+    glowChannels: VARIANT_THEME_MAP.success.channels,
+    text: VARIANT_THEME_MAP.success.var,
   },
   danger: {
-    bg: `linear-gradient(135deg, ${rgba(variantChannels.danger, 0.2)} 0%, ${rgba(variantChannels.danger, 0.05)} 100%)`,
-    border: rgba(variantChannels.danger, 0.4),
-    glow: rgba(variantChannels.danger, 0.5),
-    glowChannels: variantChannels.danger,
-    text: variantChannels.danger.text,
+    bg: `linear-gradient(135deg, ${getVariantRgba("danger", 0.2)} 0%, ${getVariantRgba("danger", 0.05)} 100%)`,
+    border: getVariantRgba("danger", 0.4),
+    glow: getVariantRgba("danger", 0.5),
+    glowChannels: VARIANT_THEME_MAP.danger.channels,
+    text: VARIANT_THEME_MAP.danger.var,
   },
   gold: {
-    bg: `linear-gradient(135deg, ${rgba(variantChannels.gold, 0.2)} 0%, ${rgba(variantChannels.gold, 0.05)} 100%)`,
-    border: rgba(variantChannels.gold, 0.4),
-    glow: rgba(variantChannels.gold, 0.5),
-    glowChannels: variantChannels.gold,
-    text: variantChannels.gold.text,
+    bg: `linear-gradient(135deg, ${getVariantRgba("gold", 0.2)} 0%, ${getVariantRgba("gold", 0.05)} 100%)`,
+    border: getVariantRgba("gold", 0.4),
+    glow: getVariantRgba("gold", 0.5),
+    glowChannels: VARIANT_THEME_MAP.gold.channels,
+    text: VARIANT_THEME_MAP.gold.var,
   },
   ghost: {
     bg: "transparent",
-    border: rgba(variantChannels.ghost, 0.3),
-    glow: rgba(variantChannels.ghost, 0.3),
-    glowChannels: variantChannels.ghost,
-    text: variantChannels.ghost.text,
+    border: getVariantRgba("ghost", 0.3),
+    glow: getVariantRgba("ghost", 0.3),
+    glowChannels: VARIANT_THEME_MAP.ghost.channels,
+    text: VARIANT_THEME_MAP.ghost.var,
   },
 };
 
@@ -137,6 +154,7 @@ function GamingButtonShell({
     onClick?.();
   };
 
+  const shouldReduceMotion = useReducedMotion();
   const isDisabled = disabled || loading;
 
   const sharedClassName = cn(
@@ -171,9 +189,9 @@ function GamingButtonShell({
     },
     onMouseDown: () => setIsPressed(true),
     onMouseUp: () => setIsPressed(false),
-    whileHover: !isDisabled ? { scale: 1.05, rotate: 1 } : {},
-    whileTap: !isDisabled ? { scale: 0.95 } : {},
-    transition: { type: "spring" as const, stiffness: 400, damping: 25 },
+    whileHover: !isDisabled && !shouldReduceMotion ? { scale: 1.05, rotate: 1 } : {},
+    whileTap: !isDisabled && !shouldReduceMotion ? { scale: 0.95 } : {},
+    transition: shouldReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 400, damping: 25 },
   };
 
   const innerContent = (
@@ -182,11 +200,15 @@ function GamingButtonShell({
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={
-          !isDisabled
+          !isDisabled && !shouldReduceMotion
             ? { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
             : {}
         }
-        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : { duration: 5, repeat: Infinity, ease: "linear" }
+        }
         style={{
           background: `linear-gradient(
             90deg,
@@ -200,7 +222,7 @@ function GamingButtonShell({
 
       {/* Shine sweep on hover */}
       <AnimatePresence>
-        {isHovered && !isDisabled && (
+        {isHovered && !isDisabled && !shouldReduceMotion && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
             initial={{ x: "-100%" }}
@@ -220,24 +242,25 @@ function GamingButtonShell({
       </AnimatePresence>
 
       {/* Ripple effects */}
-      {ripples.map((ripple) => (
-        <motion.span
-          key={ripple.id}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            left: ripple.x,
-            top: ripple.y,
-            width: 10,
-            height: 10,
-            marginLeft: -5,
-            marginTop: -5,
-            background: styles.glow,
-          }}
-          initial={{ scale: 0, opacity: 0.5 }}
-          animate={{ scale: 20, opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        />
-      ))}
+      {!shouldReduceMotion &&
+        ripples.map((ripple) => (
+          <motion.span
+            key={ripple.id}
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              left: ripple.x,
+              top: ripple.y,
+              width: 10,
+              height: 10,
+              marginLeft: -5,
+              marginTop: -5,
+              background: styles.glow,
+            }}
+            initial={{ scale: 0, opacity: 0.5 }}
+            animate={{ scale: 20, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        ))}
 
       {/* State content: Loading / Success / Default */}
       <AnimatePresence mode="wait">
@@ -250,8 +273,12 @@ function GamingButtonShell({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              animate={{ rotate: shouldReduceMotion ? 0 : 360 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 1, repeat: Infinity, ease: "linear" }
+              }
             >
               <Loader2 className="w-5 h-5" style={{ color: styles.text }} />
             </motion.div>
