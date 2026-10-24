@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Trophy, MapPin, Calendar, Clock, Shield } from "lucide-react"
 import { GlowCard, TeamBadge, CountdownTimer } from "@/components/shared"
 import type { Match } from "@/lib/mock-data"
@@ -62,6 +62,7 @@ function StatusBadge({ status }: { status: Match["status"] }) {
 /* ── Component ──────────────────────────────────────────────────────────── */
 
 export function MatchHeader({ match }: MatchHeaderProps) {
+  const shouldReduceMotion = useReducedMotion();
   const homeTeam = toTeam(match.homeTeam, getTeamColor(match.homeTeam))
   const awayTeam = toTeam(match.awayTeam, getTeamColor(match.awayTeam))
 
@@ -166,8 +167,8 @@ export function MatchHeader({ match }: MatchHeaderProps) {
               {match.status === "live" && (
                 <motion.div
                   className="flex items-center gap-1.5"
-                  animate={{ opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+                  animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.4, 1] }}
+                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 1.5, repeat: Infinity }}
                 >
                   <span className="w-2 h-2 rounded-full bg-success" />
                   <span className="font-mono text-sm font-bold text-success">

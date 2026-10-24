@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 import { Variant, VARIANT_THEME_MAP, getVariantRgba, rgba } from "./variants";
@@ -76,6 +76,8 @@ export function GlowCard({
   className,
   children,
 }: GlowCardProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isAnimated = animated && !shouldReduceMotion;
   const styles = variantStyles[variant as keyof typeof variantStyles] || variantStyles.default;
   // customGlow is used for full-opacity values; alpha variants are built from channels.
   const customGlow = glowColor || styles.glow;
@@ -94,7 +96,7 @@ export function GlowCard({
         clipPath:
           "polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px)",
       }}
-      whileHover={animated ? { scale: 1.02 } : undefined}
+      whileHover={isAnimated ? { scale: 1.02 } : undefined}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       {/* Outer border layer */}
@@ -118,7 +120,7 @@ export function GlowCard({
       />
 
       {/* Animated neon border glow */}
-      {animated && (
+      {isAnimated && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
           animate={{
@@ -140,17 +142,21 @@ export function GlowCard({
       <motion.div
         className="absolute inset-0 pointer-events-none z-0"
         animate={
-          animated
+          isAnimated
             ? {
               backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
             }
             : undefined
         }
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        transition={
+          isAnimated
+            ? {
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }
+            : { duration: 0 }
+        }
         style={{
           background: `linear-gradient(
             135deg,

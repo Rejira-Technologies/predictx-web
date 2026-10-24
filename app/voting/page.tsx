@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Scale, Activity } from "lucide-react";
 import { useVoting } from "@/hooks/use-voting";
 import { useMockData } from "@/hooks/use-mock-data";
@@ -9,6 +9,8 @@ import { VotingCard } from "@/components/voting/voting-card";
 import { GamingButton } from "@/components/shared/gaming-button";
 
 export default function VotingCenterPage() {
+  const shouldReduceMotion = useReducedMotion();
+  const { isConnected, connect } = useWallet();
   const { isConnected, connect, isConnecting } = useWallet();
   const { availablePolls, getVoteReward, getAccuracy } = useVoting();
   const getMatch = useMockData((state) => state.getMatch);
@@ -141,8 +143,8 @@ export default function VotingCenterPage() {
             className="flex flex-col items-center justify-center py-20 text-center"
           >
             <motion.div
-              animate={{ y: [0, -15, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              animate={shouldReduceMotion ? { y: 0 } : { y: [0, -15, 0] }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="w-32 h-32 mb-8 relative opacity-80"
             >
               <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />

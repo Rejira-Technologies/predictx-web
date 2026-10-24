@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,7 @@ function TimeUnit({
   size: string;
   isTicking: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const sizeClasses = {
     sm: "text-2xl min-w-[2ch]",
     md: "text-4xl min-w-[2.5ch]",
@@ -93,7 +94,7 @@ function TimeUnit({
     <div className="flex flex-col items-center">
       <motion.div
         key={value}
-        initial={isTicking ? { scale: 0.8, opacity: 0 } : false}
+        initial={isTicking && !shouldReduceMotion ? { scale: 0.8, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
         className={cn(
           "font-mono font-bold tabular-nums",
@@ -176,6 +177,7 @@ export function CountdownTimer({
     };
   }, [updateTimer]);
 
+  const shouldReduceMotion = useReducedMotion();
   const color = urgencyColors[urgency];
   const isCritical = urgency === "critical";
   const isExpired = urgency === "expired";
@@ -193,6 +195,8 @@ export function CountdownTimer({
       >
         {isCritical && !isExpired && (
           <motion.div
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"
@@ -321,6 +325,8 @@ export function CountdownTimer({
         {isCritical && !isExpired && (
           <motion.div
             className="ml-2"
+            animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : { opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
             animate={{ opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"

@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Trophy,
   Shield,
@@ -131,6 +131,29 @@ export function BadgeComponent({
         border: `1px solid ${colors.border}`,
         boxShadow: `0 0 15px ${colors.glow}, inset 0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.15)")}`,
       }}
+      whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+      animate={
+        shouldReduceMotion
+          ? {}
+          : {
+              boxShadow: [
+                `0 0 10px ${colors.glow}50`,
+                `0 0 20px ${colors.glow}`,
+                `0 0 10px ${colors.glow}50`,
+              ],
+            }
+      }
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : {
+              boxShadow: {
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              },
+            }
+      }
       whileHover={{ scale: 1.05 }}
       animate={{
         boxShadow: [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { Shield, Activity, Users, Trophy, type LucideIcon } from "lucide-react";
 import { GlowCard } from "@/components/shared/glow-card";
 import { GlowIcon } from "@/components/shared/glow-icon";
@@ -37,18 +37,19 @@ function StatCard({
   animate,
   delay = 0,
 }: StatCardProps) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      animate={animate ? { opacity: 1, y: 0 } : { opacity: 0, y: 32 }}
-      transition={{ duration: 0.6, delay, ease: "easeOut" }}
+      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 32 }}
+      animate={animate ? { opacity: 1, y: 0 } : { opacity: 0, y: shouldReduceMotion ? 0 : 32 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.6, delay: shouldReduceMotion ? 0 : delay, ease: "easeOut" }}
     >
       <GlowCard
         variant={variant}
         className="h-full"
       >
         {/* Energy shield overlay for TVL card */}
-        {energyShield && (
+        {energyShield && !shouldReduceMotion && (
           <motion.div
             className="absolute inset-0 pointer-events-none rounded-sm z-0"
             animate={{
