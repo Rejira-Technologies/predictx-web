@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Clock, Users, Info, Lock, Zap } from "lucide-react"
-import { GamingButton, TeamBadge } from "@/components/shared"
+import { GamingButton, TeamBadge, PoolProgressBar } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { StakeModal } from "@/components/staking"
 import { useWallet } from "@/hooks/use-wallet"
@@ -22,6 +22,7 @@ export interface PollCardProps {
   variant?: "compact" | "detailed"
   isHottest?: boolean
   animationDelay?: number
+  disableNavigation?: boolean
 }
 
 const CATEGORY_STYLES: Record<string, { label: string; className: string }> = {
@@ -94,6 +95,7 @@ export function PollCard({
   variant,
   isHottest = false,
   animationDelay = 0,
+  disableNavigation = false,
 }: PollCardProps) {
   const router = useRouter()
   const { isConnected } = useWallet()
@@ -162,6 +164,7 @@ export function PollCard({
   }
 
   const handleCardClick = () => {
+    if (disableNavigation) return
     if (effectiveMatchId) {
       router.push(`/match/${effectiveMatchId}`)
     }
@@ -263,24 +266,13 @@ export function PollCard({
             </p>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-success font-bold">
-                  YES {yesPercent}% · ${poll.yesPool.toLocaleString()}
-                </span>
-                <span className="text-accent font-bold">
-                  ${poll.noPool.toLocaleString()} · {noPercent}% NO
-                </span>
-              </div>
-              <div className="relative h-3 bg-background-secondary rounded-full overflow-hidden">
-                <div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-success to-success/70 glow-green transition-all duration-500"
-                  style={{ width: `${yesPercent}%` }}
-                />
-                <div
-                  className="absolute right-0 top-0 h-full bg-gradient-to-l from-accent to-accent/70 glow-magenta transition-all duration-500"
-                  style={{ width: `${noPercent}%` }}
-                />
-              </div>
+              <PoolProgressBar
+                yesPercentage={yesPercent}
+                yesAmount={poll.yesPool}
+                noAmount={poll.noPool}
+                size="sm"
+                showTotal={false}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -389,40 +381,12 @@ export function PollCard({
 
               {/* Pool Distribution */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <span className="text-success font-bold">YES</span>
-                    <span className="text-muted-foreground mx-2">•</span>
-                    <span className="text-foreground font-mono">${poll.yesPool.toLocaleString()}</span>
-                    <span className="text-muted-foreground text-xs ml-2">({yesPercentage.toFixed(0)}%)</span>
-                  </div>
-                  <div className="text-sm text-right">
-                    <span className="text-muted-foreground text-xs mr-2">({noPercentage.toFixed(0)}%)</span>
-                    <span className="text-foreground font-mono">${poll.noPool.toLocaleString()}</span>
-                    <span className="text-muted-foreground mx-2">•</span>
-                    <span className="text-accent font-bold">NO</span>
-                  </div>
-                </div>
-
-                {/* Visual progress bar */}
-                <div className="relative h-4 bg-background-secondary rounded-full overflow-hidden">
-                  <div
-                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-success to-success/80 glow-green transition-all flex items-center justify-end pr-2"
-                    style={{ width: `${yesPercentage}%` }}
-                  >
-                    {yesPercentage > 15 && (
-                      <span className="text-[10px] font-bold text-background">{yesPercentage.toFixed(0)}%</span>
-                    )}
-                  </div>
-                  <div
-                    className="absolute right-0 top-0 h-full bg-gradient-to-l from-accent to-accent/80 glow-magenta transition-all flex items-center justify-start pl-2"
-                    style={{ width: `${noPercentage}%` }}
-                  >
-                    {noPercentage > 15 && (
-                      <span className="text-[10px] font-bold text-background">{noPercentage.toFixed(0)}%</span>
-                    )}
-                  </div>
-                </div>
+                <PoolProgressBar
+                  yesPercentage={yesPercentage}
+                  yesAmount={poll.yesPool}
+                  noAmount={poll.noPool}
+                  size="md"
+                />
               </div>
 
               {/* Social Proof */}

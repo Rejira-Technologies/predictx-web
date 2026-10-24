@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useRef, ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+
+export interface GamingButtonProps {
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +22,8 @@ interface GamingButtonProps {
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
+  success?: boolean; // brief green flash after action
+  loadingLabel?: string;
   onClick?: () => void;
   /** When provided the button renders as a Next.js <Link> pointing to this URL. */
   href?: string;
@@ -103,6 +111,8 @@ function GamingButtonShell({
   size = "md",
   loading = false,
   disabled = false,
+  success = false,
+  loadingLabel,
   onClick,
   children,
   className,
@@ -115,8 +125,11 @@ function GamingButtonShell({
   const buttonRef = useRef<HTMLElement>(null);
   const rippleIdRef = useRef(0);
 
-  const styles = variantStyles[variant];
+  const effectiveVariant = success ? "success" : variant;
+  const styles = variantStyles[effectiveVariant];
 
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled || loading || success) return;
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     if (disabled || loading) {
       // A link has no native `disabled`, so block navigation explicitly.
@@ -249,7 +262,7 @@ function GamingButtonShell({
           />
         ))}
 
-      {/* Loading spinner */}
+      {/* State content: Loading / Success / Default */}
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div
@@ -269,7 +282,18 @@ function GamingButtonShell({
             >
               <Loader2 className="w-5 h-5" style={{ color: styles.text }} />
             </motion.div>
-            <span className="opacity-80">Processing...</span>
+            <span className="opacity-80">{loadingLabel ?? "Processing..."}</span>
+          </motion.div>
+        ) : success ? (
+          <motion.div
+            key="success"
+            className="relative z-10 flex items-center justify-center gap-2"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Check className="w-5 h-5" style={{ color: variantStyles.success.text }} />
+            <span>{children}</span>
           </motion.div>
         ) : (
           <motion.div

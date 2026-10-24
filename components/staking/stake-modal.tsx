@@ -185,8 +185,9 @@ function WalletConfirmPopup({
                 size="md"
                 onClick={onConfirm}
                 loading={confirming}
+                loadingLabel="Staking…"
               >
-                {confirming ? "Confirming…" : "Confirm"}
+                {confirming ? "Staking…" : "Confirm"}
               </GamingButton>
             </div>
           </div>

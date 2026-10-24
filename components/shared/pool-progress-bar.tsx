@@ -10,6 +10,9 @@ interface PoolProgressBarProps {
   animated?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
+  showLabels?: boolean;
+  showAmounts?: boolean;
+  showTotal?: boolean;
 }
 
 const sizeClasses = {
@@ -37,6 +40,9 @@ export function PoolProgressBar({
   animated = true,
   size = "md",
   className,
+  showLabels = true,
+  showAmounts = true,
+  showTotal = true,
 }: PoolProgressBarProps) {
   const shouldReduceMotion = useReducedMotion();
   const isAnimated = animated && !shouldReduceMotion;
@@ -50,20 +56,22 @@ export function PoolProgressBar({
   return (
     <div className={cn("w-full", className)}>
       {/* Labels above bar */}
-      <div className={cn("flex justify-between mb-2", sizes.labelSize)}>
-        <div className="flex items-center gap-2">
-          <span className="text-[#00d9ff] font-medium">YES</span>
-          <span className="text-[var(--muted-foreground)]">
-            {clampedYes.toFixed(1)}%
-          </span>
+      {showLabels && (
+        <div className={cn("flex justify-between mb-2", sizes.labelSize)}>
+          <div className="flex items-center gap-2">
+            <span className="text-[#00d9ff] font-medium">YES</span>
+            <span className="text-[var(--muted-foreground)]">
+              {clampedYes.toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--muted-foreground)]">
+              {noPercentage.toFixed(1)}%
+            </span>
+            <span className="text-[#ff006e] font-medium">NO</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[var(--muted-foreground)]">
-            {noPercentage.toFixed(1)}%
-          </span>
-          <span className="text-[#ff006e] font-medium">NO</span>
-        </div>
-      </div>
+      )}
 
       {/* Progress bar container */}
       <div
@@ -200,22 +208,35 @@ export function PoolProgressBar({
       </div>
 
       {/* Amounts below bar */}
-      <div className={cn("flex justify-between mt-2", sizes.amountSize)}>
-        <span className="text-[#00d9ff]">
-          ${yesAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-        <span className="text-[#ff006e]">
-          ${noAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-      </div>
+      {showAmounts && (
+        <div className={cn("flex justify-between mt-2", sizes.amountSize)}>
+          <span className="text-[#00d9ff]">
+            ${yesAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+          <span className="text-[#ff006e]">
+            ${noAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      )}
 
       {/* Total pool indicator */}
+      {showTotal && (
+        <div className="text-center mt-1">
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Total Pool: ${" "}
+            {totalAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      )}
       <div className="text-center mt-1" aria-live="polite">
         <span className="text-xs text-[var(--muted-foreground)]">
           Total Pool: ${" "}
