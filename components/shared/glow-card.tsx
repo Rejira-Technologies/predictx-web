@@ -4,58 +4,68 @@ import { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+import { Variant, VARIANT_THEME_MAP, getVariantRgba, rgba } from "./variants";
+
+export type { Variant };
+
 interface GlowCardProps {
-  variant?: "default" | "success" | "danger" | "gold";
+  variant?: Variant;
   glowColor?: string;
   animated?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-/** RGB channel tuples used to build alpha-correct rgba() strings at use-site. */
-const variantChannels = {
-  default: { r: 0,   g: 217, b: 255 },
-  success: { r: 57,  g: 255, b: 20  },
-  danger:  { r: 255, g: 0,   b: 110 },
-  gold:    { r: 255, g: 215, b: 0   },
-  primary: { r: 0,   g: 217, b: 255 },
-};
-
-/** Build a valid rgba() string from a channel tuple + alpha. */
-function rgba(ch: { r: number; g: number; b: number }, alpha: number): string {
-  return `rgba(${ch.r}, ${ch.g}, ${ch.b}, ${alpha})`;
-}
-
-const variantStyles = {
+const variantStyles: Record<
+  Variant,
+  {
+    border: string;
+    glow: string;
+    innerGlow: string;
+    channels: { r: number; g: number; b: number };
+  }
+> = {
   default: {
-    border: rgba(variantChannels.default, 0.3),
-    glow: rgba(variantChannels.default, 0.4),
-    innerGlow: rgba(variantChannels.default, 0.1),
-    channels: variantChannels.default,
-  },
-  success: {
-    border: rgba(variantChannels.success, 0.3),
-    glow: rgba(variantChannels.success, 0.4),
-    innerGlow: rgba(variantChannels.success, 0.1),
-    channels: variantChannels.success,
-  },
-  danger: {
-    border: rgba(variantChannels.danger, 0.3),
-    glow: rgba(variantChannels.danger, 0.4),
-    innerGlow: rgba(variantChannels.danger, 0.1),
-    channels: variantChannels.danger,
-  },
-  gold: {
-    border: rgba(variantChannels.gold, 0.3),
-    glow: rgba(variantChannels.gold, 0.4),
-    innerGlow: rgba(variantChannels.gold, 0.1),
-    channels: variantChannels.gold,
+    border: getVariantRgba("default", 0.3),
+    glow: getVariantRgba("default", 0.4),
+    innerGlow: getVariantRgba("default", 0.1),
+    channels: VARIANT_THEME_MAP.default.channels,
   },
   primary: {
-    border: rgba(variantChannels.primary, 0.3),
-    glow: rgba(variantChannels.primary, 0.4),
-    innerGlow: rgba(variantChannels.primary, 0.1),
-    channels: variantChannels.primary,
+    border: getVariantRgba("primary", 0.3),
+    glow: getVariantRgba("primary", 0.4),
+    innerGlow: getVariantRgba("primary", 0.1),
+    channels: VARIANT_THEME_MAP.primary.channels,
+  },
+  neutral: {
+    border: getVariantRgba("neutral", 0.3),
+    glow: getVariantRgba("neutral", 0.4),
+    innerGlow: getVariantRgba("neutral", 0.1),
+    channels: VARIANT_THEME_MAP.neutral.channels,
+  },
+  success: {
+    border: getVariantRgba("success", 0.3),
+    glow: getVariantRgba("success", 0.4),
+    innerGlow: getVariantRgba("success", 0.1),
+    channels: VARIANT_THEME_MAP.success.channels,
+  },
+  danger: {
+    border: getVariantRgba("danger", 0.3),
+    glow: getVariantRgba("danger", 0.4),
+    innerGlow: getVariantRgba("danger", 0.1),
+    channels: VARIANT_THEME_MAP.danger.channels,
+  },
+  gold: {
+    border: getVariantRgba("gold", 0.3),
+    glow: getVariantRgba("gold", 0.4),
+    innerGlow: getVariantRgba("gold", 0.1),
+    channels: VARIANT_THEME_MAP.gold.channels,
+  },
+  ghost: {
+    border: getVariantRgba("ghost", 0.3),
+    glow: getVariantRgba("ghost", 0.4),
+    innerGlow: getVariantRgba("ghost", 0.1),
+    channels: VARIANT_THEME_MAP.ghost.channels,
   },
 };
 

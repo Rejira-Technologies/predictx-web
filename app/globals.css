@@ -8,6 +8,7 @@
   --accent-cyan: #00d9ff;
   --accent-green: #39ff14;
   --accent-gold: #ffd700;
+  --accent-neutral: var(--accent-cyan);
 
   /* Existing OKLCH colors */
   --background: oklch(0.08 0.01 264); /* Deep dark blue */
@@ -41,6 +42,7 @@
   --accent-cyan: #00d9ff;
   --accent-green: #39ff14;
   --accent-gold: #ffd700;
+  --accent-neutral: var(--accent-cyan);
 
   /* Existing OKLCH colors */
   --background: oklch(0.08 0.01 264);

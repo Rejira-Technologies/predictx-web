@@ -24,10 +24,10 @@ interface TimeLeft {
 }
 
 const urgencyColors: Record<UrgencyLevel, string> = {
-  safe: "#00d9ff", // cyan
-  warning: "#ffd700", // gold
-  urgent: "#ff006e", // magenta
-  critical: "#ff006e", // magenta with pulse
+  safe: "var(--accent-cyan, #00d9ff)",
+  warning: "var(--accent-gold, #ffd700)",
+  urgent: "var(--accent-magenta, #ff006e)",
+  critical: "var(--accent-magenta, #ff006e)",
   expired: "#6b7280", // neutral gray
 };
 
