@@ -1,34 +1,44 @@
 "use client"
 
 import { Calendar, MapPin, Trophy, Users } from "lucide-react"
+import { useMockData } from "@/hooks/use-mock-data"
+import { useMemo } from "react"
 
 interface MatchHeaderProps {
   matchId: string
 }
 
-const matchData: Record<string, any> = {
-  "1": {
-    homeTeam: "Chelsea",
-    awayTeam: "Man United",
-    date: "Dec 18, 2025",
-    time: "19:45",
-    venue: "Stamford Bridge",
-    league: "Premier League",
-    polls: 5,
-    totalPool: 15200,
-    participants: 134,
-  },
-}
-
 export function MatchHeader({ matchId }: MatchHeaderProps) {
-  const match = matchData[matchId] || matchData["1"]
+  const getMatch = useMockData((state) => state.getMatch)
+  const getPolls = useMockData((state) => state.getPolls)
+
+  const match = getMatch(matchId)
+  const polls = useMemo(() => getPolls(matchId), [getPolls, matchId])
+
+  if (!match) return null
+
+  const totalPool = polls.reduce((sum, p) => sum + p.yesPool + p.noPool, 0)
+  const totalParticipants = polls.reduce((sum, p) => sum + p.participants, 0)
+
+  const kickoff = new Date(match.kickoff)
+  const formattedDate = kickoff.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+  const formattedTime = kickoff.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 
   return (
     <div className="bg-background-secondary border-b border-primary/20">
       <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
         <div className="flex items-center gap-3 mb-6">
           <Trophy className="h-6 w-6 text-gold" />
-          <span className="text-sm font-bold text-gold uppercase tracking-wider">{match.league}</span>
+          <span className="text-sm font-bold text-gold uppercase tracking-wider">
+            {match.league ?? "Football"}
+          </span>
         </div>
 
         {/* Fixture Page Title (accessible and visual #314) */}
@@ -72,9 +82,9 @@ export function MatchHeader({ matchId }: MatchHeaderProps) {
           <div className="flex items-center gap-3 px-4 py-3 bg-surface rounded clip-corner border border-border">
             <Calendar className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-xs text-muted-foreground">Date & Time</div>
+              <div className="text-xs text-muted-foreground">Date &amp; Time</div>
               <div className="font-bold">
-                {match.date} • {match.time}
+                {formattedDate} &bull; {formattedTime}
               </div>
             </div>
           </div>
@@ -91,7 +101,7 @@ export function MatchHeader({ matchId }: MatchHeaderProps) {
             <Users className="h-5 w-5 text-success" />
             <div>
               <div className="text-xs text-muted-foreground">Total Participants</div>
-              <div className="font-bold text-success">{match.participants}</div>
+              <div className="font-bold text-success">{totalParticipants}</div>
             </div>
           </div>
 
@@ -99,7 +109,7 @@ export function MatchHeader({ matchId }: MatchHeaderProps) {
             <Trophy className="h-5 w-5 text-gold" />
             <div>
               <div className="text-xs text-muted-foreground">Total Pool</div>
-              <div className="font-bold text-gold">${match.totalPool.toLocaleString()}</div>
+              <div className="font-bold text-gold">${totalPool.toLocaleString()}</div>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { DashboardTabs } from "@/components/dashboard-tabs"
+import { DashboardTabs } from "@/components/dashboard"
 import { BadgesStrip } from "@/components/dashboard/badges-strip"
 
 export default function DashboardPage() {

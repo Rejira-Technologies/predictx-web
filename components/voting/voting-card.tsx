@@ -20,6 +20,7 @@ import { useWallet } from "@/hooks/use-wallet";
 import { cn, categoryLabel } from "@/lib/utils";
 import { getTeamColor } from "@/lib/team-colors";
 import { getVotingDeadlineISO, isVotingOpen } from "@/lib/calculations";
+import { VOTING_WINDOW_HOURS } from "@/lib/constants";
 
 interface VotingCardProps {
     poll: Poll;
@@ -134,7 +135,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
         setSelectedDecision(null);
       };
 
-      // ── Restore focus on close/vote ────────────────────────────────────────
+// ── Restore focus on close/vote ────────────────────────────────────────
       useEffect(() => {
         if (cardState === "voted") {
           const element = focusedBeforeOpenRef.current;
@@ -200,7 +201,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                     ) : (
                         <CountdownTimer targetTime={deadlineTime} compact className="text-primary text-sm font-mono" />
                     )}
-                    <span className="text-xs text-muted-foreground">Voting closes 2h after the poll locks ({poll.lockTime})</span>
+<span className="text-xs text-muted-foreground">Voting closes {VOTING_WINDOW_HOURS}h after the poll locks ({poll.lockTime})</span>
                 </div>
             </div>
 

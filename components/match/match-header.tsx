@@ -96,7 +96,7 @@ export function MatchHeader({ match }: MatchHeaderProps) {
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-gold" />
               <span className="text-sm font-bold text-gold uppercase tracking-wider">
-                Premier League
+                {match.league ?? "Football"}
               </span>
             </div>
             <StatusBadge status={match.status} />

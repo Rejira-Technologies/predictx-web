@@ -10,6 +10,9 @@ import { CountdownTimer } from "@/components/shared/countdown-timer";
 import type { Match } from "@/lib/mock-data";
 import { getTeamColor } from "@/lib/team-colors";
 
+/** Fallback label when a match has no league field or an unrecognised value. */
+const FALLBACK_LEAGUE_LABEL = "Football";
+
 interface MatchCardProps {
     match: Match;
     /** Polls that are still accepting stakes. */
@@ -89,7 +92,7 @@ export function MatchCard({
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex flex-col gap-2">
                         <span className="text-xs font-bold text-gold uppercase tracking-widest bg-gold/10 px-2 py-1 rounded">
-                            Premier League
+                            {match.league ?? FALLBACK_LEAGUE_LABEL}
                         </span>
                         {isLive && (
                             <div className="flex items-center gap-2 text-success font-bold text-xs uppercase tracking-widest">

@@ -1,4 +1,4 @@
-import { XLM_USD_RATE } from "@/lib/constants";
+import { PLATFORM_FEE_PERCENTAGE, XLM_USD_RATE } from "@/lib/constants";
 
 export interface WinningsCalculation {
 	grossWinnings: number;
@@ -8,8 +8,8 @@ export interface WinningsCalculation {
 	roi: number;
 }
 
-export const PLATFORM_FEE = 0.05;
-const FEE = PLATFORM_FEE;
+export const PLATFORM_FEE = PLATFORM_FEE_PERCENTAGE;
+const FEE = PLATFORM_FEE_PERCENTAGE;
 
 export function calculateGrossPayout(
 	stakeAmount: number,
@@ -38,6 +38,7 @@ export function calculateCompletedPayout(
 	return { gross: grossPayout, fee, net, profit, roi };
 }
 
+
 export function calculatePotentialWinnings(
 	stakeAmount: number,
 	side: "yes" | "no",
@@ -47,7 +48,7 @@ export function calculatePotentialWinnings(
 	const winningSidePool = (side === "yes" ? yesPool : noPool) + stakeAmount;
 	const totalPool = yesPool + noPool + stakeAmount;
 	const gross = (stakeAmount / winningSidePool) * totalPool;
-	const fee = gross * FEE;
+	const fee = gross * PLATFORM_FEE_PERCENTAGE;
 	const net = gross - fee;
 	const profit = net - stakeAmount;
 	const roi = (profit / stakeAmount) * 100;

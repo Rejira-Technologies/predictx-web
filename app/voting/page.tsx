@@ -5,12 +5,12 @@ import { Scale, Activity } from "lucide-react";
 import { useVoting } from "@/hooks/use-voting";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
-import { VotingCard } from "@/components/voting/voting-card";
+import { VotingCard } from "@/components/voting";
 import { GamingButton } from "@/components/shared/gaming-button";
+import { AUTO_APPROVE_THRESHOLD } from "@/lib/constants";
 
 export default function VotingCenterPage() {
   const shouldReduceMotion = useReducedMotion();
-  const { isConnected, connect } = useWallet();
   const { isConnected, connect, isConnecting } = useWallet();
   const { availablePolls, getVoteReward, getAccuracy } = useVoting();
   const getMatch = useMockData((state) => state.getMatch);
@@ -131,7 +131,7 @@ export default function VotingCenterPage() {
           </div>
           <div className="space-y-1">
             <span className="font-bold text-foreground">How Voting Works: </span>
-            Voting opens immediately after a match concludes and remains active for 2 hours. Your oracle vote helps resolve the poll for all participants. Polls where one side reaches &gt;85% of votes are flagged for expedited admin review. Otherwise, standard admin or multi-sig review applies.
+            Voting opens immediately after a match concludes and remains active for 2 hours. Your oracle vote helps resolve the poll for all participants. Polls where one side reaches &gt;{(AUTO_APPROVE_THRESHOLD * 100).toFixed(0)}% of votes are flagged for expedited admin review. Otherwise, standard admin or multi-sig review applies.
           </div>
         </div>
 
