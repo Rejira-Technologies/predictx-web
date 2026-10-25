@@ -58,7 +58,7 @@ export function UpcomingMatches() {
     }, []);
 
     const shouldReduceMotion = useReducedMotion();
-    const upcomingMatches = useMockData((state) => state.getUpcomingMatches());
+    const upcomingMatches = useMockData((state) => state.matches);
     const polls = useMockData((state) => state.polls);
 
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");

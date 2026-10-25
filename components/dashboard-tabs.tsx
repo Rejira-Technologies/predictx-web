@@ -6,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ActiveStakes } from "./active-stakes"
 import { PendingResolution } from "./pending-resolution"
 import { CompletedPredictions } from "./completed-predictions"
+import { TransactionHistory } from "./transaction-history"
 import { resetAllData } from "@/lib/mock-data"
 import { RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
 
-const VALID_TABS = ["active", "pending", "completed"] as const
+const VALID_TABS = ["active", "pending", "completed", "transactions"] as const
 type TabValue = (typeof VALID_TABS)[number]
 
 function isValidTab(value: string | null): value is TabValue {
@@ -67,6 +68,12 @@ export function DashboardTabs() {
           >
             Completed
           </TabsTrigger>
+          <TabsTrigger
+            value="transactions"
+            className="data-[state=active]:bg-primary data-[state=active]:text-background font-bold uppercase text-sm tracking-wider px-6 h-full"
+          >
+            Transactions
+          </TabsTrigger>
         </TabsList>
 
         <Button
@@ -90,6 +97,10 @@ export function DashboardTabs() {
 
       <TabsContent value="completed">
         <CompletedPredictions />
+      </TabsContent>
+
+      <TabsContent value="transactions">
+        <TransactionHistory />
       </TabsContent>
     </Tabs>
   )

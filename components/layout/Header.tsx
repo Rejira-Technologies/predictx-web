@@ -8,17 +8,19 @@ import { usePathname } from "next/navigation"
 import { Button } from "../ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog"
 import { t } from "@/lib/i18n"
+import { useProgress } from "@/hooks/use-progress"
 
 const navigation = [
   { name: "Home", key: "nav.home", href: "/" },
   { name: "Dashboard", key: "nav.dashboard", href: "/dashboard" },
-  { name: "Voting", key: "nav.voting", href: "/voting", badge: 3 },
+  { name: "Voting", key: "nav.voting", href: "/voting", showBadge: true },
   { name: "How It Works", key: "nav.howItWorks", href: "/how-it-works" },
 ]
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { activePoolCount } = useProgress()
 
   return (
     <>
@@ -49,9 +51,9 @@ export function Header() {
 
                   {t(item.key)}
 
-                  {item.badge && (
+                  {item.showBadge && activePoolCount > 0 && (
                     <span className="ml-2 text-xs bg-primary text-black px-1 rounded">
-                      {item.badge}
+                      {activePoolCount}
                     </span>
                   )}
 
@@ -103,6 +105,25 @@ export function Header() {
               <X />
             </Button>
           </DialogClose>
+
+          <nav aria-label="Mobile" className="flex flex-col items-center">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                aria-current={pathname === item.href ? "page" : undefined}
+                className="text-2xl py-4 min-h-[64px] flex items-center gap-2"
+              >
+                {t(item.key)}
+                {item.showBadge && activePoolCount > 0 && (
+                  <span className="text-xs bg-primary text-black px-1.5 py-0.5 rounded font-bold">
+                    {activePoolCount}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
 
           <nav aria-label="Mobile" className="flex flex-col items-center">
             {navigation.map((item) => (
