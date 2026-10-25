@@ -36,15 +36,15 @@ export type MatchStatus = "upcoming" | "live" | "completed";
 /**
  * Classification of what a poll is predicting.
  *
- * - `player-event`      – e.g. "Will Salah score a goal?"
- * - `team-event`        – e.g. "Will Chelsea keep a clean sheet?"
- * - `score-prediction`  – e.g. "Will the match end 2-1?"
+ * - `player_event`      – e.g. "Will Salah score a goal?"
+ * - `team_event`        – e.g. "Will Chelsea keep a clean sheet?"
+ * - `score_prediction`  – e.g. "Will the match end 2-1?"
  * - `other`             – catch-all for edge-case questions
  */
 export type PollCategory =
-  | "player-event"
-  | "team-event"
-  | "score-prediction"
+  | "player_event"
+  | "team_event"
+  | "score_prediction"
   | "other";
 
 /**
@@ -75,9 +75,9 @@ export type PollStatus =
  * - `active`              – poll not yet resolved
  * - `won`                 – user predicted correctly; winnings claimable
  * - `lost`                – user predicted incorrectly
- * - `pending-resolution`  – poll is in voting / review phase
+ * - `pending_resolution`  – poll is in voting / review phase
  */
-export type StakeStatus = "active" | "won" | "lost" | "pending-resolution";
+export type StakeStatus = "active" | "won" | "lost" | "pending_resolution";
 
 /**
  * The current resolution pathway for a poll.
@@ -109,7 +109,7 @@ export type TimerStatus = "safe" | "warning" | "urgent" | "critical" | "expired"
  * Only Stellar-native wallets are supported — NOT MetaMask, WalletConnect,
  * or Coinbase Wallet.
  */
-export type WalletProvider = "freighter" | "lobstr" | "xbull";
+export type WalletProvider = "Freighter" | "Lobstr" | "xBull";
 
 /*Core domain Interfaces*/
 
@@ -135,18 +135,14 @@ export interface Team {
 export interface Match {
   /** Unique match identifier. */
   id: string;
-  /** Home team data. */
-  homeTeam: Team;
-  /** Away team data. */
-  awayTeam: Team;
-  /** Match date in ISO 8601 format (YYYY-MM-DD). */
-  date: string;
-  /** Kick-off time in 24-hour format, e.g. "15:00". */
-  time: string;
+  /** Home team name (plain string, e.g. "Chelsea"). */
+  homeTeam: string;
+  /** Away team name (plain string, e.g. "Liverpool"). */
+  awayTeam: string;
+  /** ISO 8601 datetime string for the kick-off time, e.g. "2026-10-17T15:00:00Z". */
+  kickoff: string;
   /** Stadium or venue name. */
   venue: string;
-  /** Competition name, e.g. "Premier League". */
-  league: string;
   /** Current lifecycle status of the match. */
   status: MatchStatus;
   /** Live or final score; absent when the match has not yet started. */
