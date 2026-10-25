@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Wallet, ChevronDown, LogOut, Copy, Globe, ArrowRightLeft } from "lucide-react";
+import { Wallet, ChevronDown, LogOut, Copy, Globe, ArrowRightLeft, RotateCcw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,10 +12,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { WalletConnectModal } from "./wallet-connect-modal";
 import { useWallet } from "@/hooks/use-wallet";
+import { useUIStore } from "@/hooks/use-ui-store";
 import type { StellarNetwork } from "@/hooks/use-wallet";
 import { shortenAddress } from "@/lib/utils";
+import { formatXLM } from "@/lib/calculations";
+import { resetAllData } from "@/lib/mock-data";
+import { CURRENT_NETWORK_CONFIG, STELLAR_NETWORKS } from "@/lib/constants";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -26,31 +28,32 @@ const NETWORK_CONFIG: Record<StellarNetwork, { label: string; color: string }> =
 };
 
 export function WalletButton() {
-  const [showConnectModal, setShowConnectModal] = useState(false);
-
   const { isConnected, address, balance, disconnect, network, switchNetwork } = useWallet();
+  const openWalletConnect = useUIStore((s) => s.openWalletConnect);
 
-  const copy = () => {
-    navigator.clipboard.writeText(address);
-    toast.success("Address copied!");
+  const copy = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      toast.error("Clipboard not available in this context");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(address);
+      toast.success("Address copied!");
+    } catch {
+      toast.error("Failed to copy address");
+    }
   };
 
   if (!isConnected)
     return (
-      <>
-        <Button onClick={() => setShowConnectModal(true)}>
-          <Wallet className="mr-2 h-4 w-4" />
-          Connect Wallet
-        </Button>
-
-        <WalletConnectModal
-          open={showConnectModal}
-          onClose={() => setShowConnectModal(false)}
-        />
-      </>
+      <Button onClick={() => openWalletConnect()}>
+        <Wallet className="mr-2 h-4 w-4" />
+        Connect Wallet
+      </Button>
     );
 
   const currentNet = NETWORK_CONFIG[network];
+  const explorerUrl = (STELLAR_NETWORKS[network] || CURRENT_NETWORK_CONFIG).explorerUrl;
 
   return (
     <DropdownMenu>
@@ -65,7 +68,7 @@ export function WalletButton() {
             </div>
 
             <span className="text-xs text-primary">
-              {balance.toLocaleString()} XLM
+              {formatXLM(balance)}
             </span>
           </div>
 
@@ -73,10 +76,40 @@ export function WalletButton() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={copy}>
+      <DropdownMenuContent align="end" className="w-64">
+        {/* Full Stellar Address (#333) */}
+        <div className="p-2 border-b border-border/40">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+            Stellar Address
+          </div>
+          <button
+            type="button"
+            onClick={copy}
+            className="w-full flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-accent/60 text-left group cursor-pointer transition-colors"
+            title="Click to copy full address"
+          >
+            <span className="font-mono text-[11px] break-all leading-tight text-foreground select-all">
+              {address}
+            </span>
+            <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
+          </button>
+        </div>
+
+        <DropdownMenuItem onClick={copy} className="cursor-pointer">
           <Copy className="mr-2 h-4 w-4" />
           Copy Address
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <a
+            href={`${explorerUrl}/account/${address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View on StellarExpert
+          </a>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
@@ -117,6 +150,24 @@ export function WalletButton() {
         <DropdownMenuItem asChild>
           <Link href="/dashboard?tab=completed">Transaction History</Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={() => {
+            if (
+              typeof window !== "undefined" &&
+              window.confirm("Reset all demo data (polls, stakes, votes, and wallet) to initial state?")
+            ) {
+              resetAllData();
+              window.location.reload();
+            }
+          }}
+          className="text-destructive focus:text-destructive cursor-pointer"
+        >
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Reset Demo Data
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={disconnect}>

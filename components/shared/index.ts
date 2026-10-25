@@ -17,7 +17,6 @@ export { PoolProgressBar } from "./pool-progress-bar";
 export { GamingButton } from "./gaming-button";
 export { GamingInput } from "./gaming-input";
 export { GamingTabs } from "./gaming-tabs";
-export { ToggleSwitch } from "./toggle-switch";
 
 // Badge components
 export { BadgeComponent } from "./badge-component";
@@ -30,5 +29,18 @@ export { AchievementToast } from "./achievement-toast";
 // Icon wrapper
 export { GlowIcon } from "./glow-icon";
 
+// Error boundaries
+export { CardErrorBoundary } from "./card-error-boundary";
+export { ErrorFallback } from "./error-fallback";
+export { ErrorHandlerMount } from "./error-handler-mount";
+
 // Re-export types where needed
 export type { Team } from "./team-badge";
+export * from "./variants";
+
+// State components
+export { LoadingSpinner } from "./loading-spinner";
+export { ErrorState } from "./error-state";
+export { EmptyState } from "./empty-state";
+export { Skeleton } from "@/components/ui/skeleton";
+export { MatchCardSkeleton, PollCardSkeleton } from "@/components/ui/skeleton-card";

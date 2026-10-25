@@ -1,30 +1,95 @@
-# Football prediction market
+# PredictX Web
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+PredictX Web is a Next.js frontend for a Stellar-based football prediction market. Users connect a Freighter wallet, vote on match outcomes, and earn rewards when the community consensus resolves correctly.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/easiffys-projects/v0-football-prediction-market)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/tDTxij2IenJ)
+## Prerequisites
 
-## Overview
+- Node.js >= 18
+- pnpm >= 10.11.0
+- A Freighter wallet extension installed in your browser
+- Stellar testnet credentials (Freighter defaults to testnet)
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+## Getting Started
 
-## Deployment
+```bash
+pnpm install
+pnpm dev
+```
 
-Your project is live at:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**[https://vercel.com/easiffys-projects/v0-football-prediction-market](https://vercel.com/easiffys-projects/v0-football-prediction-market)**
+## Available Scripts
 
-## Build your app
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start the development server |
+| `pnpm build` | Build the production bundle |
+| `pnpm start` | Run the production server |
+| `pnpm lint` | Run ESLint |
+| `pnpm typecheck` | Run TypeScript type checking without emitting |
+| `pnpm test` | Run the unit-test suite once (Vitest) |
+| `pnpm test:watch` | Run Vitest in watch mode (re-runs on file save) |
 
-Continue building your app on:
+## Testing
 
-**[https://v0.app/chat/tDTxij2IenJ](https://v0.app/chat/tDTxij2IenJ)**
+Tests are written with [Vitest](https://vitest.dev/) and live in the `__tests__/` directory at the project root.
 
-## How It Works
+```bash
+# Run all tests once (used in CI)
+pnpm test
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+# Run in interactive watch mode during development
+pnpm test:watch
+```
+
+The test environment is `jsdom` (configured in `vitest.config.ts`), so DOM APIs are available in every suite. Path alias `@/` resolves to the project root, matching the Next.js config.
+
+**Adding new tests:** create a `__tests__/<feature>.test.ts` file. Import from `vitest` (`describe`, `it`, `expect`, `vi`) — no additional setup is needed. Follow the pattern in the existing suites:
+
+- `__tests__/poll-question-constants.test.ts` — constant / boundary value tests
+- `__tests__/upcoming-matches.test.ts` — Zustand store selector tests
+- `__tests__/analytics.test.ts` — module mocking with `vi.mock` / `vi.hoisted`
+
+## Environment Variables
+
+Create a `.env.local` file in the project root with the following variables:
+
+```env
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET=CABC...XYZ
+NEXT_PUBLIC_CONTRACT_POLL=CDEF...UVW
+NEXT_PUBLIC_USE_MOCK_DATA=true
+```
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_STELLAR_NETWORK` | Stellar network to target (`testnet` or `mainnet`) |
+| `NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET` | Soroban prediction market contract ID |
+| `NEXT_PUBLIC_CONTRACT_POLL` | Soroban poll contract ID |
+| `NEXT_PUBLIC_USE_MOCK_DATA` | When `true`, use local mock data instead of on-chain state |
+
+## Freighter Wallet Setup
+
+1. Install the [Freighter](https://freighter.app) browser extension.
+2. Create or import a wallet.
+3. Switch Freighter to **Testnet** (Settings > Network > Testnet).
+4. Fund your testnet account from the [Stellar Friendbot](https://laboratory.stellar.org/#friendbot?testnet=true).
+5. Refresh the app and click **Connect Wallet**.
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- Tailwind CSS v4
+- Zustand
+- @stellar/freighter-api
+- Sonner (toasts)
+- Framer Motion
+
+## Product Requirements
+
+See [`predictx-web-prd-web.md`](./predictx-web-prd-web.md) for the full product requirements document.
+
+## License
+
+Private — Rejira Technologies

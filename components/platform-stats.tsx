@@ -1,5 +1,3 @@
-"use client";
-
 import { TrendingUp, Users, Lock, Trophy } from "lucide-react";
 
 const stats = [

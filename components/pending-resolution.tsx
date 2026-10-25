@@ -1,6 +1,4 @@
-"use client"
-
-import { Clock, Users, AlertCircle } from "lucide-react"
+import { Clock, Users, AlertCircle } from "lucide-react";
 
 const pendingPolls = [
   {
@@ -26,16 +24,6 @@ const pendingPolls = [
 ]
 
 export function PendingResolution() {
-  if (pendingPolls.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="text-6xl mb-4 opacity-20">⏳</div>
-        <h3 className="font-display text-xl font-black uppercase text-muted mb-2">No Pending Resolutions</h3>
-        <p className="text-muted-foreground">Your completed matches will appear here</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4">
       {pendingPolls.map((poll) => (

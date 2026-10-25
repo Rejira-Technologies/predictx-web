@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface Tab {
@@ -23,6 +23,7 @@ export function GamingTabs({
   onChange,
   className,
 }: GamingTabsProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -37,8 +38,30 @@ export function GamingTabs({
     }
   }, [activeTab]);
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex = -1;
+    if (e.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (e.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (e.key === "Home") {
+      nextIndex = 0;
+    } else if (e.key === "End") {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex !== -1) {
+      e.preventDefault();
+      const nextKey = tabs[nextIndex].key;
+      onChange(nextKey);
+      tabRefs.current.get(nextKey)?.focus();
+    }
+  };
+
   return (
     <div
+      role="tablist"
+      aria-orientation="horizontal"
       className={cn(
         "relative flex items-center gap-1 p-1",
         "bg-[#1a1f3a]/50 rounded-lg",
@@ -57,12 +80,12 @@ export function GamingTabs({
           width: indicatorStyle.width,
           boxShadow: "0 0 10px rgba(0, 217, 255, 0.8), 0 0 20px rgba(0, 217, 255, 0.4)",
         }}
-        layoutId="gaming-tab-indicator"
-        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+        layoutId={shouldReduceMotion ? undefined : "gaming-tab-indicator"}
+        transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 35 }}
       />
 
       {/* Preview glow indicator for hovered tab */}
-      {hoveredTab && hoveredTab !== activeTab && (
+      {hoveredTab && hoveredTab !== activeTab && !shouldReduceMotion && (
         <motion.div
           className="absolute bottom-1 h-0.5 bg-[var(--accent-cyan)]/30 rounded-full"
           initial={{ opacity: 0 }}
@@ -76,15 +99,19 @@ export function GamingTabs({
       )}
 
       {/* Tab buttons */}
-      {tabs.map((tab) => (
+      {tabs.map((tab, idx) => (
         <button
           key={tab.key}
+          role="tab"
+          aria-selected={activeTab === tab.key}
+          tabIndex={activeTab === tab.key ? 0 : -1}
           ref={(el) => {
             if (el) {
               tabRefs.current.set(tab.key, el);
             }
           }}
           onClick={() => onChange(tab.key)}
+          onKeyDown={(e) => handleKeyDown(e, idx)}
           onMouseEnter={() => setHoveredTab(tab.key)}
           onMouseLeave={() => setHoveredTab(null)}
           className={cn(

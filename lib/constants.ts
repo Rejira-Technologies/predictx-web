@@ -62,55 +62,70 @@ export const ADMIN_REVIEW_THRESHOLD = 0.6; // 60% consensus
  */
 export const DISPUTE_WINDOW_HOURS = 24;
 
-/**
- * Hours that community voting remains open after a poll is locked.
- * After this window, vote tallies determine the resolution pathway.
- * Soroban: mirrors `voting_window_seconds` (7200) in the contract.
- */
-export const VOTING_WINDOW_HOURS = 2;
 
-/* Staking*/
-/**
- * Preset USD stake amounts surfaced as quick-select buttons in the staking UI.
- * `as const` infers the literal tuple type `[50, 100, 500]` so mapped UI
- * components can iterate without widening to `number[]`.
- */
-export const QUICK_STAKE_AMOUNTS = [50, 100, 500] as const; // USD
+/* Stellar Network*/
 
-/**
- * Minimum USD value of any single stake.
- * Enforced on the frontend for UX; also enforced by the Soroban contract
- * via `MIN_STAKE_AMOUNT_STROOPS` to prevent dust attacks.
- * Soroban: cross-reference with `min_stake_amount` in the contract.
- */
-export const MIN_STAKE_AMOUNT = 1; // USD
+export type StellarNetwork = "testnet" | "mainnet";
 
-/**
- * Minimum stake amount in stroops — the authoritative on-chain minimum.
- * Derived from MIN_STAKE_AMOUNT using the mock XLM_USD_RATE; replace with
- * a dynamic calculation against a live oracle before mainnet deployment.
- * Soroban: must match `min_stake_amount` (i128) in the contract exactly.
- */
-export const MIN_STAKE_AMOUNT_STROOPS = BigInt(
-  Math.round((MIN_STAKE_AMOUNT / 0.12) * 10_000_000)
-); // stroops — recalculate when XLM_USD_RATE changes
+export interface NetworkConfig {
+  network: StellarNetwork;
+  horizonUrl: string;
+  rpcUrl: string;
+  networkPassphrase: string;
+  explorerUrl: string;
+  contractId: string;
+}
 
-/**
- * Maximum stake expressed as a multiplier of the user's available balance.
- * A value of 1 means users may stake at most 100% of their balance in one tx.
- * Prevents accidental over-commitment; adjust if credit / margin features are added.
- */
-export const MAX_STAKE_MULTIPLIER = 1; // 1× balance (100%)
-
-
-
+export const STELLAR_NETWORKS: Record<StellarNetwork, NetworkConfig> = {
+  testnet: {
+    network: "testnet",
+    horizonUrl:
+      process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL ||
+      "https://horizon-testnet.stellar.org",
+    rpcUrl:
+      process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
+      "https://soroban-testnet.stellar.org",
+    networkPassphrase:
+      process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ||
+      "Test SDF Network ; September 2015",
+    explorerUrl:
+      process.env.NEXT_PUBLIC_STELLAR_EXPLORER_URL ||
+      "https://stellar.expert/explorer/testnet",
+    contractId:
+      process.env.NEXT_PUBLIC_CONTRACT_ID ||
+      "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+  },
+  mainnet: {
+    network: "mainnet",
+    horizonUrl:
+      process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL ||
+      "https://horizon.stellar.org",
+    rpcUrl:
+      process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
+      "https://soroban-rpc.mainnet.stellar.org",
+    networkPassphrase:
+      process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ||
+      "Public Global Stellar Network ; July 2015",
+    explorerUrl:
+      process.env.NEXT_PUBLIC_STELLAR_EXPLORER_URL ||
+      "https://stellar.expert/explorer/public",
+    contractId: process.env.NEXT_PUBLIC_CONTRACT_ID || "",
+  },
+};
 /**
  * Stellar network used for all blockchain interactions.
- * `as const` narrows the type to the literal `"testnet"` so it can be passed
- * to Stellar SDK network config objects without a type cast.
- * Switch to `"mainnet"` for production deployments.
+ * Driven by NEXT_PUBLIC_STELLAR_NETWORK env variable, defaulting to "testnet".
  */
-export const STELLAR_NETWORK = "testnet" as const;
+export const STELLAR_NETWORK: StellarNetwork =
+  (process.env.NEXT_PUBLIC_STELLAR_NETWORK as StellarNetwork) === "mainnet"
+    ? "mainnet"
+    : "testnet";
+
+/**
+ * Active network configuration derived from STELLAR_NETWORK and environment variables.
+ */
+export const CURRENT_NETWORK_CONFIG: NetworkConfig =
+  STELLAR_NETWORKS[STELLAR_NETWORK];
 
 /**
  * Stellar base fee in stroops per operation (1 XLM = 10,000,000 stroops).
@@ -136,6 +151,41 @@ export const XLM_USD_RATE = 0.12; // 1 XLM ≈ $0.12 USD (mock — not productio
 export const MOCK_CONTRACT_ID =
   "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
 
+/* Staking*/
+/**
+ * Preset USD stake amounts surfaced as quick-select buttons in the staking UI.
+ * `as const` infers the literal tuple type `[50, 100, 500]` so mapped UI
+ * components can iterate without widening to `number[]`.
+ */
+export const QUICK_STAKE_AMOUNTS = [50, 100, 500] as const; // USD
+
+/**
+ * Minimum USD value of any single stake.
+ * Enforced on the frontend for UX; also enforced by the Soroban contract
+ * via `MIN_STAKE_AMOUNT_STROOPS` to prevent dust attacks.
+ * Soroban: cross-reference with `min_stake_amount` in the contract.
+ */
+export const MIN_STAKE_AMOUNT = 1; // USD
+
+/**
+ * Minimum stake amount in stroops — the authoritative on-chain minimum.
+ * Derived automatically from MIN_STAKE_AMOUNT and XLM_USD_RATE so it stays
+ * consistent when the rate constant is updated.
+ * Formula: ceil(MIN_STAKE_AMOUNT_USD / XLM_USD_RATE) × 10_000_000 stroops/XLM
+ * Soroban: must match `min_stake_amount` (i128) in the contract exactly.
+ * Cross-check against the contract source when deploying to mainnet (#63).
+ */
+export const MIN_STAKE_AMOUNT_STROOPS = BigInt(
+  Math.ceil((MIN_STAKE_AMOUNT / XLM_USD_RATE) * 10_000_000),
+); // stroops — auto-derived from XLM_USD_RATE above
+
+/**
+ * Maximum stake expressed as a multiplier of the user's available balance.
+ * A value of 1 means users may stake at most 100% of their balance in one tx.
+ * Prevents accidental over-commitment; adjust if credit / margin features are added.
+ */
+export const MAX_STAKE_MULTIPLIER = 1; // 1× balance (100%)
+
 /* UI / Validation*/
 /**
  * Maximum character length enforced on poll question text.
@@ -149,3 +199,13 @@ export const POLL_QUESTION_MAX_LENGTH = 120; // characters
  * Prevents trivially short or ambiguous questions from being created.
  */
 export const POLL_QUESTION_MIN_LENGTH = 10; // characters
+
+/**
+ * XLM amount charged to the creator when a new poll is submitted on-chain.
+ * Used by both the UI copy and the sendTransaction call so the advertised fee
+ * always matches the amount actually debited from the creator's wallet.
+ * Soroban: mirrors `poll_creation_fee_stroops` (10000 stroops = 0.001 XLM)
+ * in the contract.
+ * @example sendTransaction(CREATE_POLL_FEE_XLM * XLM_USD_RATE, `Create poll: ${question}`)
+ */
+export const CREATE_POLL_FEE_XLM = 0.001; // XLM

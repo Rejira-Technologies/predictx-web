@@ -28,24 +28,48 @@ export function VoteTally({
     const noPct = hasVotes ? (noVotes / totalVotes) * 100 : 0;
     const unclearPct = hasVotes ? (unclearVotes / totalVotes) * 100 : 0;
 
-    // Consensus Logic
-    // The leading side determines the consensus level
-    const maxMajority = Math.max(yesPct, noPct, unclearPct);
+    // ── Consensus logic ────────────────────────────────────────────────────────
+    // Resolution thresholds operate on valid (yes/no) votes only.
+    // Unclear votes are NOT a resolvable outcome and must never surface as
+    // "Strong consensus". When unclear votes dominate, we show "Unresolved".
+    const validVotes = yesVotes + noVotes;
+    const hasValidVotes = validVotes > 0;
+
+    // Share of valid (yes/no) votes that the leading side holds
+    const yesPctValid = hasValidVotes ? (yesVotes / validVotes) * 100 : 0;
+    const noPctValid = hasValidVotes ? (noVotes / validVotes) * 100 : 0;
+    const leadingValidPct = Math.max(yesPctValid, noPctValid) / 100; // decimal for threshold compare
+
+    // Whether unclear votes are the plurality (more than yes OR no individually)
+    const unclearIsMajority = hasVotes && unclearVotes > yesVotes && unclearVotes > noVotes;
 
     let consensusColor = "text-muted-foreground";
     let consensusText = "Waiting for votes...";
     let ConsensusIcon = null;
 
     if (hasVotes) {
-        if (maxMajority >= AUTO_APPROVE_THRESHOLD * 100) {
+if (unclearIsMajority) {
+            // Unclear votes dominate — this is an unresolved / disputed outcome
+            consensusColor = "text-danger text-glow-red";
+            consensusText = "Unresolved — dispute likely";
+            ConsensusIcon = <ShieldAlert className="w-4 h-4" />;
+        } else if (!hasValidVotes) {
+            // Edge case: only unclear votes exist
+            consensusColor = "text-danger text-glow-red";
+            consensusText = "Unresolved — no valid votes";
+            ConsensusIcon = <ShieldAlert className="w-4 h-4" />;
+        } else if (leadingValidPct >= AUTO_APPROVE_THRESHOLD) {
+            // ≥ 85% of valid votes agree → auto-approved
             consensusColor = "text-success text-glow-green";
             consensusText = "Strong consensus";
             ConsensusIcon = <CheckCircle2 className="w-4 h-4" />;
-        } else if (maxMajority >= ADMIN_REVIEW_THRESHOLD * 100) {
+        } else if (leadingValidPct >= ADMIN_REVIEW_THRESHOLD) {
+            // ≥ 60% of valid votes agree → admin review
             consensusColor = "text-gold text-glow-gold";
             consensusText = "Moderate — admin review likely";
             ConsensusIcon = <AlertTriangle className="w-4 h-4" />;
         } else {
+            // Below 60% → multi-sig review required
             consensusColor = "text-danger text-glow-red";
             consensusText = "Split — multi-sig review required";
             ConsensusIcon = <ShieldAlert className="w-4 h-4" />;

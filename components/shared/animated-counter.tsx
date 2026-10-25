@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface AnimatedCounterProps {
@@ -38,13 +38,22 @@ export function AnimatedCounter({
   format = "number",
   className,
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const [prevValue, setPrevValue] = useState(value);
+  const shouldReduceMotion = useReducedMotion();
+  const [displayValue, setDisplayValue] = useState(0);
+  const [prevValue, setPrevValue] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
   const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      setDisplayValue(value);
+      setPrevValue(value);
+      setIsAnimating(false);
+      setShouldShake(false);
+      return;
+    }
+
     if (value !== prevValue) {
       const delta = Math.abs(value - prevValue);
       const percentageChange = prevValue !== 0 ? delta / prevValue : 0;
@@ -93,14 +102,17 @@ export function AnimatedCounter({
 
   return (
     <motion.div
+      role="status"
+      aria-live="polite"
+      aria-label={`${prefix}${formattedValue}${suffix}`}
       className={cn(
         "font-mono inline-flex items-baseline",
-        isAnimating && "glow-text-cyan",
-        shouldShake && "animate-shake",
+        isAnimating && !shouldReduceMotion && "glow-text-cyan",
+        shouldShake && !shouldReduceMotion && "animate-shake",
         className
       )}
       animate={
-        isAnimating
+        isAnimating && !shouldReduceMotion
           ? {
               textShadow: [
                 "0 0 10px rgba(0, 217, 255, 0.3)",
@@ -110,26 +122,30 @@ export function AnimatedCounter({
             }
           : {}
       }
-      transition={{ duration: 0.5 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
     >
       {prefix && (
-        <span className="text-[var(--accent-cyan)] mr-1">{prefix}</span>
+        <span className="text-[var(--accent-cyan)] mr-1" aria-hidden="true">{prefix}</span>
       )}
 
-      <span className="relative overflow-hidden h-[1.2em] inline-flex items-center">
+      <span className="relative overflow-hidden h-[1.2em] inline-flex items-center" aria-hidden="true">
         <AnimatePresence mode="popLayout">
           {digits.map((digit, index) => (
             <motion.span
               key={`${index}-${digit}`}
-              initial={{ y: -20, opacity: 0 }}
+              initial={shouldReduceMotion ? false : { y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-                delay: index * 0.02,
-              }}
+              exit={shouldReduceMotion ? undefined : { y: 20, opacity: 0 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : {
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                      delay: index * 0.02,
+                    }
+              }
               className={cn(
                 "inline-block tabular-nums",
                 digit === "," || digit === "."

@@ -4,34 +4,36 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ExternalLink, Info, PlayCircle, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MATCH_EVIDENCE } from "@/lib/mock-data";
 
 interface EvidenceSectionProps {
     matchId: string;
     className?: string;
 }
 
-// Mock evidence data
-const getMockEvidence = (_matchId: string) => {
-    return [
-        { time: "14'", event: "Yellow Card - Semedo (WOL)" },
-        { time: "23'", event: "⚽ Goal! Calvert-Lewin (EVE) - Assist: McNeil" },
-        { time: "45+2'", event: "Half Time: Everton 1 - 0 Wolves" },
-        { time: "55'", event: "⚽ Goal! Hwang Hee-chan (WOL)" },
-        { time: "78'", event: "⚽ Goal! Doucoure (EVE)" },
-        { time: "89'", event: "VAR Check: Potential Penalty (WOL) - No Penalty Given" },
-        { time: "90+5'", event: "Full Time" },
-    ];
+// Get evidence for a specific match
+const getMockEvidence = (matchId: string) => {
+    const evidence = MATCH_EVIDENCE[matchId];
+    if (!evidence || !evidence.timeline || evidence.timeline.length === 0) {
+        return null;
+    }
+    return evidence;
 };
 
 export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const events = getMockEvidence(matchId);
+    const evidenceData = getMockEvidence(matchId);
+    const events = evidenceData?.timeline || [];
+
+    const hasEvidence = events.length > 0;
 
     return (
         <div className={cn("bg-background/40 rounded-lg border border-border/50 overflow-hidden", className)}>
             <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
+                aria-controls="evidence-section-panel"
                 className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none"
             >
                 <div className="flex items-center gap-3">
@@ -42,8 +44,26 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                         Match Evidence & Logs
                     </span>
                     <div className="group relative ml-2">
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <span
+                            tabIndex={0}
+                            role="button"
+                            aria-describedby="evidence-tooltip"
+                            aria-label="Evidence instructions"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.stopPropagation();
+                                }
+                            }}
+                            className="inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
+                        </span>
+                        <div
+                            id="evidence-tooltip"
+                            role="tooltip"
+                            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg"
+                        >
                             Review the evidence before voting to earn maximum rewards
                         </div>
                     </div>
@@ -56,6 +76,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
             <AnimatePresence initial={false}>
                 {isExpanded && (
                     <motion.div
+                        id="evidence-section-panel"
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -63,40 +84,59 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                     >
                         <div className="p-4 border-t border-border/50 space-y-5">
 
-                            {/* External Links */}
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <a
-                                    href="#"
-                                    onClick={(e) => e.preventDefault()}
-                                    className="flex-1 flex items-center gap-2 p-3 bg-background rounded border border-border hover:border-primary/50 transition-colors group"
-                                >
-                                    <PlayCircle className="w-5 h-5 text-primary group-hover:text-glow-cyan" />
-                                    <span className="text-sm font-medium">View Match Highlights</span>
-                                </a>
-                                <a
-                                    href="#"
-                                    onClick={(e) => e.preventDefault()}
-                                    className="flex-1 flex items-center gap-2 p-3 bg-background rounded border border-border hover:border-primary/50 transition-colors group"
-                                >
-                                    <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                    <span className="text-sm font-medium">Official Premier League Stats</span>
-                                </a>
-                            </div>
-
-                            {/* Event Timeline */}
-                            <div>
-                                <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-bold">
-                                    Key Event Timeline
-                                </h4>
-                                <div className="space-y-3 bg-background/50 rounded p-4 font-mono text-sm">
-                                    {events.map((evt, i) => (
-                                        <div key={i} className="flex gap-4">
-                                            <span className="text-primary w-12 shrink-0">{evt.time}</span>
-                                            <span className="text-foreground/90">{evt.event}</span>
-                                        </div>
-                                    ))}
+                            {!hasEvidence && (
+                                <div className="text-center py-6 px-4">
+                                    <p className="text-muted-foreground text-sm font-medium">
+                                        Evidence pending review
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        This poll does not have evidence data yet. Check back after the match concludes.
+                                    </p>
                                 </div>
-                            </div>
+                            )}
+
+                            {hasEvidence && (
+                                <>
+                                    {/* External Links */}
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <a
+                                            href={evidenceData?.highlightsUrl || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center gap-2 p-3 bg-background rounded border border-border hover:border-primary/50 transition-colors group"
+                                        >
+                                            <PlayCircle className="w-5 h-5 text-primary group-hover:text-glow-cyan" />
+                                            <span className="text-sm font-medium">View Match Highlights</span>
+                                            <ExternalLink className="w-3 h-3 ml-auto opacity-50 group-hover:opacity-100" />
+                                        </a>
+                                        <a
+                                            href={evidenceData?.statsUrl || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center gap-2 p-3 bg-background rounded border border-border hover:border-primary/50 transition-colors group"
+                                        >
+                                            <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                            <span className="text-sm font-medium">Official Premier League Stats</span>
+                                            <ExternalLink className="w-3 h-3 ml-auto opacity-50 group-hover:opacity-100" />
+                                        </a>
+                                    </div>
+
+                                    {/* Event Timeline */}
+                                    <div>
+                                        <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-bold">
+                                            Key Event Timeline
+                                        </h4>
+                                        <div className="space-y-3 bg-background/50 rounded p-4 font-mono text-sm">
+                                            {events.map((evt, i) => (
+                                                <div key={i} className="flex gap-4">
+                                                    <span className="text-primary w-12 shrink-0">{evt.time}</span>
+                                                    <span className="text-foreground/90">{evt.event}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                         </div>
                     </motion.div>

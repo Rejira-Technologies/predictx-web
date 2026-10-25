@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useMemo, useReducer, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   Users,
@@ -13,19 +13,23 @@ import {
   ExternalLink,
   AlertTriangle,
   Zap,
+  Lock,
   Shield,
   ChevronRight,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
+import { cn, categoryLabel } from "@/lib/utils";
 import {
   calculatePotentialWinnings,
   calculatePoolPercentages,
   formatCurrency,
   formatAddress,
   formatXLM,
+  getLockTargetISO,
+  isPollLocked as computePollLocked,
+  msUntilLock,
 } from "@/lib/calculations";
 import {
   PLATFORM_FEE_PERCENTAGE,
@@ -35,8 +39,10 @@ import {
   XLM_USD_RATE,
   MOCK_CONTRACT_ID,
   STELLAR_BASE_FEE,
+  STELLAR_NETWORKS,
 } from "@/lib/constants";
 import type { Poll, Match, Stake } from "@/lib/mock-data";
+import { lockTimeLabel } from "@/lib/mock-data";
 
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
 import { useStaking } from "@/hooks/use-staking";
@@ -54,6 +60,27 @@ import {
 // ── Types ───────────────────────────────────────────────────────────────────
 
 type TxStep = "idle" | "confirm" | "processing" | "success" | "failure";
+
+/**
+ * Render a remaining duration compactly: `2d 4h`, `3h 12m`, or `45s`.
+ *
+ * Deliberately local rather than reusing `CompactCountdown`, which renders an
+ * SVG-free chip inside `PollCard` and is not exported. Both read from the same
+ * `msUntilLock` helper, so the number shown here and the number the card locks
+ * on cannot disagree.
+ */
+function formatCountdown(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "0s";
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
 
 interface StakeModalProps {
   poll: Poll;
@@ -78,13 +105,25 @@ function WalletConfirmPopup({
   amount,
   onConfirm,
   onReject,
+  confirming = false,
 }: {
   from: string;
   amount: number;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onReject: () => void;
+  /**
+   * True once the confirmation has been submitted. Drives the button's
+   * `loading` state so `GamingButton`'s own guard
+   * (`if (disabled || loading) return`) stops the second click.
+   */
+  confirming?: boolean;
 }) {
   const amountXLM = amount / XLM_USD_RATE;
+  // Contract for the wallet's *active* network — hardcoding the testnet
+  // address mislabels the destination after a mainnet switch.
+  const { network } = useWallet();
+  const activeContractId =
+    STELLAR_NETWORKS[network]?.contractId || MOCK_CONTRACT_ID;
 
   return (
     <motion.div
@@ -117,7 +156,7 @@ function WalletConfirmPopup({
               <div className="flex justify-between">
                 <span className="text-[var(--muted-foreground)]">To</span>
                 <span className="text-foreground">
-                  {formatAddress(MOCK_CONTRACT_ID)}
+                  {formatAddress(activeContractId)}
                 </span>
               </div>
               <div className="h-px bg-[var(--border)]" />
@@ -137,12 +176,18 @@ function WalletConfirmPopup({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <GamingButton variant="danger" size="md" onClick={onReject}>
+            <div className="grid grid-cols-2 gap-2">
+              <GamingButton variant="danger" size="md" onClick={onReject} disabled={confirming}>
                 Reject
               </GamingButton>
-              <GamingButton variant="success" size="md" onClick={onConfirm}>
-                Confirm
+              <GamingButton
+                variant="success"
+                size="md"
+                onClick={onConfirm}
+                loading={confirming}
+                loadingLabel="Staking…"
+              >
+                {confirming ? "Staking…" : "Confirm"}
               </GamingButton>
             </div>
           </div>
@@ -154,9 +199,13 @@ function WalletConfirmPopup({
 
 /** Processing state — rotating hexagon with energy bar */
 function ProcessingOverlay() {
+  const shouldReduceMotion = useReducedMotion();
   return (
+return (
     <motion.div
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm gap-6"
+      role="alert"
+      aria-live="polite"
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -164,8 +213,8 @@ function ProcessingOverlay() {
       {/* Rotating hexagon */}
       <motion.div
         className="relative w-20 h-20"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        animate={shouldReduceMotion ? { rotate: 0 } : { rotate: 360 }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: "linear" }}
       >
         <div
           className="absolute inset-0"
@@ -178,23 +227,24 @@ function ProcessingOverlay() {
           }}
         />
         {/* Particle trail dots */}
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full bg-[var(--accent-cyan)]"
-            style={{ top: "50%", left: "50%" }}
-            animate={{
-              x: [0, 30 * Math.cos((i * Math.PI * 2) / 3), 0],
-              y: [0, 30 * Math.sin((i * Math.PI * 2) / 3), 0],
-              opacity: [1, 0.3, 1],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              delay: i * 0.3,
-            }}
-          />
-        ))}
+        {!shouldReduceMotion &&
+          [0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full bg-[var(--accent-cyan)]"
+              style={{ top: "50%", left: "50%" }}
+              animate={{
+                x: [0, 30 * Math.cos((i * Math.PI * 2) / 3), 0],
+                y: [0, 30 * Math.sin((i * Math.PI * 2) / 3), 0],
+                opacity: [1, 0.3, 1],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                delay: i * 0.3,
+              }}
+            />
+          ))}
       </motion.div>
 
       {/* Progress bar */}
@@ -233,11 +283,23 @@ function SuccessOverlay({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  // Explorer base for the wallet's *active* network — a hardcoded testnet
+  // path makes successful mainnet transactions unverifiable.
+  const { network } = useWallet();
+  const activeExplorerUrl = STELLAR_NETWORKS[network]?.explorerUrl || "";
 
-  const copyHash = () => {
-    navigator.clipboard.writeText(receipt.hash);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyHash = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      toast.error("Clipboard not available in this context");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(receipt.hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy transaction hash");
+    }
   };
 
   // Auto-close after 5s
@@ -248,6 +310,8 @@ function SuccessOverlay({
 
   return (
     <motion.div
+      role="alert"
+      aria-live="polite"
       className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -347,7 +411,7 @@ function SuccessOverlay({
           className="mt-4 inline-flex items-center gap-1 text-xs text-[var(--accent-cyan)] hover:underline"
           onClick={() =>
             window.open(
-              `https://stellar.expert/explorer/testnet/tx/${receipt.hash}`,
+              `${activeExplorerUrl}/tx/${receipt.hash}`,
               "_blank",
             )
           }
@@ -420,6 +484,7 @@ export function StakeModal({
   open,
   onClose,
 }: StakeModalProps) {
+  const shouldReduceMotion = useReducedMotion();
   // ── State ──────────────────────────────────────────────────────────────
 
   const [side, setSide] = useState<"yes" | "no">(initialSide);
@@ -429,6 +494,28 @@ export function StakeModal({
   const [errorMsg, setErrorMsg] = useState("");
   const [showWalletModal, setShowWalletModal] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  /**
+   * In-flight guard for the wallet-confirm step.
+   *
+   * The confirm popup lives inside `<AnimatePresence mode="wait">`, so it stays
+   * mounted for the whole exit transition — long enough for a second click to
+   * land while `sendTransaction` is still awaiting its 1-2s latency. Without
+   * this, two clicks call `placeStake` twice: two balance debits, two
+   * `updatePollPool` additions, two `Stake` rows from one confirmation.
+   *
+   * A ref rather than state on purpose: the button is also given `loading`,
+   * but that state only lands on the next render, whereas two clicks within
+   * the same frame would both observe `isSubmitting === false`. The ref is
+   * synchronous, so the second call is rejected immediately.
+   *
+   * `confirming` state exists alongside it purely for rendering. The ref
+   * guards, the state paints; they are set in the same two places and are not
+   * redundant, because only one of them is readable before the next render.
+   */
+  const isSubmittingRef = useRef(false);
+  const [confirming, setConfirming] = useState(false);
 
   // ── Hooks ──────────────────────────────────────────────────────────────
 
@@ -439,6 +526,17 @@ export function StakeModal({
 
   const stakeAmount = Number.parseFloat(amount) || 0;
   const balanceUSD = balance * XLM_USD_RATE;
+
+  /**
+   * Maximum allowed stake in USD.
+   *
+   * Derived from the user's available balance and MAX_STAKE_MULTIPLIER (1×).
+   * A multiplier of 1 means users may stake at most 100 % of their balance
+   * in a single transaction, clamped to the actual balance so it cannot
+   * exceed what they hold. Adjust MAX_STAKE_MULTIPLIER in lib/constants.ts
+   * if the product ever introduces credit / margin features.
+   */
+  const maxStakeUSD = Math.min(balanceUSD * MAX_STAKE_MULTIPLIER, balanceUSD);
 
   const winnings = useMemo(
     () =>
@@ -465,25 +563,67 @@ export function StakeModal({
     (side === "yes" && poolPct.yes >= 50) ||
     (side === "no" && poolPct.no >= 50);
 
-  const isPollLocked = poll.status !== "active";
+  /**
+   * The match this poll belongs to, resolved from `matchId`.
+   *
+   * The modal receives `matchId` and `matchName` as plain strings rather than
+   * the match object, so the kickoff needed for a clock-based lock check has to
+   * be looked up. Read imperatively rather than through a hook subscription:
+   * the match's kickoff never changes at runtime, and subscribing would
+   * re-render the whole modal on every unrelated mock-data write.
+   */
+  const match = useMockData.getState().getMatch(matchId);
+
+  /**
+   * Lock state, shared with `PollCard` via `computePollLocked`.
+   *
+   * Previously this was `poll.status !== "active"` alone. Because nothing ever
+   * transitions `poll.status` when a lock time passes, a poll whose countdown
+   * had expired could still be confirmed from an already-open modal — the
+   * sticky footer checked `canSubmit`, which consulted this status-only value.
+   * Now it also asks the clock.
+   */
+  const isPollLocked = computePollLocked(poll, match);
+
+  /**
+   * Ticks once a second so an open modal locks itself when the deadline passes
+   * while the user is filling it in, instead of staying submittable until they
+   * happen to re-render for another reason.
+   *
+   * The interval is started only while the modal is open, so it does not burn
+   * CPU (or trigger re-renders on hidden modals mounted by every PollCard).
+   */
+  const [, forceTick] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    if (!open) return;
+    const id = setInterval(forceTick, 1_000);
+    return () => clearInterval(id);
+  }, [open]);
+
+  /** Live countdown target, so the modal can show how long is left. */
+  const lockTargetISO = match ? getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO) : null;
+  const msRemaining = match ? msUntilLock(poll, match) : 0;
 
   // ── Validation ─────────────────────────────────────────────────────────
 
   const validationError = useMemo(() => {
     if (stakeAmount <= 0) return null; // no error when empty
     if (stakeAmount < MIN_STAKE_AMOUNT) return `Minimum stake is ${formatCurrency(MIN_STAKE_AMOUNT)}`;
+    if (stakeAmount > maxStakeUSD)
+      return `Maximum stake is ${formatCurrency(maxStakeUSD)} (${MAX_STAKE_MULTIPLIER * 100}% of balance)`;
     if (stakeAmount > balanceUSD) return "Insufficient balance";
     return null;
-  }, [stakeAmount, balanceUSD]);
+  }, [stakeAmount, balanceUSD, maxStakeUSD]);
 
   const balanceWarning =
-    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && !validationError
+    stakeAmount > 0 && stakeAmount > balanceUSD * 0.5 && stakeAmount <= maxStakeUSD && !validationError
       ? "This is more than half your balance"
       : null;
 
   const canSubmit =
     isConnected &&
     stakeAmount >= MIN_STAKE_AMOUNT &&
+    stakeAmount <= maxStakeUSD &&
     stakeAmount <= balanceUSD &&
     !isPollLocked &&
     txStep === "idle";
@@ -497,8 +637,23 @@ export function StakeModal({
       setTxStep("idle");
       setReceipt(null);
       setErrorMsg("");
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     }
   }, [open, initialSide]);
+
+  // ── Restore focus on close ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!open && previouslyFocusedRef.current) {
+      const element = previouslyFocusedRef.current;
+      previouslyFocusedRef.current = null;
+      const tick = () => {
+        if (element && element instanceof HTMLElement && document.body.contains(element)) {
+          element.focus({ preventScroll: true });
+        }
+      };
+      requestAnimationFrame(tick);
+    }
+  }, [open]);
 
   // ── Keyboard handlers ──────────────────────────────────────────────────
 
@@ -527,6 +682,13 @@ export function StakeModal({
   }, [canSubmit]);
 
   const handleWalletConfirm = useCallback(async () => {
+    // Synchronous re-entrancy check. A state-based `disabled` prop cannot close
+    // this window on its own, because React has not re-rendered between two
+    // clicks in the same tick.
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setConfirming(true);
+
     setTxStep("processing");
 
     try {
@@ -549,6 +711,12 @@ export function StakeModal({
       setErrorMsg(err?.message ?? "Unknown error");
       setTxStep("failure");
       toast.error("Transaction failed", { description: err?.message });
+    } finally {
+      // Released on both paths: a failure puts the modal in the `failure` step
+      // where Retry is offered, and that retry must not be swallowed by a
+      // latch left set from the first attempt.
+      isSubmittingRef.current = false;
+      setConfirming(false);
     }
   }, [placeStake, poll, matchId, matchName, side, stakeAmount]);
 
@@ -601,6 +769,8 @@ export function StakeModal({
         <>
           {/* Overlay */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             style={{
               backgroundImage:
@@ -658,11 +828,13 @@ export function StakeModal({
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--accent-cyan)]/40 pointer-events-none z-30" />
 
             {/* Scanning line accent */}
-            <motion.div
-              className="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/30 to-transparent pointer-events-none z-30"
-              animate={{ top: ["0%", "100%"] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-            />
+            {!shouldReduceMotion && (
+              <motion.div
+                className="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/30 to-transparent pointer-events-none z-30"
+                animate={{ top: ["0%", "100%"] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              />
+            )}
 
             {/* ─── Content ─── */}
             <div className="relative z-20 flex flex-col h-full">
@@ -679,7 +851,7 @@ export function StakeModal({
                 {/* ─── Section 1: Poll Header ─── */}
                 <div className="space-y-3 pr-8">
                   <span className="inline-block px-2.5 py-1 rounded text-xs font-bold uppercase tracking-widest bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20">
-                    {poll.category.replace("_", " ")}
+                    {categoryLabel(poll.category)}
                   </span>
 
                   <h2 className="font-display text-2xl md:text-3xl font-black text-foreground leading-tight">
@@ -695,20 +867,30 @@ export function StakeModal({
                       <Users className="w-3.5 h-3.5" />
                       {poll.participants} stakers
                     </span>
-                    {poll.status === "active" && (
+                    {isPollLocked ? (
+                      <span className="flex items-center gap-1.5 text-[var(--muted-foreground)]">
+                        <Lock className="w-3.5 h-3.5" />
+                        Locked at {poll.lockTime}
+                      </span>
+                    ) : (
                       <span className="flex items-center gap-1.5 text-[var(--accent-cyan)]">
                         <Zap className="w-3.5 h-3.5" />
-                        Locks at {poll.lockTime}
+                        Locks at {lockTimeLabel(poll.lockTime)}
+                        {lockTargetISO && (
+                          <span className="font-mono text-[var(--muted-foreground)]">
+                            ({formatCountdown(msRemaining)} left)
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* ─── Section 2: Side Selection ─── */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                <div role="group" aria-labelledby="side-selection-label" className="space-y-3">
+                  <p id="side-selection-label" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                     Choose Your Side
-                  </label>
+                  </p>
 
                   <div className="grid grid-cols-2 gap-3">
                     {(["yes", "no"] as const).map((s) => {
@@ -720,17 +902,22 @@ export function StakeModal({
                       const color =
                         s === "yes"
                           ? {
+                            r: 0, g: 217, b: 255,
                             bg: "rgba(0,217,255,0.15)",
                             border: "rgba(0,217,255,0.6)",
                             glow: "rgba(0,217,255,0.5)",
                             text: "#00d9ff",
                           }
                           : {
+                            r: 255, g: 0, b: 110,
                             bg: "rgba(255,0,110,0.15)",
                             border: "rgba(255,0,110,0.6)",
                             glow: "rgba(255,0,110,0.5)",
                             text: "#ff006e",
                           };
+                      /** Build alpha-correct rgba from the color's own channels. */
+                      const colorRgba = (alpha: number) =>
+                        `rgba(${color.r},${color.g},${color.b},${alpha})`;
 
                       return (
                         <motion.button
@@ -747,9 +934,9 @@ export function StakeModal({
                             clipPath:
                               "polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)",
                             background: isSelected ? color.bg : "transparent",
-                            border: `2px solid ${isSelected ? color.border : color.border + "40"}`,
+                            border: `2px solid ${isSelected ? color.border : colorRgba(0.25)}`,
                             boxShadow: isSelected
-                              ? `0 0 25px ${color.glow}, inset 0 0 15px ${color.glow}30`
+                              ? `0 0 25px ${color.glow}, inset 0 0 15px ${colorRgba(0.19)}`
                               : "none",
                             color: color.text,
                           }}
@@ -775,7 +962,7 @@ export function StakeModal({
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.4 }}
                                 style={{
-                                  background: `radial-gradient(circle at center, ${color.glow}40 0%, transparent 70%)`,
+                                  background: `radial-gradient(circle at center, ${colorRgba(0.25)} 0%, transparent 70%)`,
                                 }}
                               />
                             )}
@@ -800,7 +987,7 @@ export function StakeModal({
                 {/* ─── Section 3: Stake Amount ─── */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                    <label htmlFor="stake-amount-input" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                       Stake Amount
                     </label>
                     <span className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] font-mono">
@@ -810,6 +997,7 @@ export function StakeModal({
                   </div>
 
                   <GamingInput
+                    id="stake-amount-input"
                     type="text"
                     prefix="$"
                     value={amount}
@@ -833,7 +1021,12 @@ export function StakeModal({
                         variant="ghost"
                         size="sm"
                         className="flex-1 text-xs"
-                        onClick={() => setAmount(v.toString())}
+                        onClick={() =>
+                          setAmount(
+                            String(Math.min(v, maxStakeUSD))
+                          )
+                        }
+                        disabled={v > maxStakeUSD}
                       >
                         ${v}
                       </GamingButton>
@@ -844,7 +1037,7 @@ export function StakeModal({
                       className="flex-1 text-xs"
                       onClick={() =>
                         setAmount(
-                          Math.floor(balanceUSD * 100) / 100 + ""
+                          (Math.floor(maxStakeUSD * 100) / 100).toString()
                         )
                       }
                     >
@@ -856,6 +1049,8 @@ export function StakeModal({
                   <AnimatePresence>
                     {balanceWarning && (
                       <motion.div
+                        role="status"
+                        aria-live="polite"
                         className="flex items-center gap-2 text-xs text-[#ffd700] px-3 py-2 rounded bg-[#ffd700]/10 border border-[#ffd700]/20"
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -999,10 +1194,10 @@ export function StakeModal({
                 </AnimatePresence>
 
                 {/* ─── Section 5: Pool Distribution Pie ─── */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                <div role="group" aria-labelledby="pool-distribution-label" className="space-y-2">
+                  <p id="pool-distribution-label" className="text-xs font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                     Pool Distribution{stakeAmount > 0 ? " (Preview)" : ""}
-                  </label>
+                  </p>
 
                   <div className="flex items-center gap-4">
                     <div className="w-32 h-32 flex-shrink-0">
@@ -1045,13 +1240,15 @@ export function StakeModal({
                     </div>
 
                     <div className="flex-1 space-y-2 text-xs font-mono">
+                      {/* Legend rows show the base pool values so that
+                          Yes + No + Your Stake = Total (no double-count). */}
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-sm bg-[#00d9ff]" />
                         <span className="text-[var(--muted-foreground)]">
                           Yes Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(previewYes)} ({previewPct.yes}%)
+                          {formatCurrency(poll.yesPool)} ({previewPct.yes}%)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1060,7 +1257,7 @@ export function StakeModal({
                           No Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(previewNo)} ({previewPct.no}%)
+                          {formatCurrency(poll.noPool)} ({previewPct.no}%)
                         </span>
                       </div>
                       {stakeAmount > 0 && (
@@ -1165,6 +1362,7 @@ export function StakeModal({
                   amount={stakeAmount}
                   onConfirm={handleWalletConfirm}
                   onReject={handleWalletReject}
+                  confirming={confirming}
                 />
               )}
               {txStep === "processing" && (

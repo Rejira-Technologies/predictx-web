@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ interface CountdownTimerProps {
   className?: string;
 }
 
-type UrgencyLevel = "safe" | "warning" | "urgent" | "critical";
+type UrgencyLevel = "safe" | "warning" | "urgent" | "critical" | "expired";
 
 interface TimeLeft {
   days: number;
@@ -24,10 +24,11 @@ interface TimeLeft {
 }
 
 const urgencyColors: Record<UrgencyLevel, string> = {
-  safe: "#00d9ff",    // cyan
-  warning: "#ffd700", // gold
-  urgent: "#ff006e",  // magenta
-  critical: "#ff006e", // magenta with pulse
+  safe: "var(--accent-cyan, #00d9ff)",
+  warning: "var(--accent-gold, #ffd700)",
+  urgent: "var(--accent-magenta, #ff006e)",
+  critical: "var(--accent-magenta, #ff006e)",
+  expired: "#6b7280", // neutral gray
 };
 
 function getUrgencyLevel(totalMinutes: number): UrgencyLevel {
@@ -35,6 +36,15 @@ function getUrgencyLevel(totalMinutes: number): UrgencyLevel {
   if (totalMinutes < 15) return "urgent";
   if (totalMinutes < 60) return "warning";
   return "safe";
+}
+
+function formatTimeLeftSentence(t: TimeLeft): string {
+  const parts: string[] = [];
+  if (t.days > 0) parts.push(`${t.days} day${t.days === 1 ? "" : "s"}`);
+  if (t.hours > 0) parts.push(`${t.hours} hour${t.hours === 1 ? "" : "s"}`);
+  parts.push(`${t.minutes} minute${t.minutes === 1 ? "" : "s"}`);
+  parts.push(`${t.seconds} second${t.seconds === 1 ? "" : "s"}`);
+  return parts.join(", ");
 }
 
 function calculateTimeLeft(targetDate: Date): TimeLeft {
@@ -67,6 +77,7 @@ function TimeUnit({
   size: string;
   isTicking: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const sizeClasses = {
     sm: "text-2xl min-w-[2ch]",
     md: "text-4xl min-w-[2.5ch]",
@@ -83,7 +94,7 @@ function TimeUnit({
     <div className="flex flex-col items-center">
       <motion.div
         key={value}
-        initial={isTicking ? { scale: 0.8, opacity: 0 } : false}
+        initial={isTicking && !shouldReduceMotion ? { scale: 0.8, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
         className={cn(
           "font-mono font-bold tabular-nums",
@@ -126,8 +137,11 @@ export function CountdownTimer({
   const [isTicking, setIsTicking] = useState(false);
   const [hasExpired, setHasExpired] = useState(false);
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const updateTimer = useCallback(() => {
     const target = new Date(targetTime);
+    const difference = target.getTime() - Date.now();
     const remaining = calculateTimeLeft(target);
     const totalMinutes =
       remaining.days * 24 * 60 +
@@ -136,50 +150,71 @@ export function CountdownTimer({
       remaining.seconds / 60;
 
     setTimeLeft(remaining);
+
+    if (difference <= 0) {
+      setUrgency("expired");
+      if (!hasExpired) {
+        setHasExpired(true);
+        onExpire?.();
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
     setUrgency(getUrgencyLevel(totalMinutes));
     setIsTicking(true);
     setTimeout(() => setIsTicking(false), 200);
-
-    if (
-      remaining.days === 0 &&
-      remaining.hours === 0 &&
-      remaining.minutes === 0 &&
-      remaining.seconds === 0 &&
-      !hasExpired
-    ) {
-      setHasExpired(true);
-      onExpire?.();
-    }
   }, [targetTime, onExpire, hasExpired]);
 
   useEffect(() => {
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+    intervalRef.current = setInterval(updateTimer, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [updateTimer]);
 
+  const shouldReduceMotion = useReducedMotion();
   const color = urgencyColors[urgency];
   const isCritical = urgency === "critical";
+  const isExpired = urgency === "expired";
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
-        {isCritical && (
+      <div
+        className={cn("flex items-center gap-2", className)}
+        role="timer"
+        aria-label={
+          isExpired
+            ? `${label ? `${label}: ` : ""}expired`
+            : `${label ? `${label}: ` : ""}${formatTimeLeftSentence(timeLeft)} remaining`
+        }
+      >
+        {isCritical && !isExpired && (
           <motion.div
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
+            role="alert"
+            aria-label="Less than 5 minutes remaining"
           >
-            <AlertTriangle className="w-5 h-5 text-[#ff006e]" />
+            <AlertTriangle className="w-5 h-5 text-[#ff006e]" aria-hidden="true" />
           </motion.div>
         )}
         <div
           className="font-mono font-bold tabular-nums"
+          aria-hidden="true"
           style={{
             color,
             textShadow: `0 0 10px ${color}80`,
           }}
         >
-          {timeLeft.hours > 0 && `${timeLeft.hours.toString().padStart(2, "0")}:`}
+          {timeLeft.hours > 0 &&
+            `${timeLeft.hours.toString().padStart(2, "0")}:`}
           {timeLeft.minutes.toString().padStart(2, "0")}:
           {timeLeft.seconds.toString().padStart(2, "0")}
         </div>
@@ -188,7 +223,17 @@ export function CountdownTimer({
   }
 
   return (
-    <div className={cn("flex flex-col items-center", className)}>
+    <div
+      className={cn("flex flex-col items-center", className)}
+      role="timer"
+      aria-label={
+        label
+          ? isExpired
+            ? `${label}: expired`
+            : `${label}: ${formatTimeLeftSentence(timeLeft)} remaining`
+          : undefined
+      }
+    >
       {label && (
         <span className="text-[var(--muted-foreground)] text-sm mb-3 uppercase tracking-wider">
           {label}
@@ -196,79 +241,105 @@ export function CountdownTimer({
       )}
 
       <div className="flex items-center gap-2 sm:gap-4">
-        {timeLeft.days > 0 && (
+        {!isExpired && (
           <>
+            {timeLeft.days > 0 && (
+              <>
+                <TimeUnit
+                  value={timeLeft.days}
+                  label="Days"
+                  color={color}
+                  size={size}
+                  isTicking={isTicking}
+                />
+                <span
+                  className={cn(
+                    "font-mono",
+                    size === "sm"
+                      ? "text-xl"
+                      : size === "md"
+                      ? "text-3xl"
+                      : "text-5xl"
+                  )}
+                  style={{ color: `${color}50` }}
+                >
+                  :
+                </span>
+              </>
+            )}
+
             <TimeUnit
-              value={timeLeft.days}
-              label="Days"
+              value={timeLeft.hours}
+              label="Hours"
               color={color}
               size={size}
               isTicking={isTicking}
             />
+
             <span
               className={cn(
                 "font-mono",
-                size === "sm" ? "text-xl" : size === "md" ? "text-3xl" : "text-5xl"
+                size === "sm"
+                  ? "text-xl"
+                  : size === "md"
+                  ? "text-3xl"
+                  : "text-5xl"
               )}
               style={{ color: `${color}50` }}
             >
               :
             </span>
+
+            <TimeUnit
+              value={timeLeft.minutes}
+              label="Mins"
+              color={color}
+              size={size}
+              isTicking={isTicking}
+            />
+
+            <span
+              className={cn(
+                "font-mono",
+                size === "sm"
+                  ? "text-xl"
+                  : size === "md"
+                  ? "text-3xl"
+                  : "text-5xl"
+              )}
+              style={{ color: `${color}50` }}
+            >
+              :
+            </span>
+
+            <TimeUnit
+              value={timeLeft.seconds}
+              label="Secs"
+              color={color}
+              size={size}
+              isTicking={isTicking}
+            />
           </>
         )}
 
-        <TimeUnit
-          value={timeLeft.hours}
-          label="Hours"
-          color={color}
-          size={size}
-          isTicking={isTicking}
-        />
-
-        <span
-          className={cn(
-            "font-mono",
-            size === "sm" ? "text-xl" : size === "md" ? "text-3xl" : "text-5xl"
-          )}
-          style={{ color: `${color}50` }}
-        >
-          :
-        </span>
-
-        <TimeUnit
-          value={timeLeft.minutes}
-          label="Mins"
-          color={color}
-          size={size}
-          isTicking={isTicking}
-        />
-
-        <span
-          className={cn(
-            "font-mono",
-            size === "sm" ? "text-xl" : size === "md" ? "text-3xl" : "text-5xl"
-          )}
-          style={{ color: `${color}50` }}
-        >
-          :
-        </span>
-
-        <TimeUnit
-          value={timeLeft.seconds}
-          label="Secs"
-          color={color}
-          size={size}
-          isTicking={isTicking}
-        />
-
-        {isCritical && (
+        {isCritical && !isExpired && (
           <motion.div
             className="ml-2"
+            animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : { opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
             animate={{ opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
+            role="alert"
+            aria-label="Less than 5 minutes remaining"
           >
-            <AlertTriangle className="w-6 h-6 text-[#ff006e]" />
+            <AlertTriangle className="w-6 h-6 text-[#ff006e]" aria-hidden="true" />
           </motion.div>
+        )}
+        {isExpired && (
+          <span className="text-[var(--muted-foreground)] font-mono font-bold uppercase tracking-wider ">
+            {" "}
+            Expired{" "}
+          </span>
         )}
       </div>
     </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useReducer, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, CheckCircle2, AlertCircle } from "lucide-react";
+import { Scale, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { GlowCard } from "@/components/shared/glow-card";
@@ -17,7 +17,9 @@ import { EvidenceSection } from "./evidence-section";
 import { type Poll, type Match } from "@/lib/mock-data";
 import { useVoting, type VoteDecision } from "@/hooks/use-voting";
 import { useWallet } from "@/hooks/use-wallet";
-import { cn } from "@/lib/utils";
+import { cn, categoryLabel } from "@/lib/utils";
+import { getTeamColor } from "@/lib/team-colors";
+import { getVotingDeadlineISO, isVotingOpen } from "@/lib/calculations";
 import { VOTING_WINDOW_HOURS } from "@/lib/constants";
 
 interface VotingCardProps {
@@ -27,29 +29,60 @@ interface VotingCardProps {
 
 type CardState = "idle" | "confirming" | "processing" | "voted";
 
+// Component to render vote tally with actual vote counts
+function VoteTallyComponent({ poll }: { poll: Poll }) {
+    const { getTally } = useVoting();
+    const tally = getTally(poll.id);
+    
+    return (
+        <div className="mb-6 p-4 rounded-lg bg-background/50 border border-border">
+            <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 font-bold">Community Tally</h4>
+            <VoteTally 
+                yesVotes={tally.yes} 
+                noVotes={tally.no} 
+                unclearVotes={tally.unclear} 
+                animated 
+            />
+        </div>
+    );
+}
+
 export function VotingCard({ poll, match }: VotingCardProps) {
     const [cardState, setCardState] = useState<CardState>("idle");
     const [selectedDecision, setSelectedDecision] = useState<VoteDecision | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const focusedBeforeOpenRef = useRef<HTMLElement | null>(null);
 
-    const { castVote, getVoteReward } = useVoting();
-    const { isConnected, connect } = useWallet();
+    // Save focused element when card mounts
+    useEffect(() => {
+      focusedBeforeOpenRef.current = document.activeElement as HTMLElement | null;
+    }, []);
+
+    const { castVote, getVoteReward, getUnclearVotes } = useVoting();
+    const { isConnected, connect, isConnecting } = useWallet();
 
     const rewardAmount = getVoteReward(poll.id);
 
     const homeTeam = {
         id: `home-${match.id}`,
         name: match.homeTeam,
-        primaryColor: "#00d9ff",
+        primaryColor: getTeamColor(match.homeTeam),
     };
     const awayTeam = {
         id: `away-${match.id}`,
         name: match.awayTeam,
-        primaryColor: "#ff006e",
+        primaryColor: getTeamColor(match.awayTeam),
     };
 
-    const handleSelectVote = (decision: VoteDecision) => {
+    const handleSelectVote = async (decision: VoteDecision) => {
+        if (!votingOpen) return;
         if (!isConnected) {
-            connect();
+            try {
+                await connect();
+            } catch {
+                // connect() already surfaces errors via toast; swallow here to avoid
+                // double-reporting or an unhandled rejection at the call site.
+            }
             return;
         }
         setSelectedDecision(decision);
@@ -58,6 +91,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
 
     const handleConfirm = async () => {
         if (!selectedDecision) return;
+        setIsSubmitting(true);
         setCardState("processing");
 
         try {
@@ -81,18 +115,59 @@ export function VotingCard({ poll, match }: VotingCardProps) {
             // Revert on error
             setCardState("idle");
             setSelectedDecision(null);
+            // `castVote` throws when the voting window closed during
+            // confirmation, so surface the reason rather than silently
+            // returning to the buttons — otherwise the card looks broken
+            // rather than out of time.
+            toast.error("Vote not recorded", {
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Vote failed. Please try again.",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleCancel = () => {
         setCardState("idle");
         setSelectedDecision(null);
-    };
+      };
 
-    // Compute deadline: voting is allowed VOTING_WINDOW_HOURS after match lockTime (we use kickoff for demo purposes)
-    // Real implementation would calculate properly.
-    const lockTarget = new Date(match.kickoff).getTime() + VOTING_WINDOW_HOURS * 60 * 60 * 1000;
-    const deadlineTime = new Date(lockTarget).toISOString();
+// ── Restore focus on close/vote ────────────────────────────────────────
+      useEffect(() => {
+        if (cardState === "voted") {
+          const element = focusedBeforeOpenRef.current;
+          if (element && element instanceof HTMLElement) {
+            element.focus({ preventScroll: true });
+          }
+          focusedBeforeOpenRef.current = null;
+        }
+      }, [cardState]);
+
+      /**
+     * Voting deadline, derived from the poll's own lock time.
+     *
+     * The previous version hardcoded `2 * 60 * 60 * 1000` onto raw kickoff,
+     * ignoring `poll.lockTime` — so a `"halftime"` poll was treated as having
+     * locked at kickoff and its voting window closed two minutes too early.
+     */
+    const deadlineTime = getVotingDeadlineISO(poll, match);
+
+    /**
+     * Live open/closed state. `CountdownTimer` already supports an `onExpire`
+     * callback but it was never wired, so the timer could read `00:00:00` while
+     * the buttons beside it stayed fully enabled. A one-second tick derives it
+     * from the shared helper instead, so the countdown and the gate cannot
+     * disagree.
+     */
+    const [, tick] = useReducer((n: number) => n + 1, 0);
+    useEffect(() => {
+        const id = setInterval(tick, 1_000);
+        return () => clearInterval(id);
+    }, []);
+    const votingOpen = isVotingOpen(poll, match);
 
     const getCategoryColor = (cat: string) => {
         switch (cat) {
@@ -126,7 +201,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                     ) : (
                         <CountdownTimer targetTime={deadlineTime} compact className="text-primary text-sm font-mono" />
                     )}
-                    <span className="text-xs text-muted-foreground">Voting closes {VOTING_WINDOW_HOURS}h post-match</span>
+<span className="text-xs text-muted-foreground">Voting closes {VOTING_WINDOW_HOURS}h after the poll locks ({poll.lockTime})</span>
                 </div>
             </div>
 
@@ -134,7 +209,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
             <div className="mb-6 space-y-3">
                 <div className="flex items-center gap-2">
                     <span className={cn("px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border", getCategoryColor(poll.category))}>
-                        {poll.category.replace("_", " ")}
+                        {categoryLabel(poll.category)}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono">#{poll.id}</span>
                 </div>
@@ -154,13 +229,26 @@ export function VotingCard({ poll, match }: VotingCardProps) {
             {/* Vote Tally */}
             <div className="mb-6 p-4 rounded-lg bg-background/50 border border-border">
                 <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 font-bold">Community Tally</h4>
-                <VoteTally yesVotes={poll.yesPool} noVotes={poll.noPool} unclearVotes={Math.floor(poll.participants / 3)} animated />
+                <VoteTallyComponent poll={poll} />
             </div>
 
             {/* Interaction Area */}
             <div className="relative min-h-[140px] flex flex-col justify-end">
                 <AnimatePresence mode="wait">
-                    {cardState === "idle" && (
+                    {cardState === "idle" && !votingOpen && (
+                        <motion.div
+                            key="voting-closed"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="flex items-center justify-center gap-3 h-14 rounded clip-corner bg-surface border border-border text-muted-foreground font-bold uppercase tracking-wider text-sm"
+                            data-testid="voting-closed"
+                        >
+                            <Lock className="w-4 h-4" />
+                            Voting Closed
+                        </motion.div>
+                    )}
+                    {cardState === "idle" && votingOpen && (
                         <motion.div
                             key="voting-options"
                             initial={{ opacity: 0, y: 10 }}
@@ -168,16 +256,17 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="grid grid-cols-1 md:grid-cols-3 gap-3"
                         >
-                            <GamingButton variant="primary" onClick={() => handleSelectVote("yes")} className="h-14 text-sm tracking-wider">
+                            <GamingButton variant="primary" onClick={() => handleSelectVote("yes")} disabled={isConnecting} className="h-14 text-sm tracking-wider">
                                 <span className="text-xl mr-2">✓</span> YES
                             </GamingButton>
-                            <GamingButton variant="danger" onClick={() => handleSelectVote("no")} className="h-14 text-sm tracking-wider">
+                            <GamingButton variant="danger" onClick={() => handleSelectVote("no")} disabled={isConnecting} className="h-14 text-sm tracking-wider">
                                 <span className="text-xl mr-2">✗</span> NO
                             </GamingButton>
                             <button
                                 type="button"
                                 onClick={() => handleSelectVote("unclear")}
-                                className="h-14 rounded clip-corner bg-surface border border-border hover:border-muted-foreground hover:bg-surface/80 transition-colors font-bold uppercase tracking-wider text-muted-foreground"
+                                disabled={isConnecting}
+                                className="h-14 rounded clip-corner bg-surface border border-border hover:border-muted-foreground hover:bg-surface/80 transition-colors font-bold uppercase tracking-wider text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 UNCLEAR / DISPUTE
                             </button>
@@ -202,7 +291,13 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <GamingButton variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"} onClick={handleConfirm} className="flex-1">
+                                <GamingButton
+                                    variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"}
+                                    onClick={handleConfirm}
+                                    loading={isSubmitting}
+                                    loadingLabel="Submitting…"
+                                    className="flex-1"
+                                >
                                     Confirm Vote
                                 </GamingButton>
                                 <button
@@ -233,6 +328,8 @@ export function VotingCard({ poll, match }: VotingCardProps) {
 
                     {cardState === "voted" && (
                         <motion.div
+                            role="alert"
+                            aria-live="polite"
                             key="voted-success"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}

@@ -42,9 +42,16 @@ function compute(targetISO: string): CountdownResult {
 }
 
 export function useCountdown(targetISO: string): CountdownResult {
-	const [state, setState] = useState<CountdownResult>(() =>
-		compute(targetISO),
-	);
+	const [state, setState] = useState<CountdownResult>(() => {
+		return {
+			days: 0,
+			hours: 0,
+			minutes: 0,
+			seconds: 0,
+			isExpired: false,
+			status: "safe",
+		};
+	});
 
 	useEffect(() => {
 		setState(compute(targetISO));

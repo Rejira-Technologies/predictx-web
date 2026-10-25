@@ -1,6 +1,9 @@
 "use client";
 import { MatchHeader } from "@/components/match-header";
-import { PollsList } from "@/components/polls-list";
+// #245: use the store-backed PollsList (components/match/polls-list) so polls
+// created via CreatePollModal appear immediately — the static version at
+// components/polls-list.tsx renders a hardcoded array and never reads the store.
+import { PollsList } from "@/components/match/polls-list";
 import { CreatePollButton } from "@/components/create-poll-button";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -13,10 +16,14 @@ import { MatchStatsBar } from "@/components/match";
 export default function MatchPage() {
   const params = useParams<{ id: string }>();
   const matchId = params.id;
-  const { getMatch, getPolls } = useMockData();
+  const allPolls = useMockData((s) => s.polls);
+  const getMatch = useMockData((s) => s.getMatch);
 
   const match = getMatch(matchId);
-  const polls = useMemo(() => getPolls(matchId), [getPolls, matchId]);
+  const polls = useMemo(
+    () => allPolls.filter((p) => p.matchId === matchId),
+    [allPolls, matchId],
+  );
 
   // Aggregate stats
   const totalPool = useMemo(
@@ -80,9 +87,15 @@ export default function MatchPage() {
               Choose a poll and stake on the outcome you believe will happen
             </p>
           </div>
-          <CreatePollButton matchId={params.id} />
+          {/* Only show the create-poll CTA for upcoming matches — creating a
+              market for a live or completed game makes no sense and the modal's
+              own match dropdown (upcoming-only) would leave the pre-filled ID
+              unresolvable. */}
+          {match.status === "upcoming" && (
+            <CreatePollButton matchId={params.id} />
+          )}
         </div>
-        <PollsList matchId={params.id} />
+        <PollsList polls={polls} match={match} />
       </div>
     </main>
   );

@@ -1,10 +1,11 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Trophy, MapPin, Calendar, Clock, Shield } from "lucide-react"
 import { GlowCard, TeamBadge, CountdownTimer } from "@/components/shared"
 import type { Match } from "@/lib/mock-data"
 import type { Team } from "@/components/shared/team-badge"
+import { getTeamColor, getTeamAbbreviation } from "@/lib/team-colors"
 
 interface MatchHeaderProps {
   match: Match
@@ -18,32 +19,9 @@ function toTeam(name: string, color: string): Team {
     id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
     primaryColor: color,
-    abbreviation: name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 3)
-      .toUpperCase(),
+    shortName: getTeamAbbreviation(name),
+    abbreviation: getTeamAbbreviation(name),
   }
-}
-
-const TEAM_COLORS: Record<string, string> = {
-  Chelsea: "#034694",
-  "Manchester United": "#DA291C",
-  Arsenal: "#EF0107",
-  Liverpool: "#C8102E",
-  "Manchester City": "#6CABDD",
-  Tottenham: "#132257",
-  Newcastle: "#241F20",
-  "Aston Villa": "#95BFE5",
-  Brighton: "#0057B8",
-  "West Ham": "#7A263A",
-  Everton: "#003399",
-  Wolves: "#FDB913",
-}
-
-function getTeamColor(name: string) {
-  return TEAM_COLORS[name] ?? "#00d9ff"
 }
 
 /* ── Status badge ───────────────────────────────────────────────────────── */
@@ -80,6 +58,7 @@ function StatusBadge({ status }: { status: Match["status"] }) {
 /* ── Component ──────────────────────────────────────────────────────────── */
 
 export function MatchHeader({ match }: MatchHeaderProps) {
+  const shouldReduceMotion = useReducedMotion();
   const homeTeam = toTeam(match.homeTeam, getTeamColor(match.homeTeam))
   const awayTeam = toTeam(match.awayTeam, getTeamColor(match.awayTeam))
 
@@ -122,6 +101,11 @@ export function MatchHeader({ match }: MatchHeaderProps) {
             </div>
             <StatusBadge status={match.status} />
           </div>
+
+          {/* Fixture title (#314) */}
+          <h1 className="sr-only">
+            {match.homeTeam} vs {match.awayTeam}
+          </h1>
 
           {/* Teams + VS / Score */}
           <div className="grid grid-cols-[1fr_auto_1fr] gap-4 sm:gap-8 items-center mb-8">
@@ -179,8 +163,8 @@ export function MatchHeader({ match }: MatchHeaderProps) {
               {match.status === "live" && (
                 <motion.div
                   className="flex items-center gap-1.5"
-                  animate={{ opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+                  animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.4, 1] }}
+                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 1.5, repeat: Infinity }}
                 >
                   <span className="w-2 h-2 rounded-full bg-success" />
                   <span className="font-mono text-sm font-bold text-success">
