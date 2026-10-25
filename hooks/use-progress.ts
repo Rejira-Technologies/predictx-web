@@ -43,14 +43,16 @@ export interface ProgressState {
 }
 
 export function useProgress(): ProgressState {
-  const stakes = useStaking((s) => s.stakes);
-  const userVotes = useVoting((s) => s.userVotes);
+  // #243: use wallet-scoped selector so seed data from other wallets is excluded
+  const walletStakes = useStaking((s) => s.activeStakes());
+  // #244: userVotes is a store action (function) — call it to get the vote map
+  const userVotes = useVoting((s) => s.userVotes());
   const polls = useMockData((s) => s.polls);
 
   return useMemo(() => {
-    const stakeCount = stakes.length;
+    const stakeCount = walletStakes.length;
     const voteCount = Object.keys(userVotes).length;
-    const totalStaked = stakes.reduce((sum, s) => sum + s.amount, 0);
+    const totalStaked = walletStakes.reduce((sum, s) => sum + s.amount, 0);
 
     const xp = Math.floor(
       totalStaked * XP_PER_DOLLAR_STAKED + voteCount * XP_PER_VOTE,
@@ -84,5 +86,5 @@ export function useProgress(): ProgressState {
       voteCount,
       activePoolCount,
     };
-  }, [stakes, userVotes, polls]);
+  }, [walletStakes, userVotes, polls]);
 }

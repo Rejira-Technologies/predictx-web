@@ -95,12 +95,14 @@ export type ResolutionStatus =
 /**
  * Visual urgency level for countdown timers shown next to polls.
  *
- * - `safe`     – plenty of time remaining (e.g. > 1 hour)
- * - `warning`  – approaching lock time (e.g. 30–60 min)
- * - `urgent`   – close to lock (e.g. 5–30 min)
- * - `critical` – imminent lock (e.g. < 5 min)
+ * Bands match the thresholds in `hooks/use-countdown.ts` `getStatus()`:
+ * - `safe`     – plenty of time remaining (> 1 hour)
+ * - `warning`  – approaching lock time (15–60 min)
+ * - `urgent`   – close to lock (5–15 min)
+ * - `critical` – imminent lock (< 5 min)
+ * - `expired`  – deadline has passed; `CountdownTimer` switches to "Expired" state
  */
-export type TimerStatus = "safe" | "warning" | "urgent" | "critical";
+export type TimerStatus = "safe" | "warning" | "urgent" | "critical" | "expired";
 
 /**
  * Supported Stellar wallet providers.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useReducer } from "react";
+import { useState, useEffect, useReducer, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Scale, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { useWallet } from "@/hooks/use-wallet";
 import { cn, categoryLabel } from "@/lib/utils";
 import { getTeamColor } from "@/lib/team-colors";
 import { getVotingDeadlineISO, isVotingOpen } from "@/lib/calculations";
+import { VOTING_WINDOW_HOURS } from "@/lib/constants";
 
 interface VotingCardProps {
     poll: Poll;
@@ -49,9 +50,16 @@ function VoteTallyComponent({ poll }: { poll: Poll }) {
 export function VotingCard({ poll, match }: VotingCardProps) {
     const [cardState, setCardState] = useState<CardState>("idle");
     const [selectedDecision, setSelectedDecision] = useState<VoteDecision | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const focusedBeforeOpenRef = useRef<HTMLElement | null>(null);
+
+    // Save focused element when card mounts
+    useEffect(() => {
+      focusedBeforeOpenRef.current = document.activeElement as HTMLElement | null;
+    }, []);
 
     const { castVote, getVoteReward, getUnclearVotes } = useVoting();
-    const { isConnected, connect } = useWallet();
+    const { isConnected, connect, isConnecting } = useWallet();
 
     const rewardAmount = getVoteReward(poll.id);
 
@@ -83,6 +91,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
 
     const handleConfirm = async () => {
         if (!selectedDecision) return;
+        setIsSubmitting(true);
         setCardState("processing");
 
         try {
@@ -116,15 +125,28 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                         ? error.message
                         : "Vote failed. Please try again.",
             });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleCancel = () => {
         setCardState("idle");
         setSelectedDecision(null);
-    };
+      };
 
-    /**
+// ── Restore focus on close/vote ────────────────────────────────────────
+      useEffect(() => {
+        if (cardState === "voted") {
+          const element = focusedBeforeOpenRef.current;
+          if (element && element instanceof HTMLElement) {
+            element.focus({ preventScroll: true });
+          }
+          focusedBeforeOpenRef.current = null;
+        }
+      }, [cardState]);
+
+      /**
      * Voting deadline, derived from the poll's own lock time.
      *
      * The previous version hardcoded `2 * 60 * 60 * 1000` onto raw kickoff,
@@ -179,7 +201,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                     ) : (
                         <CountdownTimer targetTime={deadlineTime} compact className="text-primary text-sm font-mono" />
                     )}
-                    <span className="text-xs text-muted-foreground">Voting closes 2h after the poll locks ({poll.lockTime})</span>
+<span className="text-xs text-muted-foreground">Voting closes {VOTING_WINDOW_HOURS}h after the poll locks ({poll.lockTime})</span>
                 </div>
             </div>
 
@@ -231,16 +253,17 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="grid grid-cols-1 md:grid-cols-3 gap-3"
                         >
-                            <GamingButton variant="primary" onClick={() => handleSelectVote("yes")} className="h-14 text-sm tracking-wider">
+                            <GamingButton variant="primary" onClick={() => handleSelectVote("yes")} disabled={isConnecting} className="h-14 text-sm tracking-wider">
                                 <span className="text-xl mr-2">✓</span> YES
                             </GamingButton>
-                            <GamingButton variant="danger" onClick={() => handleSelectVote("no")} className="h-14 text-sm tracking-wider">
+                            <GamingButton variant="danger" onClick={() => handleSelectVote("no")} disabled={isConnecting} className="h-14 text-sm tracking-wider">
                                 <span className="text-xl mr-2">✗</span> NO
                             </GamingButton>
                             <button
                                 type="button"
                                 onClick={() => handleSelectVote("unclear")}
-                                className="h-14 rounded clip-corner bg-surface border border-border hover:border-muted-foreground hover:bg-surface/80 transition-colors font-bold uppercase tracking-wider text-muted-foreground"
+                                disabled={isConnecting}
+                                className="h-14 rounded clip-corner bg-surface border border-border hover:border-muted-foreground hover:bg-surface/80 transition-colors font-bold uppercase tracking-wider text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 UNCLEAR / DISPUTE
                             </button>
@@ -265,7 +288,13 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <GamingButton variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"} onClick={handleConfirm} className="flex-1">
+                                <GamingButton
+                                    variant={selectedDecision === "yes" ? "primary" : selectedDecision === "no" ? "danger" : "ghost"}
+                                    onClick={handleConfirm}
+                                    loading={isSubmitting}
+                                    loadingLabel="Submitting…"
+                                    className="flex-1"
+                                >
                                     Confirm Vote
                                 </GamingButton>
                                 <button
@@ -296,6 +325,8 @@ export function VotingCard({ poll, match }: VotingCardProps) {
 
                     {cardState === "voted" && (
                         <motion.div
+                            role="alert"
+                            aria-live="polite"
                             key="voted-success"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
