@@ -39,8 +39,8 @@ export function AnimatedCounter({
   className,
 }: AnimatedCounterProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [displayValue, setDisplayValue] = useState(value);
-  const [prevValue, setPrevValue] = useState(value);
+  const [displayValue, setDisplayValue] = useState(0);
+  const [prevValue, setPrevValue] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
   const animationRef = useRef<number | null>(null);

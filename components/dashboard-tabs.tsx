@@ -1,5 +1,7 @@
 "use client"
 
+import { useSearchParams, useRouter } from "next/navigation"
+import { useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ActiveStakes } from "./active-stakes"
 import { PendingResolution } from "./pending-resolution"
@@ -8,18 +10,31 @@ import { TransactionHistory } from "./transaction-history"
 import { resetAllData } from "@/lib/mock-data"
 import { RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
-import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
 
-type Tab = "active" | "pending" | "completed" | "transactions"
+const VALID_TABS = ["active", "pending", "completed", "transactions"] as const
+type TabValue = (typeof VALID_TABS)[number]
 
-function DashboardTabsInner() {
+function isValidTab(value: string | null): value is TabValue {
+  return VALID_TABS.includes(value as TabValue)
+}
+
+export function DashboardTabs() {
   const searchParams = useSearchParams()
-  const tabParam = searchParams.get("tab") as Tab | null
-  const defaultTab: Tab =
-    tabParam === "pending" || tabParam === "completed" || tabParam === "transactions"
-      ? tabParam
-      : "active"
+  const router = useRouter()
+
+  // Read the active tab from ?tab=; fall back to "active" for unknown/missing values
+  const rawTab = searchParams.get("tab")
+  const activeTab: TabValue = isValidTab(rawTab) ? rawTab : "active"
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("tab", value)
+      // Replace so the back button doesn't cycle through every tab click
+      router.replace(`/dashboard?${params.toString()}`)
+    },
+    [router, searchParams],
+  )
 
   const handleReset = () => {
     if (
@@ -32,7 +47,7 @@ function DashboardTabsInner() {
   };
 
   return (
-    <Tabs defaultValue={defaultTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <TabsList className="bg-surface border-2 border-border h-14 p-1">
           <TabsTrigger
@@ -88,13 +103,5 @@ function DashboardTabsInner() {
         <TransactionHistory />
       </TabsContent>
     </Tabs>
-  )
-}
-
-export function DashboardTabs() {
-  return (
-    <Suspense fallback={null}>
-      <DashboardTabsInner />
-    </Suspense>
   )
 }

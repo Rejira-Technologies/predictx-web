@@ -137,7 +137,7 @@ export const useVoting = create<VotingState>()(
         const stakedPollIds = new Set(
           address
             ? stakes.filter((s) => s.wallet === address).map((s) => s.pollId)
-            : stakes.map((s) => s.pollId),
+            : [],
         );
 
         return polls.filter(
@@ -157,7 +157,7 @@ export const useVoting = create<VotingState>()(
       getVoteReward: (pollId: string) => {
         const poll = useMockData.getState().getPoll(pollId);
         if (!poll) return 0;
-        const totalPool = poll.yesPool + poll.noPool;
+const totalPool = poll.yesPool + poll.noPool;
         if (totalPool <= 0) return 0;
         // Interpolate between VOTER_REWARD_MIN (0.5%) and VOTER_REWARD_MAX (1%)
         // based on the consensus ratio towards AUTO_APPROVE_THRESHOLD.

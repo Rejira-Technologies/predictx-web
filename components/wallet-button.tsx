@@ -1,6 +1,6 @@
 "use client";
 
-import { Wallet, ChevronDown, LogOut, Copy, Globe, ArrowRightLeft, RotateCcw } from "lucide-react";
+import { Wallet, ChevronDown, LogOut, Copy, Globe, ArrowRightLeft, RotateCcw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import type { StellarNetwork } from "@/hooks/use-wallet";
 import { shortenAddress } from "@/lib/utils";
 import { formatXLM } from "@/lib/calculations";
 import { resetAllData } from "@/lib/mock-data";
+import { CURRENT_NETWORK_CONFIG, STELLAR_NETWORKS } from "@/lib/constants";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -52,6 +53,7 @@ export function WalletButton() {
     );
 
   const currentNet = NETWORK_CONFIG[network];
+  const explorerUrl = (STELLAR_NETWORKS[network] || CURRENT_NETWORK_CONFIG).explorerUrl;
 
   return (
     <DropdownMenu>
@@ -74,10 +76,40 @@ export function WalletButton() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={copy}>
+      <DropdownMenuContent align="end" className="w-64">
+        {/* Full Stellar Address (#333) */}
+        <div className="p-2 border-b border-border/40">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+            Stellar Address
+          </div>
+          <button
+            type="button"
+            onClick={copy}
+            className="w-full flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-accent/60 text-left group cursor-pointer transition-colors"
+            title="Click to copy full address"
+          >
+            <span className="font-mono text-[11px] break-all leading-tight text-foreground select-all">
+              {address}
+            </span>
+            <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
+          </button>
+        </div>
+
+        <DropdownMenuItem onClick={copy} className="cursor-pointer">
           <Copy className="mr-2 h-4 w-4" />
           Copy Address
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <a
+            href={`${explorerUrl}/account/${address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View on StellarExpert
+          </a>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

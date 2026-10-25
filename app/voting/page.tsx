@@ -1,15 +1,17 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Scale, Activity } from "lucide-react";
 import { useVoting } from "@/hooks/use-voting";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
-import { VotingCard } from "@/components/voting/voting-card";
+import { VotingCard } from "@/components/voting";
 import { GamingButton } from "@/components/shared/gaming-button";
+import { AUTO_APPROVE_THRESHOLD } from "@/lib/constants";
 
 export default function VotingCenterPage() {
-  const { isConnected, connect } = useWallet();
+  const shouldReduceMotion = useReducedMotion();
+  const { isConnected, connect, isConnecting } = useWallet();
   const { availablePolls, getVoteReward, getAccuracy } = useVoting();
   const getMatch = useMockData((state) => state.getMatch);
 
@@ -45,8 +47,8 @@ export default function VotingCenterPage() {
           <p className="text-muted-foreground">
             Connect your wallet to access the Resolution Arena, vote on match outcomes, and earn rewards for your accurate judgments.
           </p>
-          <GamingButton variant="primary" onClick={handleConnect} className="w-full h-14 text-lg">
-            Connect Wallet
+          <GamingButton variant="primary" onClick={handleConnect} disabled={isConnecting} className="w-full h-14 text-lg">
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
           </GamingButton>
         </motion.div>
       </main>
@@ -129,7 +131,7 @@ export default function VotingCenterPage() {
           </div>
           <div className="space-y-1">
             <span className="font-bold text-foreground">How Voting Works: </span>
-            Voting opens immediately after a match concludes and remains active for 2 hours. Your oracle vote helps resolve the poll for all participants. If the community reaches exactly &gt;85% consensus, the poll resolves automatically. Otherwise, admin or multi-sig review is required.
+            Voting opens immediately after a match concludes and remains active for 2 hours. Your oracle vote helps resolve the poll for all participants. Polls where one side reaches &gt;{(AUTO_APPROVE_THRESHOLD * 100).toFixed(0)}% of votes are flagged for expedited admin review. Otherwise, standard admin or multi-sig review applies.
           </div>
         </div>
 
@@ -141,8 +143,8 @@ export default function VotingCenterPage() {
             className="flex flex-col items-center justify-center py-20 text-center"
           >
             <motion.div
-              animate={{ y: [0, -15, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              animate={shouldReduceMotion ? { y: 0 } : { y: [0, -15, 0] }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="w-32 h-32 mb-8 relative opacity-80"
             >
               <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />

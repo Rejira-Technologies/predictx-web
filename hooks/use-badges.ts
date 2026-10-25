@@ -27,36 +27,37 @@ interface BadgeContext {
   completedWonStakes: number;
   consecutiveWonStakes: number;
   totalVotesCast: number;
+  hasEarlyStake: boolean;
 }
 
 const BADGE_DEFINITIONS: Omit<BadgeDefinition, "earned">[] = [
   {
     id: "early_predictor",
     label: "Early Predictor",
-    description: "Created at least 1 prediction poll",
+    description: "Staked within first 5 min of poll",
     variant: "neutral",
     type: "achievement",
   },
   {
     id: "winning_streak",
-    label: "Winning Streak",
-    description: "Won 2 or more stakes in a row",
+    label: "3-Win Streak",
+    description: "Won 3 or more stakes in a row",
     variant: "gold",
     type: "streak",
   },
   {
     id: "top_judge",
     label: "Top Judge",
-    description: "Cast 5 or more votes",
+    description: "Voted on 10 or more polls accurately",
     variant: "success",
     type: "rank",
   },
 ];
 
 const BADGE_RULES: Record<string, BadgeRule> = {
-  early_predictor: (ctx) => ctx.userCreatedPollCount >= 1,
-  winning_streak: (ctx) => ctx.consecutiveWonStakes >= 2,
-  top_judge: (ctx) => ctx.totalVotesCast >= 5,
+  early_predictor: (ctx) => ctx.hasEarlyStake || ctx.userCreatedPollCount >= 1,
+  winning_streak: (ctx) => ctx.consecutiveWonStakes >= 3,
+  top_judge: (ctx) => ctx.totalVotesCast >= 10,
 };
 
 // ─── Helper: compute longest consecutive won streak from completed stakes ─────
@@ -82,13 +83,20 @@ function longestConsecutiveWonStreak(
 export function useBadges(): BadgeDefinition[] {
   const userCreatedPollCount = useMockData((s) => s.userCreatedPollCount);
   const completedStakes = useStaking((s) => s.completedStakes());
+  const activeStakes = useStaking((s) => s.activeStakes());
   const userVotes = useVoting((s) => s.userVotes);
+  // #244: userVotes is a store action (function) — call it to get the vote map
+  const userVotes = useVoting((s) => s.userVotes());
+
+  const allStakes = [...activeStakes, ...completedStakes];
+  const hasEarlyStake = allStakes.some((s) => s.stakedWithinFirst5Min === true);
 
   const ctx: BadgeContext = {
     userCreatedPollCount,
     completedWonStakes: completedStakes.filter((s) => s.outcome === "won").length,
     consecutiveWonStakes: longestConsecutiveWonStreak(completedStakes),
     totalVotesCast: Object.keys(userVotes).length,
+    hasEarlyStake,
   };
 
   return BADGE_DEFINITIONS.map((def) => ({

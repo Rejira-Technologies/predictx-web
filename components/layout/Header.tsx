@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "../ui/button"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog"
 import { t } from "@/lib/i18n"
 import { useProgress } from "@/hooks/use-progress"
 
@@ -25,7 +26,7 @@ export function Header() {
     <>
       <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-primary/20">
 
-        <nav className="mx-auto flex max-w-7xl items-center justify-between p-4">
+        <nav aria-label="Main" className="mx-auto flex max-w-7xl items-center justify-between p-4">
 
           {/* Logo */}
           <Link href="/" className="font-display text-xl sm:text-2xl text-primary text-glow-cyan font-bold">
@@ -45,6 +46,7 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className="relative text-sm font-bold"
+                  aria-current={isActive ? "page" : undefined}
                 >
 
                   {t(item.key)}
@@ -72,6 +74,9 @@ export function Header() {
             <Button
               className="md:hidden"
               onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              aria-haspopup="dialog"
             >
               <Menu />
             </Button>
@@ -81,44 +86,62 @@ export function Header() {
         </nav>
 
       </header>
-      {mobileMenuOpen && (
+      {/* Radix Dialog supplies the focus trap, Escape handling, scroll lock,
+          aria-modal and focus restoration to the menu trigger. */}
+      <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <DialogContent
+          showCloseButton={false}
+          aria-describedby={undefined}
+          className="top-0 left-0 translate-x-0 translate-y-0 max-w-none sm:max-w-none w-full h-dvh rounded-none border-0 p-0 shadow-none bg-black flex flex-col items-center justify-center gap-0 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100"
+          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 
-        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center min-h-dvh"
-          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-
-          <Button
-            className="absolute top-6 right-6 min-h-[44px] min-w-[44px]"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <X />
-          </Button>
-
-
-          {navigation.map((item) => (
-
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-2xl py-4 min-h-[64px] flex items-center gap-2"
+          <DialogClose asChild>
+            <Button
+              className="absolute top-6 right-6 min-h-[44px] min-w-[44px]"
+              aria-label="Close menu"
             >
-              {t(item.key)}
-              {item.showBadge && activePoolCount > 0 && (
-                <span className="text-xs bg-primary text-black px-1.5 py-0.5 rounded font-bold">
-                  {activePoolCount}
-                </span>
-              )}
-            </Link>
+              <X />
+            </Button>
+          </DialogClose>
 
-          ))}
+          <nav aria-label="Mobile" className="flex flex-col items-center">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                aria-current={pathname === item.href ? "page" : undefined}
+                className="text-2xl py-4 min-h-[64px] flex items-center gap-2"
+              >
+                {t(item.key)}
+                {item.showBadge && activePoolCount > 0 && (
+                  <span className="text-xs bg-primary text-black px-1.5 py-0.5 rounded font-bold">
+                    {activePoolCount}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
 
+          <nav aria-label="Mobile" className="flex flex-col items-center">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                aria-current={pathname === item.href ? "page" : undefined}
+                className="text-2xl py-4 min-h-[64px] flex items-center"
+              >
+                {t(item.key)}
+              </Link>
+            ))}
+          </nav>
 
           <WalletButton />
-
-        </div>
-
-      )}
-
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

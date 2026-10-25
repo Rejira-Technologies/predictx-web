@@ -9,6 +9,9 @@ function Progress({ className, value, ...props }: React.ComponentProps<typeof Pr
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
+      value={value}
+      max={props.max ?? 100}
+      aria-label={props["aria-label"] ?? "Progress"}
       className={cn("bg-background-secondary relative h-2 w-full overflow-hidden rounded-full", className)}
       {...props}
     >

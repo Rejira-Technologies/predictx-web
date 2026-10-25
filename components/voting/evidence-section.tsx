@@ -32,6 +32,8 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
             <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
+                aria-controls="evidence-section-panel"
                 className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none"
             >
                 <div className="flex items-center gap-3">
@@ -42,8 +44,26 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                         Match Evidence & Logs
                     </span>
                     <div className="group relative ml-2">
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <span
+                            tabIndex={0}
+                            role="button"
+                            aria-describedby="evidence-tooltip"
+                            aria-label="Evidence instructions"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.stopPropagation();
+                                }
+                            }}
+                            className="inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
+                        </span>
+                        <div
+                            id="evidence-tooltip"
+                            role="tooltip"
+                            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg"
+                        >
                             Review the evidence before voting to earn maximum rewards
                         </div>
                     </div>
@@ -56,6 +76,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
             <AnimatePresence initial={false}>
                 {isExpanded && (
                     <motion.div
+                        id="evidence-section-panel"
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -68,7 +89,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                                     <p className="text-muted-foreground text-sm font-medium">
                                         Evidence pending review
                                     </p>
-                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         This poll does not have evidence data yet. Check back after the match concludes.
                                     </p>
                                 </div>

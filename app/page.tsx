@@ -1,7 +1,5 @@
 import { Hero } from "@/components/hero"
-import { HomePlatformStats } from "@/components/home/platform-stats"
-import { TrendingPolls } from "@/components/home/trending-polls"
-import { UpcomingMatches } from "@/components/home/upcoming-matches"
+import { HomePlatformStats, TrendingPolls, UpcomingMatches } from "@/components/home"
 
 export default function Home() {
   return (
