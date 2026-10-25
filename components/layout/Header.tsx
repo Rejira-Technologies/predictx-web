@@ -15,6 +15,7 @@ const navigation = [
   { name: "Dashboard", key: "nav.dashboard", href: "/dashboard" },
   { name: "Voting", key: "nav.voting", href: "/voting", showBadge: true },
   { name: "How It Works", key: "nav.howItWorks", href: "/how-it-works" },
+  { name: "Settings", key: "nav.settings", href: "/settings" },
 ]
 
 export function Header() {

@@ -50,6 +50,16 @@ The test environment is `jsdom` (configured in `vitest.config.ts`), so DOM APIs 
 - `__tests__/upcoming-matches.test.ts` — Zustand store selector tests
 - `__tests__/analytics.test.ts` — module mocking with `vi.mock` / `vi.hoisted`
 
+Test files live in `__tests__/`. Any change that touches financial logic (`lib/calculations.ts`, `hooks/use-staking.ts`, `hooks/use-voting.ts`) must include or update unit tests.
+
+## Development Workflow
+
+1. Create a branch: `git checkout -b fix/your-topic`
+2. Make changes, then verify: `pnpm lint && pnpm typecheck && pnpm test`
+3. Open a PR against `main` and fill in the PR template
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor guide, commit message conventions, and code-review process.
+
 ## Environment Variables
 
 Create a `.env.local` file in the project root with the following variables:

@@ -17,6 +17,7 @@ export const translations: Record<SupportedLocale, Record<string, string>> = {
     "nav.dashboard": "Dashboard",
     "nav.voting": "Voting",
     "nav.howItWorks": "How It Works",
+    "nav.settings": "Settings",
     "wallet.connect": "Connect Wallet",
     "wallet.connected": "Connected",
     "wallet.disconnect": "Disconnect",
