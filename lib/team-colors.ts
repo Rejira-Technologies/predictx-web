@@ -30,6 +30,36 @@ export const TEAM_COLORS: Record<string, string> = {
   Wolves: "#FDB913",
 };
 
+export const TEAM_ABBREVIATIONS: Record<string, string> = {
+  Chelsea: "CHE",
+  "Manchester United": "MUN",
+  Arsenal: "ARS",
+  Liverpool: "LIV",
+  "Manchester City": "MCI",
+  Tottenham: "TOT",
+  Newcastle: "NEW",
+  "Aston Villa": "AVL",
+  Brighton: "BHA",
+  "West Ham": "WHU",
+  Everton: "EVE",
+  Wolves: "WOL",
+};
+
+/**
+ * Look up a team's canonical 3-letter abbreviation, falling back to
+ * a clean abbreviation derived from initials or name prefix.
+ */
+export function getTeamAbbreviation(teamName: string): string {
+  if (TEAM_ABBREVIATIONS[teamName]) {
+    return TEAM_ABBREVIATIONS[teamName];
+  }
+  const words = teamName.trim().split(/\s+/);
+  if (words.length > 1) {
+    return words.map((w) => w[0]).join("").slice(0, 3).toUpperCase();
+  }
+  return teamName.slice(0, 3).toUpperCase();
+}
+
 /**
  * Look up a team's primary colour, falling back to a neutral cyan if the team
  * is not in the map.  Using a single deterministic fallback means every

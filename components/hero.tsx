@@ -4,7 +4,7 @@ import { ArrowRight, Zap } from "lucide-react"
 import { Button } from "./ui/button"
 import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
-import { AnimatedCounter } from "@/components/shared"
+import { AnimatedCounter, GamingButton } from "@/components/shared"
 
 const WORDS = [
   { text: "Predict.", className: "text-glow-cyan text-primary" },
@@ -85,7 +85,7 @@ export function Hero() {
             className="mx-auto max-w-2xl text-lg sm:text-xl text-muted-foreground leading-relaxed mb-10"
             {...fadeUp(0.62)}
           >
-            Community-driven football prediction markets powered by blockchain. Stake on match events, vote on outcomes,
+            The community-driven football prediction market on Stellar. Create polls, stake crypto on match events, vote on outcomes,
             and earn proportional rewards from the pool.
           </motion.p>
 
@@ -94,16 +94,17 @@ export function Hero() {
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             {...fadeUp(0.75)}
           >
-            <Button
-              asChild
+            <GamingButton
+              variant="primary"
               size="lg"
-              className="bg-primary hover:bg-primary/90 text-background font-bold uppercase tracking-wider glow-cyan group h-14 px-8 transition-all hover:scale-105"
+              href="#matches"
+              className="glow-cyan uppercase tracking-wider font-bold h-14 px-8"
             >
-              <Link href="#matches" className="flex items-center gap-2">
-                Explore Markets
+              <span className="flex items-center gap-2">
+                Explore Matches
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
+              </span>
+            </GamingButton>
             <Button
               asChild
               variant="outline"

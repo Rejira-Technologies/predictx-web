@@ -32,8 +32,8 @@ interface MockDataState {
    * @param side     - Which pool the stake goes into.
    * @param amount   - USD amount staked.
    * @param walletAddress - Wallet that placed the stake. When provided,
-   *   `participants` reflects the number of *distinct* wallets, not
-   *   the total number of stake transactions.
+   *   `participants` reflects the seeded baseline plus the number of
+   *   *distinct* wallets, not the total number of stake transactions.
    */
   updatePollPool: (
     pollId: string,
@@ -113,7 +113,14 @@ export const useMockData = create<MockDataState>()(
                   ? [...currentStakers, walletAddress]
                   : currentStakers;
 
-              // participants = number of distinct wallets
+              // Seeded baseline: the participants value the source dataset
+              // ships with (e.g. 67). Live stakers only ever grow the count
+              // past this floor — assigning `updatedStakers.length` directly
+              // collapsed a "67 stakers" poll to "1" on the first stake.
+              const seededParticipants =
+                POLLS.find((seed) => seed.id === pollId)?.participants ?? 0;
+
+              // participants = seeded baseline + distinct live wallets
               // stakeCount   = total number of stake transactions
               return {
                 ...p,
@@ -122,7 +129,7 @@ export const useMockData = create<MockDataState>()(
                 stakeCount: (p.stakeCount ?? 0) + 1,
                 stakers: updatedStakers,
                 participants: walletAddress
-                  ? updatedStakers.length
+                  ? seededParticipants + updatedStakers.length
                   : p.participants + 1, // fallback: increment if no address given
               };
             }),
@@ -145,13 +152,71 @@ export const useMockData = create<MockDataState>()(
     {
       name: STORAGE_KEYS.pools,
       /**
+       * Partialize to mutable deltas only.
+       *
+       * `matches` and `polls` are seeded from compile-time constants (MATCHES /
+       * POLLS) and refreshed on every rehydration via `onRehydrateStorage`.
+       * Persisting the *entire* dataset on every `updatePollPool` call (which
+       * may be triggered by every keystroke / stake) results in a synchronous
+       * JSON.stringify of the full matches + polls payload for every write.
+       *
+       * Instead we persist only the mutable deltas:
+       *   - `polls`             — pool amounts and staker lists change at runtime.
+       *   - `userCreatedPollCount` — incremented by `addPoll`.
+       *
+       * `matches` and `platformStats` are never mutated at runtime, so they are
+       * excluded.  They are always re-seeded from the source constants.
+       */
+      partialize: (state) => ({
+        polls: state.polls,
+        userCreatedPollCount: state.userCreatedPollCount,
+      }),
+      /**
+       * Wrap setItem so a QuotaExceededError degrades gracefully.
+       *
+       * Without this guard the error escapes through the Zustand persist
+       * middleware and surfaces inside the action that triggered it (e.g.
+       * `updatePollPool`), at which point the in-memory state has already been
+       * updated but the change was not persisted — the worst possible outcome.
+       * We swallow the quota error and keep the in-memory update so the UI
+       * continues to work correctly for the rest of the session.
+       */
+      storage: {
+        getItem: (name) => {
+          const value = localStorage.getItem(name);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (err) {
+            if (
+              err instanceof DOMException &&
+              (err.name === "QuotaExceededError" ||
+                err.name === "NS_ERROR_DOM_QUOTA_REACHED")
+            ) {
+              if (process.env.NODE_ENV !== "production") {
+                console.warn(
+                  "[use-mock-data] localStorage quota exceeded — pool update persisted in memory only.",
+                );
+              }
+            } else {
+              throw err;
+            }
+          }
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
+      /**
        * After zustand rehydrates from localStorage, fix up two classes of
        * staleness that a returning user would otherwise see:
        *
        *  1. Timestamps relative to "now" (MATCHES is recomputed on every page
        *     load) plus poll status, which is driven by match status.
-       *  2. `participants`, which may be inflated relative to `stakers` from
-       *     before the recompute fix was applied.
+       *  2. `participants`, recomputed as the seeded baseline (the source
+       *     dataset's `participants` value) plus the distinct live stakers,
+       *     so a previously collapsed count is restored and the seed floor
+       *     is never overwritten by the length of the live `stakers` array.
        *
        * Pool-size mutations the user accumulated in-session are preserved.
        */
@@ -173,14 +238,17 @@ export const useMockData = create<MockDataState>()(
             next = { ...next, status: fresh.status };
           }
 
-          // Recompute `participants` from `stakers`.
+          // Recompute `participants` from the seeded baseline plus live
+          // stakers. Seeded polls ship a cosmetic participant count with an
+          // empty `stakers` array, so the live-wallet count alone would
+          // collapse "67 stakers" to "0"/"1" on the first stake or reload.
           if (!Array.isArray(next.stakers)) {
             next = { ...next, stakers: [], stakeCount: next.stakeCount ?? 0 };
-          } else {
-            const uniqueCount = new Set(next.stakers).size;
-            if (uniqueCount > 0 && uniqueCount !== next.participants) {
-              next = { ...next, participants: uniqueCount };
-            }
+          }
+          const uniqueCount = new Set(next.stakers).size;
+          const seededParticipants = fresh?.participants ?? 0;
+          if (seededParticipants + uniqueCount !== next.participants) {
+            next = { ...next, participants: seededParticipants + uniqueCount };
           }
 
           return next;

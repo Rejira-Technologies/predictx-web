@@ -48,7 +48,7 @@ export function VoteTally({
     let ConsensusIcon = null;
 
     if (hasVotes) {
-        if (unclearIsMajority) {
+if (unclearIsMajority) {
             // Unclear votes dominate — this is an unresolved / disputed outcome
             consensusColor = "text-danger text-glow-red";
             consensusText = "Unresolved — dispute likely";

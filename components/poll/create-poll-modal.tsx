@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
     X,
     CheckCircle2,
@@ -20,14 +21,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { MATCHES, type Poll, type PollCategory, type LockTime } from "@/lib/mock-data";
-import { POLL_QUESTION_MIN_LENGTH, POLL_QUESTION_MAX_LENGTH } from "@/lib/constants";
+import {
+    CREATE_POLL_FEE_XLM,
+    POLL_QUESTION_MIN_LENGTH,
+    POLL_QUESTION_MAX_LENGTH,
+    XLM_USD_RATE,
+} from "@/lib/constants";
 import { getLockTargetISO } from "@/lib/calculations";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useWallet } from "@/hooks/use-wallet";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
 import { GamingButton } from "@/components/shared/gaming-button";
+import { PollCard } from "@/components/poll-card";
 import { cn } from "@/lib/utils";
-import { CREATE_POLL_FEE_XLM } from "@/lib/constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,13 +165,17 @@ function generatePollId() {
 /** Step progress indicator */
 function StepIndicator({ step }: { step: number }) {
     return (
-        <div className="flex items-center gap-0 w-full px-1">
+        <div aria-label="Creation steps" className="flex items-center gap-0 w-full px-1">
             {STEPS.map((label, i) => {
                 const idx = i + 1;
                 const done = idx < step;
                 const active = idx === step;
                 return (
-                    <div key={label} className="flex items-center flex-1">
+                    <div
+                        key={label}
+                        className="flex items-center flex-1"
+                        aria-current={active ? "step" : undefined}
+                    >
                         <div className="flex flex-col items-center gap-1 flex-shrink-0">
                             <div
                                 className={cn(
@@ -196,50 +206,40 @@ function StepIndicator({ step }: { step: number }) {
     );
 }
 
-/** Inline mini poll preview rendered in step 3 & 4 */
+/** Live poll preview rendered with the canonical PollCard component (#329) */
 function PollPreview({ form, matchLabel }: { form: FormState; matchLabel: string }) {
-    const catLabel = CATEGORY_OPTIONS.find((c) => c.value === form.category)?.label ?? "Category";
+    const selectedMatch = MATCHES.find((m) => m.id === form.matchId);
     const hasQuestion = form.question.length >= 1;
 
+    const draftPoll: Poll = {
+        id: "draft-preview",
+        matchId: form.matchId || selectedMatch?.id || "",
+        question: hasQuestion ? form.question : "Your question will appear here...",
+        category: (form.category as PollCategory) || "player_event",
+        yesPool: 0,
+        noPool: 0,
+        participants: 0,
+        stakeCount: 0,
+        stakers: [],
+        status: "active",
+        lockTime: (form.lockTime as LockTime) || "kickoff",
+        recentActivity: "Draft poll preview",
+        lockTargetISO:
+            form.lockTime === "custom" && form.customLockTime
+                ? form.customLockTime
+                : undefined,
+    };
+
     return (
-        <div className="rounded-lg border border-primary/30 bg-[#0d1025]/80 p-4 space-y-3 text-sm relative overflow-hidden">
-            {/* your poll badge */}
-            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gold/20 text-gold text-[10px] font-bold uppercase tracking-wider rounded">
-                Your Poll
-            </div>
-
-            {/* category */}
-            <div className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider rounded">
-                {catLabel}
-            </div>
-
-            {/* question */}
-            <p className={cn("font-bold text-base leading-snug", !hasQuestion && "text-muted-foreground italic")}>
-                {hasQuestion ? form.question : "Your question will appear here..."}
-            </p>
-
-            {/* match */}
-            <p className="text-muted-foreground text-xs">{matchLabel}</p>
-
-            {/* pool bars */}
-            <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                    <span className="text-[#39ff14] font-bold">YES · $0</span>
-                    <span className="text-[#ff006e] font-bold">NO · $0</span>
-                </div>
-                <div className="relative h-3 bg-background rounded-full overflow-hidden flex">
-                    <div className="h-full bg-gradient-to-r from-[#39ff14] to-[#39ff14]/80 w-1/2" />
-                    <div className="h-full bg-gradient-to-l from-[#ff006e] to-[#ff006e]/80 w-1/2" />
-                </div>
-            </div>
-
-            {/* lock time */}
-            {form.lockTime && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{LOCK_OPTIONS.find((l) => l.value === form.lockTime)?.label ?? "—"}</span>
-                </div>
-            )}
+        <div className="relative pointer-events-none select-none">
+            <PollCard
+                poll={draftPoll}
+                match={selectedMatch}
+                matchId={selectedMatch?.id}
+                matchName={matchLabel}
+                variant="compact"
+                disableNavigation
+            />
         </div>
     );
 }
@@ -316,7 +316,10 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
         setSubmitError("");
 
         try {
-            await sendTransaction(CREATE_POLL_FEE_XLM, `Create poll: ${form.question}`);
+            await sendTransaction(
+                CREATE_POLL_FEE_XLM * XLM_USD_RATE,
+                `Create poll: ${form.question}`,
+            );
 
             // Compute the actual lock timestamp to persist on the poll so
             // downstream countdowns and stake gates always honour the exact
@@ -346,6 +349,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                 lockTime: (form.lockTime === "custom" ? "kickoff" : form.lockTime) as LockTime,
                 lockTargetISO,
                 recentActivity: "Just created",
+                createdAt: new Date().toISOString(),
             };
 
             addPoll(newPoll);
@@ -396,12 +400,15 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     const lockDisplay = selectedMatch ? getLockDisplay(form.lockTime, form.customLockTime, selectedMatch.kickoff) : "—";
     const showLivePreview = step >= 3;
 
+    // Radix Dialog supplies role="dialog", aria-modal, the focus trap, Escape
+    // and outside-click dismissal, and focus restoration to the trigger.
+    // Dismissal routes through handleClose, which refuses while submitting.
     return (
-        <>
+        <DialogPrimitive.Root open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+          <DialogPrimitive.Portal>
             {/* Overlay */}
-            <div
+            <DialogPrimitive.Overlay
                 className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
-                onClick={handleClose}
                 style={{
                     backgroundImage: "radial-gradient(circle at 50% 50%, rgba(0,217,255,0.03) 0%, transparent 70%)",
                     cursor: submitting ? "not-allowed" : "default",
@@ -410,6 +417,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
 
             {/* Modal */}
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none">
+              <DialogPrimitive.Content asChild aria-describedby={undefined}>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.92, y: 32 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -432,16 +440,18 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                     <div className="flex items-center justify-between px-6 py-4 border-b border-primary/20 flex-shrink-0">
                         <div className="flex items-center gap-2">
                             <Zap className="h-5 w-5 text-primary" />
-                            <span className="font-display text-primary uppercase tracking-widest text-sm font-bold">
+                            <DialogPrimitive.Title className="font-display text-primary uppercase tracking-widest text-sm font-bold">
                                 Create Prediction
-                            </span>
+                            </DialogPrimitive.Title>
                         </div>
                         <button
+                            type="button"
                             onClick={handleClose}
                             disabled={submitting}
+                            aria-label="Close"
                             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-sm hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                            <X className="h-5 w-5" />
+                            <X className="h-5 w-5" aria-hidden="true" />
                         </button>
                     </div>
 
@@ -454,7 +464,10 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                     <div className="flex flex-1 min-h-0">
                         {/* Form column */}
                         <div className="flex-1 flex flex-col min-h-0 overflow-auto">
-                            <div className="flex-1 px-6 pb-4">
+                            <div className="flex-1 px-6 pb-4" aria-live="polite" aria-atomic="true">
+                                <span className="sr-only">
+                                    Step {step} of 4: {STEPS[step - 1]}
+                                </span>
                                 <AnimatePresence mode="wait">
                                     {step === 1 && (
                                         <motion.div
@@ -549,7 +562,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                             <div className="text-xs text-muted-foreground mb-2 leading-relaxed">{cat.description}</div>
                                                             <div className="space-y-0.5">
                                                                 {cat.examples.map((ex) => (
-                                                                    <div key={ex} className="text-[10px] text-muted-foreground/70">• {ex}</div>
+                                                                    <div key={ex} className="text-[10px] text-muted-foreground">• {ex}</div>
                                                                 ))}
                                                             </div>
                                                         </button>
@@ -725,12 +738,16 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
 
                                             {/* Error */}
                                             {submitError && (
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#ff006e]/10 border border-[#ff006e]/30 text-sm text-[#ff006e]">
+                                                <div
+                                                    role="alert"
+                                                    aria-live="assertive"
+                                                    className="flex items-center gap-2 p-3 rounded-lg bg-[#ff006e]/10 border border-[#ff006e]/30 text-sm text-[#ff006e]"
+                                                >
                                                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                                                     <span className="flex-1">{submitError}</span>
                                                     <button
                                                         onClick={() => setSubmitError("")}
-                                                        className="text-[#ff006e]/70 hover:text-[#ff006e] text-xs underline"
+                                                        className="text-[#ff006e] hover:underline text-xs font-semibold underline"
                                                     >
                                                         Retry
                                                     </button>
@@ -790,6 +807,8 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                         variant="gold"
                                         size="sm"
                                         loading={submitting}
+                                        loadingLabel="Creating…"
+                                        success={success}
                                         disabled={!canGoNext() || submitting}
                                         onClick={handleSubmit}
                                     >
@@ -869,14 +888,18 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </motion.div>
-            </div>
 
-            {/* Wallet connect modal (auto-triggered when wallet not connected) */}
-            <WalletConnectModal
-                open={showWalletModal}
-                onClose={() => setShowWalletModal(false)}
-            />
-        </>
+                    {/* Wallet connect modal (auto-triggered when wallet not connected).
+                        Rendered inside Content so Radix treats it as a nested layer
+                        rather than an outside interaction that dismisses the wizard. */}
+                    <WalletConnectModal
+                        open={showWalletModal}
+                        onClose={() => setShowWalletModal(false)}
+                    />
+                </motion.div>
+              </DialogPrimitive.Content>
+            </div>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
     );
 }

@@ -10,11 +10,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps['theme']}
       className="toaster group"
+      toastOptions={{
+        style: {
+          background: "rgba(26, 31, 58, 0.95)",
+          border: "1px solid rgba(0, 217, 255, 0.3)",
+          color: "#e2e8f0",
+          fontFamily: "Barlow, sans-serif",
+          backdropFilter: "blur(12px)",
+        },
+        className: "predictx-toast",
+      }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
+          '--normal-bg': 'rgba(26, 31, 58, 0.95)',
+          '--normal-text': '#e2e8f0',
+          '--normal-border': 'rgba(0, 217, 255, 0.3)',
         } as React.CSSProperties
       }
       {...props}

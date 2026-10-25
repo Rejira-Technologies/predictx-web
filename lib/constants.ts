@@ -62,12 +62,6 @@ export const ADMIN_REVIEW_THRESHOLD = 0.6; // 60% consensus
  */
 export const DISPUTE_WINDOW_HOURS = 24;
 
-/**
- * Hours that community voting remains open after a poll is locked.
- * After this window, vote tallies determine the resolution pathway.
- * Soroban: mirrors `voting_window_seconds` (7200) in the contract.
- */
-export const VOTING_WINDOW_HOURS = 2;
 
 /* Stellar Network*/
 
@@ -182,7 +176,7 @@ export const MIN_STAKE_AMOUNT = 1; // USD
  * Cross-check against the contract source when deploying to mainnet (#63).
  */
 export const MIN_STAKE_AMOUNT_STROOPS = BigInt(
-  Math.round((MIN_STAKE_AMOUNT / XLM_USD_RATE) * 10_000_000),
+  Math.ceil((MIN_STAKE_AMOUNT / XLM_USD_RATE) * 10_000_000),
 ); // stroops — auto-derived from XLM_USD_RATE above
 
 /**
@@ -212,6 +206,6 @@ export const POLL_QUESTION_MIN_LENGTH = 10; // characters
  * always matches the amount actually debited from the creator's wallet.
  * Soroban: mirrors `poll_creation_fee_stroops` (10000 stroops = 0.001 XLM)
  * in the contract.
- * @example sendTransaction(CREATE_POLL_FEE_XLM, `Create poll: ${question}`)
+ * @example sendTransaction(CREATE_POLL_FEE_XLM * XLM_USD_RATE, `Create poll: ${question}`)
  */
 export const CREATE_POLL_FEE_XLM = 0.001; // XLM

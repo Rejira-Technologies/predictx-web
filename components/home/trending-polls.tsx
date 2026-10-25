@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Flame } from "lucide-react"
 import { PollCard } from "@/components/match/poll-card"
+import { PollCardSkeleton } from "@/components/ui/skeleton-card"
 import { useMockData } from "@/hooks/use-mock-data"
 
 /**
@@ -16,6 +17,12 @@ import { useMockData } from "@/hooks/use-mock-data"
  * session. Ties are broken by poll id for a stable sort.
  */
 export function TrendingPolls() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Narrow subscription — only re-render when the polls array reference changes.
   const polls = useMockData((state) => state.polls)
   // getMatch is a stable selector function; subscribe to it separately.
@@ -61,22 +68,30 @@ export function TrendingPolls() {
         </div>
 
         {/* Poll cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {trendingPolls.map((poll, index) => {
-            const match = getMatch(poll.matchId)
-            if (!match) return null
+        {!mounted ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <PollCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {trendingPolls.map((poll, index) => {
+              const match = getMatch(poll.matchId)
+              if (!match) return null
 
-            return (
-              <PollCard
-                key={poll.id}
-                poll={poll}
-                match={match}
-                isHottest={index === 0}
-                animationDelay={index * 100}
-              />
-            )
-          })}
-        </div>
+              return (
+                <PollCard
+                  key={poll.id}
+                  poll={poll}
+                  match={match}
+                  isHottest={index === 0}
+                  animationDelay={index * 100}
+                />
+              )
+            })}
+          </div>
+        )}
       </div>
     </section>
   )
