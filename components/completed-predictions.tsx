@@ -448,16 +448,6 @@ export function CompletedPredictions() {
                   : stake.amount);
               const payout = won ? calculateCompletedPayout(stake.amount, grossPayout) : null;
               const isClaiming = processingId === stake.id;
-        <div className="space-y-3">
-          {completedStakes.map((stake) => {
-            const won = stake.outcome === "won";
-            const grossPayout = calculateGrossPayout(
-              stake.amount,
-              stake.profit,
-              stake.grossPayout,
-            );
-            const payout = won ? calculateCompletedPayout(stake.amount, grossPayout) : null;
-            const isClaiming = processingId === stake.id;
 
               return (
                 <motion.div
