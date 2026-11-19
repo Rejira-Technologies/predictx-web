@@ -154,21 +154,6 @@ export function BadgeComponent({
               },
             }
       }
-      whileHover={{ scale: 1.05 }}
-      animate={{
-        boxShadow: [
-          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
-          `0 0 20px ${colors.glow}`,
-          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
-        ],
-      }}
-      transition={{
-        boxShadow: {
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      }}
     >
       {/* Holographic shine on hover */}
       <motion.div

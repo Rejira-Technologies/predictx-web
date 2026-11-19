@@ -81,6 +81,8 @@ export interface StellarClient {
   getAccountBalance: (publicKey: string, network?: StellarNetwork) => Promise<number>;
   getAccountSequence: (publicKey: string, network?: StellarNetwork) => Promise<string>;
   signAndSubmitTransaction: (txXdr: string) => Promise<never>;
+}
+
 /**
  * Returns the Horizon REST endpoint for the requested network.
  *

@@ -201,7 +201,6 @@ function WalletConfirmPopup({
 function ProcessingOverlay() {
   const shouldReduceMotion = useReducedMotion();
   return (
-return (
     <motion.div
       role="alert"
       aria-live="polite"
@@ -1240,7 +1239,11 @@ export function StakeModal({
                     </div>
 
                     <div className="flex-1 space-y-2 text-xs font-mono">
-                      {/* Legend rows show the base pool values so that
+                      {/* Pool legend (fixes #444): every row pairs the
+                          pre-stake amount with the pre-stake percentage
+                          (poolPct), so each row is internally consistent.
+                          The user's stake is shown on its own row and the
+                          Total row is the post-stake total, so
                           Yes + No + Your Stake = Total (no double-count). */}
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-sm bg-[#00d9ff]" />
@@ -1248,7 +1251,7 @@ export function StakeModal({
                           Yes Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.yesPool)} ({previewPct.yes}%)
+                          {formatCurrency(poll.yesPool)} ({poolPct.yes}%)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1257,7 +1260,7 @@ export function StakeModal({
                           No Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.noPool)} ({previewPct.no}%)
+                          {formatCurrency(poll.noPool)} ({poolPct.no}%)
                         </span>
                       </div>
                       {stakeAmount > 0 && (
