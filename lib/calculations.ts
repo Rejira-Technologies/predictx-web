@@ -8,9 +8,6 @@ export interface WinningsCalculation {
 	roi: number;
 }
 
-export const PLATFORM_FEE = PLATFORM_FEE_PERCENTAGE;
-const FEE = PLATFORM_FEE_PERCENTAGE;
-
 export function calculateGrossPayout(
 	stakeAmount: number,
 	profit?: number,
@@ -18,7 +15,7 @@ export function calculateGrossPayout(
 ): number {
 	if (storedGrossPayout != null) return storedGrossPayout;
 	if (profit == null) return stakeAmount;
-	return (stakeAmount + profit) / (1 - PLATFORM_FEE);
+	return (stakeAmount + profit) / (1 - PLATFORM_FEE_PERCENTAGE);
 }
 
 /**
@@ -31,10 +28,11 @@ export function calculateCompletedPayout(
 	stakeAmount: number,
 	grossPayout: number,
 ): { gross: number; fee: number; net: number; profit: number; roi: number } {
-	const fee = grossPayout * PLATFORM_FEE;
+	const fee = grossPayout * PLATFORM_FEE_PERCENTAGE;
 	const net = grossPayout - fee;
 	const profit = Number((net - stakeAmount).toFixed(2));
-	const roi = Number(((profit / stakeAmount) * 100).toFixed(2));
+	const roi =
+		stakeAmount > 0 ? Number(((profit / stakeAmount) * 100).toFixed(2)) : 0;
 	return { gross: grossPayout, fee, net, profit, roi };
 }
 

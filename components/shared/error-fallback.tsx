@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
 import { GlowCard } from "@/components/shared/glow-card";
@@ -15,7 +15,10 @@ interface ErrorFallbackProps {
 }
 
 export function ErrorFallback({ error, reset, context }: ErrorFallbackProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
   useEffect(() => {
+    headingRef.current?.focus();
     reportError(error, {
       route: typeof window !== "undefined" ? window.location.pathname : undefined,
       component: context,
@@ -32,7 +35,12 @@ export function ErrorFallback({ error, reset, context }: ErrorFallbackProps) {
           </div>
 
           {/* Title */}
-          <h1 className="font-display text-2xl font-black uppercase text-foreground">
+          <h1
+            ref={headingRef}
+            role="alert"
+            tabIndex={-1}
+            className="font-display text-2xl font-black uppercase text-foreground"
+          >
             Something went wrong
           </h1>
 
@@ -48,13 +56,22 @@ export function ErrorFallback({ error, reset, context }: ErrorFallbackProps) {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            <GamingButton variant="primary" size="md" onClick={reset}>
+            <GamingButton
+              variant="primary"
+              size="md"
+              onClick={reset}
+              className="focus-visible:ring-primary focus-visible:ring-offset-background"
+            >
               <RefreshCw className="mr-2 h-4 w-4" />
               Try Again
             </GamingButton>
 
             <Link href="/">
-              <GamingButton variant="ghost" size="md">
+              <GamingButton
+                variant="ghost"
+                size="md"
+                className="focus-visible:ring-primary focus-visible:ring-offset-background"
+              >
                 <Home className="mr-2 h-4 w-4" />
                 Go Home
               </GamingButton>

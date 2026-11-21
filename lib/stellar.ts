@@ -89,5 +89,5 @@ export interface StellarClient {
  *   // "https://horizon-testnet.stellar.org"
  */
 export function getHorizonUrl(network: StellarNetwork = "testnet"): string {
-  return HORIZON_URLS[network];
+  return NETWORK[network].horizonUrl;
 }

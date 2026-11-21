@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface GlobalErrorProps {
@@ -9,7 +9,11 @@ interface GlobalErrorProps {
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
   useEffect(() => {
+    headingRef.current?.focus();
+
     // Report to observability endpoint
     if (typeof window !== "undefined") {
       try {
@@ -83,6 +87,9 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
           {/* Title */}
           <h1
+            ref={headingRef}
+            role="alert"
+            tabIndex={-1}
             style={{
               margin: "0 0 0.5rem",
               fontSize: "1.5rem",
@@ -125,6 +132,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center" }}>
             <button
               onClick={() => window.location.reload()}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -150,6 +158,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 Useful for transient errors that may self-resolve. */}
             <button
               onClick={reset}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
               style={{
                 background: "none",
                 border: "none",

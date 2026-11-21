@@ -12,8 +12,8 @@ import {
   calculateCompletedPayout,
   calculatePotentialWinnings,
   calculatePoolPercentages,
-  PLATFORM_FEE,
 } from "@/lib/calculations";
+import { PLATFORM_FEE_PERCENTAGE } from "@/lib/constants";
 
 // ── calculateCompletedPayout ──────────────────────────────────────────────────
 
@@ -41,6 +41,11 @@ describe("calculateCompletedPayout", () => {
     expect(result.roi).toBeCloseTo(90, 2);
   });
 
+  it("returns a finite zero ROI for a non-positive stake", () => {
+    expect(calculateCompletedPayout(0, 100).roi).toBe(0);
+    expect(calculateCompletedPayout(-10, 100).roi).toBe(0);
+  });
+
   it("rounds profit and roi to 2 decimal places", () => {
     // 1/3 payout to trigger repeating decimals
     const result = calculateCompletedPayout(10, 10 / 3);
@@ -64,9 +69,9 @@ describe("calculateCompletedPayout", () => {
     expect(result.profit).toBeCloseTo(9_450, 2);
   });
 
-  it("PLATFORM_FEE is exactly 0.05", () => {
+  it("PLATFORM_FEE_PERCENTAGE is exactly 0.05", () => {
     // Validates the constant itself hasn't drifted
-    expect(PLATFORM_FEE).toBe(0.05);
+    expect(PLATFORM_FEE_PERCENTAGE).toBe(0.05);
   });
 });
 
