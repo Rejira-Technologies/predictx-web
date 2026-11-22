@@ -41,9 +41,15 @@ const description = "Stake on football match events, vote on outcomes, and win p
 
 // Absolute base for OpenGraph/Twitter image URLs. Set NEXT_PUBLIC_SITE_URL in
 // production; Vercel preview deployments fall back to VERCEL_URL.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+const siteUrl = (() => {
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.NODE_ENV === "production") {
+    return "https://predictx.app";
+  }
+  return "http://localhost:3000";
+})();
 
 export const viewport: Viewport = {
   themeColor: "#0a0e27",

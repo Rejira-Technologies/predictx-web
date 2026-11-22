@@ -209,3 +209,8 @@ export const POLL_QUESTION_MIN_LENGTH = 10; // characters
  * @example sendTransaction(CREATE_POLL_FEE_XLM * XLM_USD_RATE, `Create poll: ${question}`)
  */
 export const CREATE_POLL_FEE_XLM = 0.001; // XLM
+
+/**
+ * Community voting window in hours after poll locks.
+ */
+export const VOTING_WINDOW_HOURS = 2;
