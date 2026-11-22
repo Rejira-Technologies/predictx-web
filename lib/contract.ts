@@ -256,9 +256,16 @@ export async function getPolls(): Promise<Poll[]> {
         return nativeVal.map((p) => scValToPoll(StellarSdk.nativeToScVal(p)));
       }
     }
-    return DOMAIN_POLLS;
-  } catch {
-    return DOMAIN_POLLS;
+    if (USE_MOCK) {
+      return DOMAIN_POLLS;
+    }
+    throw new StellarError("Failed to fetch live polls from Soroban RPC", "NETWORK_ERROR");
+  } catch (err) {
+    if (USE_MOCK) {
+      return DOMAIN_POLLS;
+    }
+    if (err instanceof StellarError) throw err;
+    throw new StellarError("Live polls data unavailable from Soroban RPC", "NETWORK_ERROR", err);
   }
 }
 
@@ -283,9 +290,16 @@ export async function getPollById(pollId: string): Promise<Poll | null> {
     if (StellarSdk.rpc.Api.isSimulationSuccess(sim) && sim.result?.retval) {
       return scValToPoll(sim.result.retval);
     }
-    return DOMAIN_POLLS.find((p) => p.id === pollId) || null;
-  } catch {
-    return DOMAIN_POLLS.find((p) => p.id === pollId) || null;
+    if (USE_MOCK) {
+      return DOMAIN_POLLS.find((p) => p.id === pollId) || null;
+    }
+    return null;
+  } catch (err) {
+    if (USE_MOCK) {
+      return DOMAIN_POLLS.find((p) => p.id === pollId) || null;
+    }
+    if (err instanceof StellarError) throw err;
+    throw new StellarError(`Live poll ${pollId} unavailable from Soroban RPC`, "NETWORK_ERROR", err);
   }
 }
 
@@ -323,9 +337,16 @@ export async function getUserStakes(publicKey: string): Promise<Stake[]> {
         return nativeStakes.map((s) => scValToStake(StellarSdk.nativeToScVal(s)));
       }
     }
-    return DOMAIN_STAKES.filter((s) => !publicKey || s.userId === publicKey);
-  } catch {
-    return DOMAIN_STAKES.filter((s) => !publicKey || s.userId === publicKey);
+    if (USE_MOCK) {
+      return DOMAIN_STAKES.filter((s) => !publicKey || s.userId === publicKey);
+    }
+    throw new StellarError("Failed to fetch user stakes from Soroban RPC", "NETWORK_ERROR");
+  } catch (err) {
+    if (USE_MOCK) {
+      return DOMAIN_STAKES.filter((s) => !publicKey || s.userId === publicKey);
+    }
+    if (err instanceof StellarError) throw err;
+    throw new StellarError("Live user stakes unavailable from Soroban RPC", "NETWORK_ERROR", err);
   }
 }
 
@@ -350,15 +371,22 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     if (StellarSdk.rpc.Api.isSimulationSuccess(sim) && sim.result?.retval) {
       const raw = StellarSdk.scValToNative(sim.result.retval) as Record<string, any>;
       return {
-        totalValueLocked: Number(raw.total_value_locked ?? PLATFORM_STATS.totalValueLocked),
-        activePredictions: Number(raw.active_predictions ?? PLATFORM_STATS.activePredictions),
-        communityMembers: Number(raw.community_members ?? PLATFORM_STATS.communityMembers),
-        totalPayouts: Number(raw.total_payouts ?? PLATFORM_STATS.totalPayouts),
+        totalValueLocked: Number(raw?.total_value_locked ?? 0),
+        activePredictions: Number(raw?.active_predictions ?? 0),
+        communityMembers: Number(raw?.community_members ?? 0),
+        totalPayouts: Number(raw?.total_payouts ?? 0),
       };
     }
-    return PLATFORM_STATS;
-  } catch {
-    return PLATFORM_STATS;
+    if (USE_MOCK) {
+      return PLATFORM_STATS;
+    }
+    throw new StellarError("Failed to fetch platform stats from Soroban RPC", "NETWORK_ERROR");
+  } catch (err) {
+    if (USE_MOCK) {
+      return PLATFORM_STATS;
+    }
+    if (err instanceof StellarError) throw err;
+    throw new StellarError("Live platform stats unavailable from Soroban RPC", "NETWORK_ERROR", err);
   }
 }
 

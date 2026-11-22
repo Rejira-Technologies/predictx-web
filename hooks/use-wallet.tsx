@@ -220,12 +220,16 @@ export const useWallet = create<WalletState>()(
         // rewards. Imported lazily: both hooks depend on this module, so a
         // top-level import would be a cycle at module-evaluation time.
         if (address) {
-          const { useStaking } = require("@/hooks/use-staking") as
-            typeof import("@/hooks/use-staking");
-          const { useVoting } = require("@/hooks/use-voting") as
-            typeof import("@/hooks/use-voting");
-          useStaking.getState().clearWalletStakes(address);
-          useVoting.getState().clearWalletVotes(address);
+          import("@/hooks/use-staking")
+            .then(({ useStaking }) => {
+              useStaking.getState().clearWalletStakes(address);
+            })
+            .catch(() => {});
+          import("@/hooks/use-voting")
+            .then(({ useVoting }) => {
+              useVoting.getState().clearWalletVotes(address);
+            })
+            .catch(() => {});
 
           // Release the per-address transaction latch so that reconnecting
           // this (or any other) wallet is never blocked by a transaction that
@@ -392,21 +396,23 @@ export const useWallet = create<WalletState>()(
             throw new Error("Insufficient balance");
           }
 
-          // simulate network latency (1-2 s)
-          await new Promise((r) =>
-            setTimeout(r, 1000 + Math.random() * 1000),
-          );
+          // simulate network latency (1-2 s) only in demo / mock mode
+          if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+            await new Promise((r) =>
+              setTimeout(r, 1000 + Math.random() * 1000),
+            );
 
-        // 5 % failure rate
-        if (Math.random() < 0.05) {
-          const reasons = [
-            "Network congestion — try again shortly",
-            "Transaction timeout — Stellar Horizon did not respond",
-          ];
-          throw new Error(
-            reasons[Math.floor(Math.random() * reasons.length)],
-          );
-        }
+            // 5 % failure rate for demo mode simulation
+            if (Math.random() < 0.05) {
+              const reasons = [
+                "Network congestion — try again shortly",
+                "Transaction timeout — Stellar Horizon did not respond",
+              ];
+              throw new Error(
+                reasons[Math.floor(Math.random() * reasons.length)],
+              );
+            }
+          }
 
           // build mock receipt
           const hashBytes = Array.from({ length: 32 }, () =>
