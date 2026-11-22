@@ -6,10 +6,8 @@ import { MatchCard } from "./match-card";
 import { MatchCardSkeleton } from "@/components/ui/skeleton-card";
 import { useMockData } from "@/hooks/use-mock-data";
 import { countPollsByStatus } from "@/lib/poll-status";
+import { filterMatches, type FilterType } from "@/lib/match-filters";
 import { GamingButton } from "@/components/shared/gaming-button";
-import type { Match } from "@/lib/mock-data";
-
-type FilterType = "all" | "live" | "today" | "week";
 
 const FILTER_LABELS: { key: FilterType; label: string }[] = [
     { key: "all", label: "All" },
@@ -17,39 +15,6 @@ const FILTER_LABELS: { key: FilterType; label: string }[] = [
     { key: "today", label: "Today" },
     { key: "week", label: "This Week" },
 ];
-
-function isSameCalendarDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
-function filterMatches(matches: Match[], filter: FilterType): Match[] {
-    if (filter === "all") return matches;
-
-    const now = new Date();
-
-    if (filter === "live") {
-        return matches.filter((m) => m.status === "live");
-    }
-
-    if (filter === "today") {
-        return matches.filter((m) => isSameCalendarDay(new Date(m.kickoff), now));
-    }
-
-    if (filter === "week") {
-        const sevenDaysFromNow = new Date(now);
-        sevenDaysFromNow.setDate(now.getDate() + 7);
-        return matches.filter((m) => {
-            const kickoff = new Date(m.kickoff);
-            return kickoff >= now && kickoff <= sevenDaysFromNow;
-        });
-    }
-
-    return matches;
-}
 
 export function UpcomingMatches() {
     const [mounted, setMounted] = useState(false);

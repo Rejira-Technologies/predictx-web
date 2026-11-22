@@ -6,7 +6,8 @@
  * and that live / completed fixtures are excluded.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { afterEach, describe, it, expect, beforeEach, vi } from "vitest";
+import { filterMatches } from "@/lib/match-filters";
 import { useMockData } from "@/hooks/use-mock-data";
 import type { Match } from "@/lib/mock-data";
 
@@ -15,6 +16,10 @@ import type { Match } from "@/lib/mock-data";
 function setState(matches: Match[]) {
   useMockData.setState({ matches });
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 // ── Shared base fixture (all non-status fields) ───────────────────────────────
 
@@ -70,5 +75,18 @@ describe("getUpcomingMatches selector", () => {
     ]);
     const result = useMockData.getState().getUpcomingMatches();
     expect(result).toHaveLength(3);
+  });
+});
+
+describe("filterMatches week filter", () => {
+  it("includes matches that kicked off earlier today", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-22T18:00:00"));
+    const matches: Match[] = [
+      { ...base, id: "today", status: "live", kickoff: "2026-11-22T10:00:00" },
+      { ...base, id: "past", status: "completed", kickoff: "2026-11-21T10:00:00" },
+    ];
+
+    expect(filterMatches(matches, "week").map((match) => match.id)).toEqual(["today"]);
   });
 });

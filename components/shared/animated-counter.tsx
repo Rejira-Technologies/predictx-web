@@ -44,9 +44,22 @@ export function AnimatedCounter({
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
   const animationRef = useRef<number | null>(null);
+  const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (shakeTimeoutRef.current !== null) {
+        clearTimeout(shakeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (shouldReduceMotion) {
+      if (shakeTimeoutRef.current !== null) {
+        clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
+      }
       setDisplayValue(value);
       setPrevValue(value);
       setIsAnimating(false);
@@ -55,6 +68,11 @@ export function AnimatedCounter({
     }
 
     if (value !== prevValue) {
+      if (shakeTimeoutRef.current !== null) {
+        clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
+      }
+
       const delta = Math.abs(value - prevValue);
       const percentageChange = prevValue !== 0 ? delta / prevValue : 0;
 
@@ -77,10 +95,14 @@ export function AnimatedCounter({
         if (progress < 1) {
           animationRef.current = requestAnimationFrame(animate);
         } else {
+          animationRef.current = null;
           setDisplayValue(value);
           setPrevValue(value);
           setIsAnimating(false);
-          setTimeout(() => setShouldShake(false), 500);
+          shakeTimeoutRef.current = setTimeout(() => {
+            shakeTimeoutRef.current = null;
+            setShouldShake(false);
+          }, 500);
         }
       };
 
