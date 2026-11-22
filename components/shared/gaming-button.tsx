@@ -24,6 +24,8 @@ interface GamingButtonProps {
   disabled?: boolean;
   success?: boolean; // brief green flash after action
   loadingLabel?: string;
+  "aria-disabled"?: boolean;
+  "aria-busy"?: boolean;
   onClick?: () => void;
   /** When provided the button renders as a Next.js <Link> pointing to this URL. */
   href?: string;
@@ -113,6 +115,8 @@ function GamingButtonShell({
   disabled = false,
   success = false,
   loadingLabel,
+  "aria-disabled": ariaDisabled,
+  "aria-busy": ariaBusy,
   onClick,
   children,
   className,
@@ -334,6 +338,8 @@ function GamingButtonShell({
       ref={buttonRef as React.Ref<HTMLButtonElement>}
       type={type}
       disabled={isDisabled}
+      aria-disabled={ariaDisabled}
+      aria-busy={ariaBusy}
       className={sharedClassName}
       style={sharedStyle}
       onClick={handleClick}

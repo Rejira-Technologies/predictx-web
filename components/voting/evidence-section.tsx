@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ExternalLink, Info, PlayCircle, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const getMockEvidence = (matchId: string) => {
 
 export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const panelId = useId();
     const evidenceData = getMockEvidence(matchId);
     const events = evidenceData?.timeline || [];
 
@@ -33,7 +34,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
                 aria-expanded={isExpanded}
-                aria-controls="evidence-section-panel"
+                aria-controls={panelId}
                 className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none"
             >
                 <div className="flex items-center gap-3">
@@ -76,7 +77,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
             <AnimatePresence initial={false}>
                 {isExpanded && (
                     <motion.div
-                        id="evidence-section-panel"
+                        id={panelId}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}

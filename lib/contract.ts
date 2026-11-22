@@ -21,10 +21,13 @@ import {
   MOCK_STAKES as MOCK_RAW_STAKES,
   PLATFORM_STATS,
 } from "./mock-data";
+import { STELLAR_BASE_FEE } from "./constants";
 import type { Poll, Stake, PlatformStats, StellarPublicKey } from "@/types";
 
 export { StellarError };
 export type { StellarErrorCode };
+
+const STELLAR_BASE_FEE_STRING = String(STELLAR_BASE_FEE);
 
 /**
  * Toggle between mock and live on-chain data.
@@ -189,7 +192,7 @@ export async function executeContractCall(
     // 2. Build transaction
     const contract = new StellarSdk.Contract(contractId);
     const tx = new StellarSdk.TransactionBuilder(account, {
-      fee: "100", // 100 stroops base fee
+      fee: STELLAR_BASE_FEE_STRING,
       networkPassphrase,
     })
       .addOperation(contract.call(method, ...args))
@@ -243,7 +246,7 @@ export async function getPolls(): Promise<Poll[]> {
     // Simulation call for read operation
     const tx = new StellarSdk.TransactionBuilder(
       new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
-      { fee: "100", networkPassphrase }
+      { fee: STELLAR_BASE_FEE_STRING, networkPassphrase }
     )
       .addOperation(contract.call("get_polls"))
       .setTimeout(30)
@@ -273,7 +276,7 @@ export async function getPollById(pollId: string): Promise<Poll | null> {
     const contract = new StellarSdk.Contract(POLL_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
       new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
-      { fee: "100", networkPassphrase }
+      { fee: STELLAR_BASE_FEE_STRING, networkPassphrase }
     )
       .addOperation(contract.call("get_poll", StellarSdk.nativeToScVal(pollId, { type: "string" })))
       .setTimeout(30)
@@ -308,7 +311,7 @@ export async function getUserStakes(publicKey: string): Promise<Stake[]> {
     const contract = new StellarSdk.Contract(PREDICTION_MARKET_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
       new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
-      { fee: "100", networkPassphrase }
+      { fee: STELLAR_BASE_FEE_STRING, networkPassphrase }
     )
       .addOperation(
         contract.call("get_user_stakes", new StellarSdk.Address(publicKey).toScVal())
@@ -340,7 +343,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     const contract = new StellarSdk.Contract(PREDICTION_MARKET_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
       new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
-      { fee: "100", networkPassphrase }
+      { fee: STELLAR_BASE_FEE_STRING, networkPassphrase }
     )
       .addOperation(contract.call("get_platform_stats"))
       .setTimeout(30)

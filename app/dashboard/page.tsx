@@ -24,7 +24,17 @@ export default function DashboardPage() {
           Next.js requires any component that calls useSearchParams to be
           wrapped in a Suspense boundary during static rendering.
         */}
-        <Suspense fallback={<div className="h-14 bg-surface border-2 border-border rounded animate-pulse" />}>
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-label="Loading predictions"
+              className="min-h-[6.5rem] sm:h-14 mb-8 p-4 bg-surface border-2 border-border rounded animate-pulse flex items-center text-sm text-muted-foreground"
+            >
+              Loading predictions
+            </div>
+          }
+        >
           <DashboardTabs />
         </Suspense>
       </div>

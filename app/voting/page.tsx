@@ -22,6 +22,7 @@ export default function VotingCenterPage() {
   const accuracy = getAccuracy();
 
   const handleConnect = async () => {
+    if (isConnecting) return;
     try {
       await connect();
     } catch {
@@ -47,9 +48,18 @@ export default function VotingCenterPage() {
           <p className="text-muted-foreground">
             Connect your wallet to access the Resolution Arena, vote on match outcomes, and earn rewards for your accurate judgments.
           </p>
-          <GamingButton variant="primary" onClick={handleConnect} disabled={isConnecting} className="w-full h-14 text-lg">
+          <GamingButton
+            variant="primary"
+            onClick={handleConnect}
+            aria-disabled={isConnecting}
+            aria-busy={isConnecting}
+            className="w-full h-14 text-lg"
+          >
             {isConnecting ? "Connecting..." : "Connect Wallet"}
           </GamingButton>
+          <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {isConnecting ? "Connecting to wallet..." : ""}
+          </span>
         </motion.div>
       </main>
     );
