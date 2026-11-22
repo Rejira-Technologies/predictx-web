@@ -117,6 +117,12 @@ const DOMAIN_STAKES: Stake[] = MOCK_RAW_STAKES.map(toDomainStake);
 /**
  * Dynamically import freighter signTransaction in client environment
  */
+/**
+ * Shared dummy account used strictly for building read-only Soroban contract simulation transactions.
+ * Pure simulation calls only evaluate contract storage and state without submitting to consensus.
+ */
+export const SIMULATION_SOURCE_ACCOUNT = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+
 async function signWithFreighter(xdrString: string): Promise<string> {
   try {
     const freighter = await import("@stellar/freighter-api");
@@ -126,7 +132,11 @@ async function signWithFreighter(xdrString: string): Promise<string> {
     if (!result) {
       throw new StellarError("Transaction signing was cancelled by the user", "USER_REJECTED");
     }
-    return typeof result === "string" ? result : (result as any).signedTxXdr || xdrString;
+    const signedXdr = typeof result === "string" ? result : (result as any)?.signedTxXdr;
+    if (!signedXdr || typeof signedXdr !== "string") {
+      throw new StellarError("Wallet did not return signed transaction XDR", "USER_REJECTED");
+    }
+    return signedXdr;
   } catch (err: any) {
     if (err instanceof StellarError) throw err;
     if (err?.message?.includes("User declined") || err?.message?.includes("reject") || err?.message?.includes("cancel")) {
@@ -144,10 +154,12 @@ async function pollTransactionStatus(
   maxAttempts = 10,
   intervalMs = 1500,
 ): Promise<TransactionResult> {
+  let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
       const txResponse = await sorobanServer.getTransaction(txHash);
+      consecutiveErrors = 0;
       if (txResponse.status === "SUCCESS") {
         return {
           status: "SUCCESS",
@@ -162,8 +174,11 @@ async function pollTransactionStatus(
           error: "Transaction execution failed on ledger",
         };
       }
-    } catch {
-      // Continue polling
+    } catch (err) {
+      consecutiveErrors++;
+      if (consecutiveErrors >= 5) {
+        throw new StellarError("Soroban RPC transaction polling encountered consecutive network errors", "NETWORK_ERROR", err);
+      }
     }
   }
   return { status: "PENDING", hash: txHash };
@@ -242,7 +257,7 @@ export async function getPolls(): Promise<Poll[]> {
     const contract = new StellarSdk.Contract(POLL_CONTRACT);
     // Simulation call for read operation
     const tx = new StellarSdk.TransactionBuilder(
-      new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
+      new StellarSdk.Account(SIMULATION_SOURCE_ACCOUNT, "0"),
       { fee: "100", networkPassphrase }
     )
       .addOperation(contract.call("get_polls"))
@@ -272,7 +287,7 @@ export async function getPollById(pollId: string): Promise<Poll | null> {
   try {
     const contract = new StellarSdk.Contract(POLL_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
-      new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
+      new StellarSdk.Account(SIMULATION_SOURCE_ACCOUNT, "0"),
       { fee: "100", networkPassphrase }
     )
       .addOperation(contract.call("get_poll", StellarSdk.nativeToScVal(pollId, { type: "string" })))
@@ -307,7 +322,7 @@ export async function getUserStakes(publicKey: string): Promise<Stake[]> {
   try {
     const contract = new StellarSdk.Contract(PREDICTION_MARKET_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
-      new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
+      new StellarSdk.Account(SIMULATION_SOURCE_ACCOUNT, "0"),
       { fee: "100", networkPassphrase }
     )
       .addOperation(
@@ -339,7 +354,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   try {
     const contract = new StellarSdk.Contract(PREDICTION_MARKET_CONTRACT);
     const tx = new StellarSdk.TransactionBuilder(
-      new StellarSdk.Account("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7", "0"),
+      new StellarSdk.Account(SIMULATION_SOURCE_ACCOUNT, "0"),
       { fee: "100", networkPassphrase }
     )
       .addOperation(contract.call("get_platform_stats"))
