@@ -266,3 +266,27 @@ export function getVotingDeadline(
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
 }
+
+export const VOTING_WINDOW_HOURS = VOTING_WINDOW_MS / (60 * 60 * 1000);
+
+export function getVotingDeadlineISO(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+): string {
+	const deadlineMs = getVotingDeadline(poll, match);
+	if (Number.isNaN(deadlineMs)) return "";
+	return new Date(deadlineMs).toISOString();
+}
+
+export function isVotingOpen(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string; status?: string },
+	match: { kickoff: string } | undefined,
+	now: number = Date.now()
+): boolean {
+	if (!match) return false;
+	const deadline = getVotingDeadline(poll, match);
+	if (Number.isNaN(deadline)) return false;
+	const lockISO = getLockTargetISO(match.kickoff, poll.lockTime, poll.lockTargetISO);
+	const lockTime = new Date(lockISO).getTime();
+	return now >= lockTime && now < deadline;
+}
