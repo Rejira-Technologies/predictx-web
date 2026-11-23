@@ -449,8 +449,6 @@ export const useWallet = create<WalletState>()(
         set((s) => ({ balance: s.balance - amountXLM - feeXLM }));
 
         return receipt;
-
-          return receipt;
         } finally {
           transactionsInFlight.delete(state.address);
         }

@@ -62,8 +62,13 @@ export const useTransactions = create<TransactionsState>()(
        */
       storage: {
         getItem: (name) => {
-          const value = localStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
+          if (typeof window === "undefined") return null;
+          try {
+            const value = localStorage.getItem(name);
+            return value ? JSON.parse(value) : null;
+          } catch {
+            return null;
+          }
         },
         setItem: (name, value) => {
           try {

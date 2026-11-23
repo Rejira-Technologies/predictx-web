@@ -4,6 +4,8 @@ import { ExternalLink, ArrowUpRight, ArrowDownLeft, Vote, Plus, AlertCircle } fr
 import { motion } from "framer-motion";
 import { EmptyState } from "./shared/empty-state";
 import { useTransactions } from "@/hooks/use-transactions";
+import { useWallet } from "@/hooks/use-wallet";
+import { STELLAR_NETWORKS } from "@/lib/constants";
 import type { Transaction } from "@/lib/mock-data";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -56,6 +58,8 @@ const TYPE_META: Record<
 
 function TransactionRow({ tx, index }: { tx: Transaction; index: number }) {
   const meta = TYPE_META[tx.type];
+  const network = useWallet((s) => s.network);
+  const explorerBase = STELLAR_NETWORKS[network]?.explorerUrl ?? "https://stellar.expert/explorer/testnet";
   const Icon = meta.icon;
   const isPositive = meta.amountPrefix === "+";
 
@@ -100,7 +104,7 @@ function TransactionRow({ tx, index }: { tx: Transaction; index: number }) {
               <span className="font-mono">
                 Hash:{" "}
                 <a
-                  href={`https://stellar.expert/explorer/testnet/tx/${tx.hash}`}
+                  href={`${explorerBase}/tx/${tx.hash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-0.5"

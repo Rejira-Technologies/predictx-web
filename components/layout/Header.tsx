@@ -126,20 +126,6 @@ export function Header() {
             ))}
           </nav>
 
-          <nav aria-label="Mobile" className="flex flex-col items-center">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                aria-current={pathname === item.href ? "page" : undefined}
-                className="text-2xl py-4 min-h-[64px] flex items-center"
-              >
-                {t(item.key)}
-              </Link>
-            ))}
-          </nav>
-
           <WalletButton />
         </DialogContent>
       </Dialog>

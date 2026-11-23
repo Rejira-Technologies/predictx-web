@@ -22,7 +22,7 @@ import { GamingTabs } from "./shared/gaming-tabs";
 import { useStaking } from "@/hooks/use-staking";
 import { useWallet } from "@/hooks/use-wallet";
 import { calculateCompletedPayout, calculateGrossPayout } from "@/lib/calculations";
-import { XLM_USD_RATE } from "@/lib/constants";
+import { XLM_USD_RATE, STELLAR_NETWORKS } from "@/lib/constants";
 import type { Stake } from "@/lib/mock-data";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -217,6 +217,8 @@ function ClaimConfirmDialog({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function CompletedPredictions() {
+  const network = useWallet((s) => s.network);
+  const explorerBase = STELLAR_NETWORKS[network]?.explorerUrl ?? "https://stellar.expert/explorer/testnet";
   // Select the stable `stakes` slice — calling completedStakes() inside a
   // selector allocates a new array on every read, which fails
   // useSyncExternalStore's identity check and causes an infinite render loop.
@@ -497,7 +499,7 @@ export function CompletedPredictions() {
                         <div className="flex items-center gap-1 font-mono text-[11px]">
                           <span className="text-muted-foreground">Tx:</span>
                           <a
-                            href={`https://stellar.expert/explorer/testnet/tx/${stake.transactionHash}`}
+                            href={`${explorerBase}/tx/${stake.transactionHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-foreground/80 hover:text-primary transition-colors underline decoration-dotted"
