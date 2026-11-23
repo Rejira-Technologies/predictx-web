@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Clock, Users, Info, Lock, Zap } from "lucide-react"
 import { GamingButton, TeamBadge, PoolProgressBar } from "@/components/shared"
@@ -9,7 +9,7 @@ import { StakeModal } from "@/components/staking"
 import { useWallet } from "@/hooks/use-wallet"
 import { useUIStore } from "@/lib/ui-store"
 import { useCountdown } from "@/hooks/use-countdown"
-import type { Poll, Match, PollCategory, LockTime } from "@/lib/mock-data"
+import type { Poll, Match, LockTime } from "@/lib/mock-data"
 import { lockTimeLabel } from "@/lib/mock-data"
 import { getLockTargetISO, isPollLocked } from "@/lib/calculations"
 import { getTeamColor } from "@/lib/team-colors"
@@ -102,6 +102,8 @@ export function PollCard({
   const { openWalletConnect } = useUIStore()
   const [showStakeModal, setShowStakeModal] = useState(false)
   const [pendingStake, setPendingStake] = useState(false)
+  // A stake requested while disconnected opens the modal once the wallet connects.
+  const stakeModalOpen = showStakeModal || (isConnected && pendingStake)
   const [initialSide, setInitialSide] = useState<"yes" | "no">("yes")
 
   const effectiveMatchId = matchId || poll.matchId || match?.id || ""
@@ -110,9 +112,7 @@ export function PollCard({
 
   const total = poll.yesPool + poll.noPool
   const yesPercentage = total > 0 ? (poll.yesPool / total) * 100 : 50
-  const noPercentage = 100 - yesPercentage
   const yesPercent = Math.round(yesPercentage)
-  const noPercent = 100 - yesPercent
 
   const isActive = !poll.status || poll.status === "active"
   const isResolved = poll.status === "resolved"
@@ -135,14 +135,6 @@ export function PollCard({
     label: poll.category ? String(poll.category).replace("_", " ") : "Poll",
     className: "bg-primary/20 text-primary border border-primary/40",
   }
-
-  // Handle wallet connect callback for pending stakes
-  useEffect(() => {
-    if (isConnected && pendingStake) {
-      setPendingStake(false)
-      setShowStakeModal(true)
-    }
-  }, [isConnected, pendingStake])
 
   const openStake = (side: "yes" | "no") => {
     if (!acceptsStakes) return
@@ -330,8 +322,11 @@ export function PollCard({
           poll={poll}
           matchId={effectiveMatchId}
           matchName={effectiveMatchName}
-          open={showStakeModal}
-          onClose={() => setShowStakeModal(false)}
+          open={stakeModalOpen}
+          onClose={() => {
+            setShowStakeModal(false)
+            setPendingStake(false)
+          }}
         />
       </>
     )
@@ -456,8 +451,11 @@ export function PollCard({
           matchId={effectiveMatchId}
           matchName={effectiveMatchName}
           initialSide={initialSide}
-          open={showStakeModal}
-          onClose={() => setShowStakeModal(false)}
+          open={stakeModalOpen}
+          onClose={() => {
+            setShowStakeModal(false)
+            setPendingStake(false)
+          }}
         />
       )}
     </>

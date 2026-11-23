@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, useReducedMotion } from "framer-motion"
-import { Trophy, MapPin, Calendar, Clock, Shield } from "lucide-react"
+import { MapPin, Calendar, Clock, Shield } from "lucide-react"
 import { GlowCard, TeamBadge, CountdownTimer } from "@/components/shared"
 import type { Match } from "@/lib/mock-data"
 import type { Team } from "@/components/shared/team-badge"

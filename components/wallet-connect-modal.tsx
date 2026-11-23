@@ -60,12 +60,14 @@ export function WalletConnectModal({ open, onClose }: WalletConnectModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 mt-4">
+        <div className="space-y-3 mt-4" aria-busy={isConnecting}>
           {wallets.map((wallet) => (
             <Button
               key={wallet.name}
-              onClick={() => handleConnect(wallet.name)}
-              disabled={isConnecting}
+              onClick={() => {
+                if (!isConnecting) handleConnect(wallet.name);
+              }}
+              aria-disabled={isConnecting || undefined}
               variant="outline"
               className="
                 w-full
@@ -126,6 +128,13 @@ export function WalletConnectModal({ open, onClose }: WalletConnectModalProps) {
               </div>
             </Button>
           ))}
+        </div>
+
+        {/* Live region announces the connecting state to assistive tech */}
+        <div role="status" aria-live="polite" className="sr-only">
+          {isConnecting && selectedWallet
+            ? `Connecting to ${selectedWallet}...`
+            : ""}
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-6">

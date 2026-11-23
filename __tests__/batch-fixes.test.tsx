@@ -1,14 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
 import path from "path";
-import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import { Progress } from "@/components/ui/progress";
 import { AchievementToast } from "@/components/shared/achievement-toast";
 
+declare global {
+  // React 19 act() environment flag; `var` is required for global augmentation.
+  var IS_REACT_ACT_ENVIRONMENT: boolean;
+}
+
 // Configure react act environment for React 19 in jsdom
-(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("Issue #322 - CSS cascade layers", () => {
   it("ensures responsive 44px touch targets are placed inside @layer base", () => {

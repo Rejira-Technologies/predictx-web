@@ -56,7 +56,7 @@ export function MatchStatsBar({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
     >
-      {stats.map((s, i) => (
+      {stats.map((s) => (
         <GlowCard key={s.label} variant={s.variant} className="p-4" animated>
           <div className="relative z-20 flex items-center gap-3">
             <GlowIcon

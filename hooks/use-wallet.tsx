@@ -9,7 +9,6 @@ import {
   STELLAR_NETWORKS,
   XLM_USD_RATE,
 } from "@/lib/constants";
-import { formatAddress } from "@/lib/calculations";
 import { STORAGE_KEYS } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
@@ -157,16 +156,18 @@ export const useWallet = create<WalletState>()(
             return;
           }
 
-          const accessResponse = await requestAccess();
+          const accessResponse = (await requestAccess()) as
+            | string
+            | { error?: string; address?: string };
 
-          if ((accessResponse as any).error) {
-            throw new Error((accessResponse as any).error);
+          if (typeof accessResponse !== "string" && accessResponse.error) {
+            throw new Error(accessResponse.error);
           }
 
           const publicKey =
             typeof accessResponse === "string"
               ? accessResponse
-              : (accessResponse as any).address;
+              : accessResponse.address;
 
           if (!publicKey) {
             throw new Error("Failed to retrieve public key");
@@ -220,8 +221,10 @@ export const useWallet = create<WalletState>()(
         // rewards. Imported lazily: both hooks depend on this module, so a
         // top-level import would be a cycle at module-evaluation time.
         if (address) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy require breaks the module cycle
           const { useStaking } = require("@/hooks/use-staking") as
             typeof import("@/hooks/use-staking");
+          // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy require breaks the module cycle
           const { useVoting } = require("@/hooks/use-voting") as
             typeof import("@/hooks/use-voting");
           useStaking.getState().clearWalletStakes(address);
@@ -351,7 +354,7 @@ export const useWallet = create<WalletState>()(
        * a realistic tx hash, ledger number, stroops fee, etc.
        * 95 % chance of success, 5 % simulated failure (network congestion).
        */
-      sendTransaction: async (amountUSD, memo) => {
+      sendTransaction: async (amountUSD, _memo) => {
         const state = useWallet.getState();
         if (!state.isConnected || !state.address) {
           throw new Error("Wallet not connected");

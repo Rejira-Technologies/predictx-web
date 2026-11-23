@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -21,23 +21,18 @@ interface Particle {
 export function BackgroundEffects({ className }: BackgroundEffectsProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framerReducedMotion = useReducedMotion();
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const prefersReducedMotion = useSyncExternalStore(
+    (onStoreChange) => {
+      const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mediaQuery.addEventListener("change", onStoreChange);
+      return () => mediaQuery.removeEventListener("change", onStoreChange);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
   const isReducedMotion = prefersReducedMotion || !!framerReducedMotion;
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number | null>(null);
-
-  // Check for reduced motion preference
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   // Initialize particles
   useEffect(() => {
@@ -61,11 +56,11 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
       opacity: Math.random() * 0.5 + 0.2,
       color: colors[Math.floor(Math.random() * colors.length)],
     }));
-  }, [prefersReducedMotion]);
+  }, [isReducedMotion]);
 
   // Animation loop
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (isReducedMotion) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -99,15 +94,13 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
           if (particle.y < 0) particle.y = canvas.height;
           if (particle.y > canvas.height) particle.y = 0;
 
-          // Draw particle
+          // Draw particle — shadow must be set before fill() to render
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = `${particle.color}0.5)`;
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           ctx.fillStyle = `${particle.color}${particle.opacity})`;
           ctx.fill();
-
-          // Glow effect
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = `${particle.color}0.5)`;
         });
 
         // Reset shadow for performance
@@ -142,7 +135,7 @@ export function BackgroundEffects({ className }: BackgroundEffectsProps) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [prefersReducedMotion]);
+  }, [isReducedMotion]);
 
   if (prefersReducedMotion) {
     return (

@@ -28,7 +28,6 @@ export function MatchCard({
     activePollsCount,
     awaitingResolutionCount,
     totalPool,
-    index,
 }: MatchCardProps) {
     const shouldReduceMotion = useReducedMotion();
 
@@ -67,19 +66,6 @@ export function MatchCard({
         timeZoneName: "short",
         hour12: false,
     }).format(new Date(match.kickoff));
-
-    const motionProps = shouldReduceMotion
-        ? {}
-        : {
-            initial: { opacity: 0, y: 30 },
-            whileInView: { opacity: 1, y: 0 },
-            viewport: { once: true, margin: "-40px" },
-            transition: {
-                duration: 0.45,
-                delay: (index % 3) * 0.1 + Math.floor(index / 3) * 0.1,
-            },
-            whileHover: { y: -4, transition: { duration: 0.2 } },
-        };
 
     return (
         <Link href={`/match/${match.id}`} className="block h-full outline-none">
@@ -141,7 +127,7 @@ export function MatchCard({
                         </motion.div>
                         {isLive && (
                             <span className="text-success font-mono font-bold mt-2 text-sm text-glow-green">
-                                67' {/* Mock live minute */}
+                                67&apos; {/* Mock live minute */}
                             </span>
                         )}
                     </div>

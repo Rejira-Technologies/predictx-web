@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { MOCK_STAKES } from "@/lib/mock-data";
-import { calculateCompletedPayout } from "@/lib/calculations";
-import { getTeamAbbreviation, TEAM_ABBREVIATIONS } from "@/lib/team-colors";
+import { getTeamAbbreviation } from "@/lib/team-colors";
 
 describe("Batch #336, #338, #339, #340 regression tests", () => {
   it("#338: completed predictions sum to exactly +$447 net profit", () => {

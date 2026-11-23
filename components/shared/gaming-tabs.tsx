@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -25,10 +25,11 @@ export function GamingTabs({
 }: GamingTabsProps) {
   const shouldReduceMotion = useReducedMotion();
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+  const [hoveredTab, setHoveredTab] = useState<{ key: string; left: number; width: number } | null>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const tablistRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const measureIndicator = useCallback(() => {
     const activeTabElement = tabRefs.current.get(activeTab);
     if (activeTabElement) {
       setIndicatorStyle({
@@ -37,6 +38,28 @@ export function GamingTabs({
       });
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    measureIndicator();
+  }, [measureIndicator]);
+
+  // Re-measure when the tablist or window resizes (rotation, font load, etc.)
+  useEffect(() => {
+    const tablist = tablistRef.current;
+    if (!tablist) return;
+
+    window.addEventListener("resize", measureIndicator);
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(measureIndicator)
+        : null;
+    observer?.observe(tablist);
+
+    return () => {
+      window.removeEventListener("resize", measureIndicator);
+      observer?.disconnect();
+    };
+  }, [measureIndicator]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = -1;
@@ -60,6 +83,7 @@ export function GamingTabs({
 
   return (
     <div
+      ref={tablistRef}
       role="tablist"
       aria-orientation="horizontal"
       className={cn(
@@ -85,16 +109,13 @@ export function GamingTabs({
       />
 
       {/* Preview glow indicator for hovered tab */}
-      {hoveredTab && hoveredTab !== activeTab && !shouldReduceMotion && (
+      {hoveredTab && hoveredTab.key !== activeTab && !shouldReduceMotion && (
         <motion.div
           className="absolute bottom-1 h-0.5 bg-[var(--accent-cyan)]/30 rounded-full"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={{
-            left: tabRefs.current.get(hoveredTab)?.offsetLeft || 0,
-            width: tabRefs.current.get(hoveredTab)?.offsetWidth || 0,
-          }}
+          style={{ left: hoveredTab.left, width: hoveredTab.width }}
         />
       )}
 
@@ -112,7 +133,10 @@ export function GamingTabs({
           }}
           onClick={() => onChange(tab.key)}
           onKeyDown={(e) => handleKeyDown(e, idx)}
-          onMouseEnter={() => setHoveredTab(tab.key)}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget;
+            setHoveredTab({ key: tab.key, left: el.offsetLeft, width: el.offsetWidth });
+          }}
           onMouseLeave={() => setHoveredTab(null)}
           className={cn(
             "relative px-4 py-2 text-sm font-medium transition-colors duration-200",
@@ -123,7 +147,7 @@ export function GamingTabs({
           )}
         >
           {/* Hover glow effect */}
-          {hoveredTab === tab.key && activeTab !== tab.key && (
+          {hoveredTab?.key === tab.key && activeTab !== tab.key && (
             <motion.div
               className="absolute inset-0 bg-[var(--accent-cyan)]/10 rounded-md"
               initial={{ opacity: 0 }}

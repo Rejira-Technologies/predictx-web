@@ -4,11 +4,8 @@ import { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Trophy,
-  Shield,
-  Zap,
   Target,
   TrendingDown,
-  Award,
   Star,
   Flame,
   Lock,
@@ -96,6 +93,7 @@ export function BadgeComponent({
   locked = false,
   className,
 }: BadgeComponentProps) {
+  const shouldReduceMotion = useReducedMotion();
   const colors = variantColors[variant] ?? variantColors.neutral;
   const Icon = icon || (locked ? <Lock className="w-4 h-4 text-muted-foreground" /> : defaultIcons[type]);
 
@@ -154,21 +152,6 @@ export function BadgeComponent({
               },
             }
       }
-      whileHover={{ scale: 1.05 }}
-      animate={{
-        boxShadow: [
-          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
-          `0 0 20px ${colors.glow}`,
-          `0 0 10px ${colors.glow.replace(/[\d.]+\)$/, "0.2)")}`,
-        ],
-      }}
-      transition={{
-        boxShadow: {
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      }}
     >
       {/* Holographic shine on hover */}
       <motion.div

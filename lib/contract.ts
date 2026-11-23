@@ -10,7 +10,6 @@ import {
   type StellarErrorCode,
 } from "./stellar";
 import {
-  pollToScVal,
   stakeToScVal,
   scValToPoll,
   scValToStake,
@@ -126,13 +125,14 @@ async function signWithFreighter(xdrString: string): Promise<string> {
     if (!result) {
       throw new StellarError("Transaction signing was cancelled by the user", "USER_REJECTED");
     }
-    return typeof result === "string" ? result : (result as any).signedTxXdr || xdrString;
-  } catch (err: any) {
+    return typeof result === "string" ? result : (result as { signedTxXdr?: string }).signedTxXdr || xdrString;
+  } catch (err) {
     if (err instanceof StellarError) throw err;
-    if (err?.message?.includes("User declined") || err?.message?.includes("reject") || err?.message?.includes("cancel")) {
+    const message = err instanceof Error ? err.message : "";
+    if (message.includes("User declined") || message.includes("reject") || message.includes("cancel")) {
       throw new StellarError("Transaction rejected by user", "USER_REJECTED", err);
     }
-    throw new StellarError(err?.message || "Wallet signing failed", "WALLET_NOT_FOUND", err);
+    throw new StellarError(message || "Wallet signing failed", "WALLET_NOT_FOUND", err);
   }
 }
 
@@ -223,9 +223,9 @@ export async function executeContractCall(
     }
 
     throw new StellarError(`Transaction failed with status: ${sendResult.status}`, "TX_FAILED", sendResult);
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof StellarError) throw err;
-    throw new StellarError(err?.message || "Failed to execute contract call", "TX_FAILED", err);
+    throw new StellarError(err instanceof Error ? err.message : "Failed to execute contract call", "TX_FAILED", err);
   }
 }
 
@@ -348,7 +348,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
     const sim = await sorobanServer.simulateTransaction(tx);
     if (StellarSdk.rpc.Api.isSimulationSuccess(sim) && sim.result?.retval) {
-      const raw = StellarSdk.scValToNative(sim.result.retval) as Record<string, any>;
+      const raw = StellarSdk.scValToNative(sim.result.retval) as Record<string, unknown>;
       return {
         totalValueLocked: Number(raw.total_value_locked ?? PLATFORM_STATS.totalValueLocked),
         activePredictions: Number(raw.active_predictions ?? PLATFORM_STATS.activePredictions),

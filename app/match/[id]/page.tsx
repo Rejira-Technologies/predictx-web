@@ -11,7 +11,6 @@ import { useMockData } from "@/hooks/use-mock-data";
 import { GamingButton, GlowCard } from "@/components/shared";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { MatchStatsBar } from "@/components/match";
 
 export default function MatchPage() {
   const params = useParams<{ id: string }>();
@@ -23,16 +22,6 @@ export default function MatchPage() {
   const polls = useMemo(
     () => allPolls.filter((p) => p.matchId === matchId),
     [allPolls, matchId],
-  );
-
-  // Aggregate stats
-  const totalPool = useMemo(
-    () => polls.reduce((sum, p) => sum + p.yesPool + p.noPool, 0),
-    [polls],
-  );
-  const totalParticipants = useMemo(
-    () => polls.reduce((sum, p) => sum + p.participants, 0),
-    [polls],
   );
 
   /* ── Invalid match ID → 404-style state ────────────────────────────── */

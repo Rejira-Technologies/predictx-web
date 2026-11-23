@@ -58,7 +58,7 @@ export function VotingCard({ poll, match }: VotingCardProps) {
       focusedBeforeOpenRef.current = document.activeElement as HTMLElement | null;
     }, []);
 
-    const { castVote, getVoteReward, getUnclearVotes } = useVoting();
+    const { castVote, getVoteReward } = useVoting();
     const { isConnected, connect, isConnecting } = useWallet();
 
     const rewardAmount = getVoteReward(poll.id);

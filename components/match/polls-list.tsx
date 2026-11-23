@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { useMounted } from "@/hooks/use-mounted"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutGrid,
@@ -22,8 +23,8 @@ import { PollCard } from "@/components/poll-card"
 import { PollCardSkeleton } from "@/components/ui/skeleton-card"
 import { GamingTabs, GlowCard, GamingButton } from "@/components/shared"
 import { CardErrorBoundary } from "@/components/shared/card-error-boundary"
-import type { Poll, Match, PollCategory } from "@/lib/mock-data"
-import { getLockTimestamp, getLockTargetISO } from "@/lib/calculations"
+import type { Poll, Match } from "@/lib/mock-data"
+import { getLockTargetISO } from "@/lib/calculations"
 
 /* ── Sort types ──────────────────────────────────────────────────────────── */
 
@@ -91,8 +92,6 @@ function PollStatusBadge({ status, outcome }: { status: Poll["status"]; outcome?
     },
   }[status]
 
-  const Icon = config.icon
-
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${config.className}`}
@@ -113,10 +112,7 @@ interface PollsListProps {
 /* ── Component ──────────────────────────────────────────────────────────── */
 
 export function PollsList({ polls, match }: PollsListProps) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useMounted()
 
   const [activeCategory, setActiveCategory] = useState<string>("all")
   const [sortBy, setSortBy] = useState<SortOption>("highest-pool")
@@ -148,7 +144,7 @@ export function PollsList({ polls, match }: PollsListProps) {
 
   // Filter + sort
   const displayedPolls = useMemo(() => {
-    let filtered =
+    const filtered =
       activeCategory === "all"
         ? [...polls]
         : polls.filter((p) => p.category === activeCategory)

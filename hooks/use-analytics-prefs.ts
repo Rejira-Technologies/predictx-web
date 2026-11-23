@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { isAnalyticsEnabled, saveSettings } from "@/lib/analytics";
 
 /**
@@ -8,12 +8,9 @@ import { isAnalyticsEnabled, saveSettings } from "@/lib/analytics";
  * Reads from localStorage on mount; updates propagate immediately.
  */
 export function useAnalyticsPrefs() {
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
-
-  // Hydrate from localStorage on mount (client only)
-  useEffect(() => {
-    setAnalyticsEnabled(isAnalyticsEnabled());
-  }, []);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(() =>
+    typeof window === "undefined" ? true : isAnalyticsEnabled(),
+  );
 
   const toggle = useCallback((value: boolean) => {
     saveSettings({ analyticsEnabled: value });

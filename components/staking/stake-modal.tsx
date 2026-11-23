@@ -22,7 +22,6 @@ import { toast } from "sonner";
 
 import { cn, categoryLabel } from "@/lib/utils";
 import {
-  calculatePotentialWinnings,
   calculatePoolPercentages,
   formatCurrency,
   formatAddress,
@@ -41,7 +40,7 @@ import {
   STELLAR_BASE_FEE,
   STELLAR_NETWORKS,
 } from "@/lib/constants";
-import type { Poll, Match, Stake } from "@/lib/mock-data";
+import type { Poll } from "@/lib/mock-data";
 import { lockTimeLabel } from "@/lib/mock-data";
 
 import { useWallet, type TransactionReceipt } from "@/hooks/use-wallet";
@@ -54,7 +53,6 @@ import {
   GamingInput,
   GlowCard,
   AnimatedCounter,
-  CountdownTimer,
 } from "@/components/shared";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -93,9 +91,6 @@ interface StakeModalProps {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function generateMockLedger() {
-  return 50_000_000 + Math.floor(Math.random() * 1_000_000);
-}
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -201,7 +196,6 @@ function WalletConfirmPopup({
 function ProcessingOverlay() {
   const shouldReduceMotion = useReducedMotion();
   return (
-return (
     <motion.div
       role="alert"
       aria-live="polite"
@@ -273,7 +267,6 @@ return (
 /** Success overlay with particle burst */
 function SuccessOverlay({
   receipt,
-  stakeAmount,
   side,
   onClose,
 }: {
@@ -334,7 +327,7 @@ function SuccessOverlay({
       {/* Particle burst */}
       {Array.from({ length: 20 }).map((_, i) => {
         const angle = (i / 20) * Math.PI * 2;
-        const distance = 80 + Math.random() * 120;
+        const distance = 80 + (((i * 53) % 97) / 97) * 120;
         return (
           <motion.div
             key={i}
@@ -632,12 +625,16 @@ export function StakeModal({
 
   useEffect(() => {
     if (open) {
-      setSide(initialSide);
-      setAmount("");
-      setTxStep("idle");
-      setReceipt(null);
-      setErrorMsg("");
       previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+      // Deferred so the resets aren't synchronous setState calls inside the effect.
+      const reset = setTimeout(() => {
+        setSide(initialSide);
+        setAmount("");
+        setTxStep("idle");
+        setReceipt(null);
+        setErrorMsg("");
+      }, 0);
+      return () => clearTimeout(reset);
     }
   }, [open, initialSide]);
 
@@ -707,10 +704,11 @@ export function StakeModal({
       toast.success(`Successfully staked ${formatCurrency(stakeAmount)} on "${poll.question}"`, {
         description: `Side: ${side.toUpperCase()} • Tx: ${formatAddress(result.receipt.hash)}`,
       });
-    } catch (err: any) {
-      setErrorMsg(err?.message ?? "Unknown error");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setErrorMsg(message);
       setTxStep("failure");
-      toast.error("Transaction failed", { description: err?.message });
+      toast.error("Transaction failed", { description: message });
     } finally {
       // Released on both paths: a failure puts the modal in the `failure` step
       // where Retry is offered, and that retry must not be swallowed by a

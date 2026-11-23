@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -170,9 +170,10 @@ export function CountdownTimer({
   }, [targetTime, onExpire, hasExpired]);
 
   useEffect(() => {
-    updateTimer();
+    const kickoff = setTimeout(updateTimer, 0);
     intervalRef.current = setInterval(updateTimer, 1000);
     return () => {
+      clearTimeout(kickoff);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [updateTimer]);
@@ -197,8 +198,6 @@ export function CountdownTimer({
           <motion.div
             animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"
             aria-label="Less than 5 minutes remaining"
           >
@@ -327,8 +326,6 @@ export function CountdownTimer({
             className="ml-2"
             animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : { opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
-            animate={{ opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"
             aria-label="Less than 5 minutes remaining"
           >

@@ -56,9 +56,9 @@ export function stakeToScVal(amountXlm: number): xdr.ScVal {
  * Convert Soroban ScVal to frontend Poll
  */
 export function scValToPoll(val: xdr.ScVal): Poll {
-  const raw = scValToNative(val) as Record<string, any>;
-  const yesPoolStroops = BigInt(raw.yes_pool ?? raw.yesPool ?? 0);
-  const noPoolStroops = BigInt(raw.no_pool ?? raw.noPool ?? 0);
+  const raw = scValToNative(val) as Record<string, unknown>;
+  const yesPoolStroops = BigInt((raw.yes_pool ?? raw.yesPool ?? 0) as string | number | bigint);
+  const noPoolStroops = BigInt((raw.no_pool ?? raw.noPool ?? 0) as string | number | bigint);
   const totalStroops = yesPoolStroops + noPoolStroops;
 
   const yesPool = stroopsToXlm(yesPoolStroops);
@@ -74,7 +74,7 @@ export function scValToPoll(val: xdr.ScVal): Poll {
     id: String(raw.id ?? raw.poll_id ?? "0"),
     matchId: String(raw.match_id ?? raw.matchId ?? ""),
     question: String(raw.question ?? ""),
-    category: raw.category ?? "team-event",
+    category: String(raw.category ?? "team-event") as Poll["category"],
     yesPool,
     noPool,
     totalPool,
@@ -83,9 +83,9 @@ export function scValToPoll(val: xdr.ScVal): Poll {
     yesParticipants: Number(raw.yes_participants ?? raw.yesParticipants ?? 0),
     noParticipants: Number(raw.no_participants ?? raw.noParticipants ?? 0),
     lockTime: raw.lock_time ? new Date(Number(raw.lock_time) * 1000).toISOString() : new Date().toISOString(),
-    status: raw.status ?? "active",
-    resolutionStatus: raw.resolution_status ?? undefined,
-    result: raw.result ?? undefined,
+    status: String(raw.status ?? "active") as Poll["status"],
+    resolutionStatus: (raw.resolution_status == null ? undefined : String(raw.resolution_status)) as Poll["resolutionStatus"],
+    result: (raw.result == null ? undefined : String(raw.result)) as Poll["result"],
     createdBy: (raw.created_by ?? raw.creator ?? "") as StellarPublicKey,
     createdAt: raw.created_at ? new Date(Number(raw.created_at) * 1000).toISOString() : new Date().toISOString(),
     resolvedAt: raw.resolved_at ? new Date(Number(raw.resolved_at) * 1000).toISOString() : undefined,
@@ -101,8 +101,8 @@ export function scValToPoll(val: xdr.ScVal): Poll {
  * Convert Soroban ScVal to frontend Stake
  */
 export function scValToStake(val: xdr.ScVal): Stake {
-  const raw = scValToNative(val) as Record<string, any>;
-  const amountStroops = BigInt(raw.amount ?? raw.amount_stroops ?? 0);
+  const raw = scValToNative(val) as Record<string, unknown>;
+  const amountStroops = BigInt((raw.amount ?? raw.amount_stroops ?? 0) as string | number | bigint);
   const amount = stroopsToXlm(amountStroops);
 
   return {
@@ -113,9 +113,9 @@ export function scValToStake(val: xdr.ScVal): Stake {
     side: raw.side === 1 || raw.side === "yes" ? "yes" : "no",
     amount,
     timestamp: raw.timestamp ? new Date(Number(raw.timestamp) * 1000).toISOString() : new Date().toISOString(),
-    status: raw.status ?? "active",
-    potentialWinnings: raw.potential_winnings ? stroopsToXlm(raw.potential_winnings) : undefined,
-    actualWinnings: raw.actual_winnings ? stroopsToXlm(raw.actual_winnings) : undefined,
+    status: String(raw.status ?? "active") as Stake["status"],
+    potentialWinnings: raw.potential_winnings ? stroopsToXlm(raw.potential_winnings as bigint | number) : undefined,
+    actualWinnings: raw.actual_winnings ? stroopsToXlm(raw.actual_winnings as bigint | number) : undefined,
     amountStroops,
   };
 }

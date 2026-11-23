@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo } from "react"
+import { useMounted } from "@/hooks/use-mounted"
 import { Flame } from "lucide-react"
 import { PollCard } from "@/components/match/poll-card"
 import { PollCardSkeleton } from "@/components/ui/skeleton-card"
@@ -17,11 +18,7 @@ import { useMockData } from "@/hooks/use-mock-data"
  * session. Ties are broken by poll id for a stable sort.
  */
 export function TrendingPolls() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useMounted()
 
   // Narrow subscription — only re-render when the polls array reference changes.
   const polls = useMockData((state) => state.polls)

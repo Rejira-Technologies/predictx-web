@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useMounted } from "@/hooks/use-mounted";
 import { motion, useReducedMotion } from "framer-motion";
 import { MatchCard } from "./match-card";
 import { MatchCardSkeleton } from "@/components/ui/skeleton-card";
@@ -52,10 +53,7 @@ function filterMatches(matches: Match[], filter: FilterType): Match[] {
 }
 
 export function UpcomingMatches() {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useMounted();
 
     const shouldReduceMotion = useReducedMotion();
     const upcomingMatches = useMockData((state) => state.matches);

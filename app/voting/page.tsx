@@ -70,7 +70,7 @@ export default function VotingCenterPage() {
             </h1>
           </div>
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl">
-            Vote on poll outcomes and earn rewards. Only available for polls you didn't stake on. Help the community resolve match events accurately.
+            Vote on poll outcomes and earn rewards. Only available for polls you didn&apos;t stake on. Help the community resolve match events accurately.
           </p>
 
           {/* Stats Bar */}
@@ -154,7 +154,7 @@ export default function VotingCenterPage() {
               No Polls Awaiting Your Vote
             </h3>
             <p className="text-muted-foreground mb-8 max-w-md">
-              You've judged all available polls! Check back after more matches complete. Remember, you can only vote on polls you didn't stake on.
+              You&apos;ve judged all available polls! Check back after more matches complete. Remember, you can only vote on polls you didn&apos;t stake on.
             </p>
           </motion.div>
         ) : (

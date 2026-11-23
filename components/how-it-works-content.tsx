@@ -13,8 +13,6 @@ import {
   History,
   Lock,
   ChevronDown,
-  Plus,
-  Minus,
   Wallet
 } from "lucide-react";
 import {
@@ -26,6 +24,7 @@ import {
 } from "@/components/shared";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import type { Variant } from "@/components/shared/variants";
 import { WalletConnectModal } from "@/components/wallet-connect-modal";
 
 const variantColors = {
@@ -226,7 +225,7 @@ export function HowItWorksContent() {
                 )}
               >
                 <div className="flex-1 w-full">
-                  <GlowCard variant={step.color as any} className="w-full">
+                  <GlowCard variant={step.color as Variant} className="w-full">
                     <div className="flex items-start gap-6">
                       <div className="flex-shrink-0">
                         <GlowIcon
@@ -261,7 +260,7 @@ export function HowItWorksContent() {
           <h2 className="font-display text-3xl md:text-4xl font-black uppercase mb-4 text-glow-success text-success">
             How the Pool System Works
           </h2>
-          <p className="text-muted-foreground text-xl capitalize">Visual walkthrough: "Will Palmer score a goal?"</p>
+          <p className="text-muted-foreground text-xl capitalize">Visual walkthrough: &quot;Will Palmer score a goal?&quot;</p>
         </div>
 
         <GlowCard className="max-w-4xl mx-auto backdrop-blur-md bg-surface/40">

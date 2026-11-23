@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Minus, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,16 +42,6 @@ export function GamingInput({
 }: GamingInputProps) {
   const shouldReduceMotion = useReducedMotion();
   const [isFocused, setIsFocused] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
-
-  // Trigger shake animation when error appears
-  useEffect(() => {
-    if (error) {
-      setIsShaking(true);
-      const timer = setTimeout(() => setIsShaking(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   const handleNumberChange = (newValue: number) => {
     if (type !== "number") return;
@@ -80,7 +70,7 @@ export function GamingInput({
         className={cn(
           "relative flex items-center overflow-hidden",
           "bg-[#1a1f3a]/80",
-          isShaking && !shouldReduceMotion && "animate-shake",
+          !!error && !shouldReduceMotion && "animate-shake",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         style={{

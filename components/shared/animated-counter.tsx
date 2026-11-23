@@ -46,25 +46,18 @@ export function AnimatedCounter({
   const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (shouldReduceMotion) {
-      setDisplayValue(value);
-      setPrevValue(value);
-      setIsAnimating(false);
-      setShouldShake(false);
-      return;
-    }
+    if (shouldReduceMotion) return;
 
     if (value !== prevValue) {
       const delta = Math.abs(value - prevValue);
       const percentageChange = prevValue !== 0 ? delta / prevValue : 0;
 
-      setIsAnimating(true);
-      setShouldShake(percentageChange > 0.2);
-
       const startTime = performance.now();
       const startValue = prevValue;
 
       const animate = (currentTime: number) => {
+        setIsAnimating(true);
+        setShouldShake(percentageChange > 0.2);
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / (duration * 1000), 1);
 
@@ -92,10 +85,10 @@ export function AnimatedCounter({
         }
       };
     }
-  }, [value, prevValue, duration]);
+  }, [value, prevValue, duration, shouldReduceMotion]);
 
-  const formattedValue = formatValue(displayValue, format);
-  const formattedPrev = formatValue(prevValue, format);
+  const shownValue = shouldReduceMotion ? value : displayValue;
+  const formattedValue = formatValue(shownValue, format);
 
   // Split into individual digits for animation
   const digits = formattedValue.split("");
