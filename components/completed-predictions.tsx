@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -11,8 +11,6 @@ import {
   ChevronDown,
   ArrowUpDown,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { TrendingUp, TrendingDown, Calendar, CheckCircle, Trophy, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { EmptyState } from "./shared/empty-state";
@@ -441,23 +439,13 @@ export function CompletedPredictions() {
           <div className="space-y-3">
             {sortedStakes.map((stake) => {
               const won = stake.outcome === "won";
-              const grossPayout =
-                stake.grossPayout ??
-                (stake.profit != null
-                  ? stake.amount + stake.profit / 0.95
-                  : stake.amount);
+              const grossPayout = calculateGrossPayout(
+                stake.amount,
+                stake.profit,
+                stake.grossPayout,
+              );
               const payout = won ? calculateCompletedPayout(stake.amount, grossPayout) : null;
               const isClaiming = processingId === stake.id;
-        <div className="space-y-3">
-          {completedStakes.map((stake) => {
-            const won = stake.outcome === "won";
-            const grossPayout = calculateGrossPayout(
-              stake.amount,
-              stake.profit,
-              stake.grossPayout,
-            );
-            const payout = won ? calculateCompletedPayout(stake.amount, grossPayout) : null;
-            const isClaiming = processingId === stake.id;
 
               return (
                 <motion.div

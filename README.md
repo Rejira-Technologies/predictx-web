@@ -4,7 +4,7 @@ PredictX Web is a Next.js frontend for a Stellar-based football prediction marke
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 20.9 (see `.nvmrc`)
 - pnpm >= 10.11.0
 - A Freighter wallet extension installed in your browser
 - Stellar testnet credentials (Freighter defaults to testnet)
@@ -62,21 +62,26 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor guide, commit 
 
 ## Environment Variables
 
-Create a `.env.local` file in the project root with the following variables:
+Copy the example file and fill in your values:
 
-```env
-NEXT_PUBLIC_STELLAR_NETWORK=testnet
-NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET=CABC...XYZ
-NEXT_PUBLIC_CONTRACT_POLL=CDEF...UVW
-NEXT_PUBLIC_USE_MOCK_DATA=true
+```bash
+cp .env.example .env.local
 ```
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_STELLAR_NETWORK` | Stellar network to target (`testnet` or `mainnet`) |
-| `NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET` | Soroban prediction market contract ID |
-| `NEXT_PUBLIC_CONTRACT_POLL` | Soroban poll contract ID |
-| `NEXT_PUBLIC_USE_MOCK_DATA` | When `true`, use local mock data instead of on-chain state |
+`.env.example` contains working testnet defaults — only change what you need. The full set of variables the app reads:
+
+| Variable | Description | Change per network? |
+|----------|-------------|---------------------|
+| `NEXT_PUBLIC_STELLAR_NETWORK` | Stellar network to target (`testnet` or `mainnet`) | Yes |
+| `NEXT_PUBLIC_STELLAR_HORIZON_URL` | Horizon REST endpoint | Yes |
+| `NEXT_PUBLIC_STELLAR_RPC_URL` | Soroban RPC endpoint | Yes |
+| `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` | Network passphrase for signing | Yes |
+| `NEXT_PUBLIC_STELLAR_EXPLORER_URL` | Block explorer base URL | Yes |
+| `NEXT_PUBLIC_CONTRACT_ID` | Soroban prediction market contract ID | Yes — must be a valid 56-char StrKey |
+| `NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET` | Soroban prediction market contract ID (alias) | Yes |
+| `NEXT_PUBLIC_CONTRACT_POLL` | Soroban poll contract ID | Yes |
+| `NEXT_PUBLIC_USE_MOCK_DATA` | When `true`, use local mock data instead of on-chain state | No |
+| `NEXT_PUBLIC_SITE_URL` | Public origin used as `metadataBase` for OG/Twitter URLs | Per deployment |
 
 ## Freighter Wallet Setup
 

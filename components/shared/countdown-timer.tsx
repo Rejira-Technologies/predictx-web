@@ -197,8 +197,6 @@ export function CountdownTimer({
           <motion.div
             animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"
             aria-label="Less than 5 minutes remaining"
           >
@@ -327,8 +325,6 @@ export function CountdownTimer({
             className="ml-2"
             animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : { opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
-            animate={{ opacity: [1, 0.3, 1], scale: [1, 1.1, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
             role="alert"
             aria-label="Less than 5 minutes remaining"
           >

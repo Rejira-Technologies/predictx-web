@@ -23,7 +23,7 @@ Be respectful, collaborative, and constructive. We follow the [Contributor Coven
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js >= 20.9 (see `.nvmrc`)
 - pnpm >= 10.11.0
 - A Freighter wallet extension (for manual testing)
 
