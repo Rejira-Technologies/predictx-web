@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useStaking } from "@/hooks/use-staking";
 import { useVoting } from "@/hooks/use-voting";
 import { useMockData } from "@/hooks/use-mock-data";
+import { useWallet } from "@/hooks/use-wallet";
 
 // ─── Rank definitions ─────────────────────────────────────────────────────────
 
@@ -43,13 +44,19 @@ export interface ProgressState {
 }
 
 export function useProgress(): ProgressState {
-  // #243: use wallet-scoped selector so seed data from other wallets is excluded
-  const walletStakes = useStaking((s) => s.activeStakes());
-  // #244: userVotes is a store action (function) — call it to get the vote map
-  const userVotes = useVoting((s) => s.userVotes());
+  const stakes = useStaking((s) => s.stakes);
+  const allVotes = useVoting((s) => s.allVotes);
+  const walletAddress = useWallet((s) => s.address);
   const polls = useMockData((s) => s.polls);
 
   return useMemo(() => {
+    const walletStakes = walletAddress
+      ? stakes.filter(
+          (stake) =>
+            stake.wallet === walletAddress && stake.status === "active",
+        )
+      : [];
+    const userVotes = walletAddress ? allVotes[walletAddress] ?? {} : {};
     const stakeCount = walletStakes.length;
     const voteCount = Object.keys(userVotes).length;
     const totalStaked = walletStakes.reduce((sum, s) => sum + s.amount, 0);
@@ -86,5 +93,5 @@ export function useProgress(): ProgressState {
       voteCount,
       activePoolCount,
     };
-  }, [walletStakes, userVotes, polls]);
+  }, [stakes, allVotes, walletAddress, polls]);
 }

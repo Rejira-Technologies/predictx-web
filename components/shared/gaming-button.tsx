@@ -1,14 +1,8 @@
 "use client";
 
-import { useState, useRef, ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-
-export interface GamingButtonProps {
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { useState, useRef, type ReactNode } from "react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -17,7 +11,7 @@ import { Variant, VARIANT_THEME_MAP, getVariantRgba, rgba } from "./variants";
 export type { Variant };
 const MotionLink = motion.create(Link);
 
-interface GamingButtonProps {
+export interface GamingButtonProps {
   variant?: Variant;
   size?: "sm" | "md" | "lg";
   loading?: boolean;
@@ -121,17 +115,14 @@ function GamingButtonShell({
 }: GamingButtonProps) {
   const [ripples, setRipples] = useState<RippleState[]>([]);
   const [isHovered, setIsHovered] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
   const buttonRef = useRef<HTMLElement>(null);
   const rippleIdRef = useRef(0);
 
   const effectiveVariant = success ? "success" : variant;
   const styles = variantStyles[effectiveVariant];
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled || loading || success) return;
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (disabled || loading) {
+    if (disabled || loading || success) {
       // A link has no native `disabled`, so block navigation explicitly.
       if (href) e.preventDefault();
       return;
@@ -183,12 +174,7 @@ function GamingButtonShell({
 
   const sharedMotionProps = {
     onMouseEnter: () => setIsHovered(true),
-    onMouseLeave: () => {
-      setIsHovered(false);
-      setIsPressed(false);
-    },
-    onMouseDown: () => setIsPressed(true),
-    onMouseUp: () => setIsPressed(false),
+    onMouseLeave: () => setIsHovered(false),
     whileHover: !isDisabled && !shouldReduceMotion ? { scale: 1.05, rotate: 1 } : {},
     whileTap: !isDisabled && !shouldReduceMotion ? { scale: 0.95 } : {},
     transition: shouldReduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 400, damping: 25 },
