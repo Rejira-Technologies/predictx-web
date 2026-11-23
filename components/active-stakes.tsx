@@ -1,17 +1,25 @@
 "use client"
 
+import { useMemo } from "react"
 import { TrendingUp } from "lucide-react"
 import { Progress } from "./ui/progress"
 import { EmptyState } from "./shared/empty-state"
-// #246: read the connected wallet's active stakes from the store instead of a
-// hardcoded constant — mirrors the pattern used in completed-predictions.tsx
 import { useStaking } from "@/hooks/use-staking"
+import { useWallet } from "@/hooks/use-wallet"
 import { useMockData } from "@/hooks/use-mock-data"
 import { calculatePotentialWinnings } from "@/lib/calculations"
 
 export function ActiveStakes() {
-  // wallet-scoped selector: returns only stakes for the connected address
-  const stakes = useStaking((s) => s.activeStakes())
+  // Select the stable array and the wallet address separately so that either
+  // change triggers a re-render, while avoiding a new array reference on every
+  // render (which would break useSyncExternalStore equality checks).
+  const allStakes = useStaking((s) => s.stakes)
+  const address = useWallet((s) => s.address)
+
+  const stakes = useMemo(
+    () => allStakes.filter((s) => s.wallet === address && s.status === "active"),
+    [allStakes, address],
+  )
   const getPoll = useMockData((s) => s.getPoll)
   const getMatch = useMockData((s) => s.getMatch)
 
