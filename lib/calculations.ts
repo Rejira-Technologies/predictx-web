@@ -266,3 +266,29 @@ export function getVotingDeadline(
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
 }
+
+/** ISO-8601 string form of {@link getVotingDeadline} for countdown timers. */
+export function getVotingDeadlineISO(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+): string {
+	const deadline = getVotingDeadline(poll, match);
+	return Number.isNaN(deadline) ? "" : new Date(deadline).toISOString();
+}
+
+/**
+ * Whether community voting is still open: the poll must be in `voting`
+ * status and its lock-plus-window deadline must not have passed.
+ */
+export function isVotingOpen(
+	poll: {
+		status: string;
+		lockTime: LockTimeKey | string;
+		lockTargetISO?: string;
+	},
+	match: { kickoff: string } | undefined,
+): boolean {
+	if (poll.status !== "voting") return false;
+	const deadline = getVotingDeadline(poll, match);
+	return !Number.isNaN(deadline) && Date.now() < deadline;
+}

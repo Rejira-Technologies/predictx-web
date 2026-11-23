@@ -68,9 +68,14 @@ jobs:
                       continue
                     fi
 
-                    # Check if issue with this title already exists
-                    EXISTING=$(gh issue list --search "\"$TITLE\" in:title" --state all --json number --jq 'length')
-                    if [ "$EXISTING" -gt 0 ] 2>/dev/null; then
+                    # Check if issue with this title already exists.
+                    # A failed lookup must abort the step — treating it as
+                    # "no duplicates" would create the same issue twice.
+                    if ! EXISTING=$(gh issue list --search "\"$TITLE\" in:title" --state all --json number --jq 'length'); then
+                      echo "⚠ gh issue list failed for \"$TITLE\" — aborting to avoid duplicate issues"
+                      exit 1
+                    fi
+                    if [ "${EXISTING:-0}" -gt 0 ]; then
                       echo "⏭ Issue already exists: $TITLE"
                       SKIPPED=$((SKIPPED + 1))
                       continue

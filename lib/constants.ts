@@ -201,6 +201,13 @@ export const POLL_QUESTION_MAX_LENGTH = 120; // characters
 export const POLL_QUESTION_MIN_LENGTH = 10; // characters
 
 /**
+ * Hours community voting stays open after a poll locks.
+ * Mirrors `voting_window_seconds` (7200) in the Soroban contract and
+ * VOTING_WINDOW_MS in lib/calculations.ts.
+ */
+export const VOTING_WINDOW_HOURS = 2;
+
+/**
  * XLM amount charged to the creator when a new poll is submitted on-chain.
  * Used by both the UI copy and the sendTransaction call so the advertised fee
  * always matches the amount actually debited from the creator's wallet.

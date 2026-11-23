@@ -123,14 +123,6 @@ function RankChip({ rankName, color, glowColor, compact }: RankChipProps) {
             }
       }
       transition={shouldReduceMotion ? { duration: 0 } : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      animate={{
-        boxShadow: [
-          `0 0 8px ${glowColor.replace(/[\d.]+\)$/, "0.2)")}`,
-          `0 0 16px ${glowColor}`,
-          `0 0 8px ${glowColor.replace(/[\d.]+\)$/, "0.2)")}`,
-        ],
-      }}
-      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
     >
       <Star className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
       {rankName}

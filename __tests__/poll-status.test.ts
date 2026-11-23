@@ -30,6 +30,7 @@ function makePoll(id: string, status: PollStatus): Poll {
     status,
     lockTime: "kickoff",
     recentActivity: "No activity yet",
+    createdAt: new Date().toISOString(),
   };
 }
 

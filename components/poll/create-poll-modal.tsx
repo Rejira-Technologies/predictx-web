@@ -228,6 +228,7 @@ function PollPreview({ form, matchLabel }: { form: FormState; matchLabel: string
             form.lockTime === "custom" && form.customLockTime
                 ? form.customLockTime
                 : undefined,
+        createdAt: new Date().toISOString(),
     };
 
     return (

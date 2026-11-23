@@ -21,14 +21,6 @@ const { mockSendTransaction, mockUpdateBalance, mockGetWalletState } =
     mockGetWalletState: vi.fn(),
   }));
 
-const { mockUpdatePollPool, mockGetPoll, mockGetMockDataState } = vi.hoisted(
-  () => ({
-    mockUpdatePollPool: vi.fn(),
-    mockGetPoll: vi.fn(),
-    mockGetMockDataState: vi.fn(),
-  }),
-);
-
 const { mockAddTransaction, mockGetTransactionsState } = vi.hoisted(() => ({
   mockAddTransaction: vi.fn(),
   mockGetTransactionsState: vi.fn(),
@@ -46,11 +38,9 @@ vi.mock("@/hooks/use-wallet", () => ({
   },
 }));
 
-vi.mock("@/hooks/use-mock-data", () => ({
-  useMockData: {
-    getState: mockGetMockDataState,
-  },
-}));
+// NOTE: @/hooks/use-mock-data is intentionally NOT mocked — placeStake must
+// run against the real store so pool totals, stakeCount and the distinct-
+// staker participant count are actually exercised (#480).
 
 vi.mock("@/hooks/use-transactions", () => ({
   useTransactions: {
@@ -60,8 +50,10 @@ vi.mock("@/hooks/use-transactions", () => ({
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 import { useStaking } from "@/hooks/use-staking";
+import { useMockData } from "@/hooks/use-mock-data";
 import { calculateCompletedPayout } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
+import type { Poll } from "@/lib/mock-data";
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -84,20 +76,25 @@ function setupWalletMocks(opts: { address?: string; balance?: number } = {}) {
   mockGetWalletState.mockReturnValue(state);
 }
 
-function setupMockDataMocks() {
-  mockGetMockDataState.mockReturnValue({
-    updatePollPool: mockUpdatePollPool,
-    getPoll: mockGetPoll,
-    polls: [],
-    getMatch: vi.fn(),
-  });
-  mockGetPoll.mockReturnValue({
-    id: "poll-1",
-    category: "team_event",
-    matchId: "match-1",
-    yesPool: 100,
-    noPool: 100,
-  });
+const TEST_POLL: Poll = {
+  id: "poll-1",
+  matchId: "match-1",
+  question: "Will Team A win?",
+  category: "team_event",
+  yesPool: 100,
+  noPool: 100,
+  participants: 0,
+  stakeCount: 0,
+  stakers: [],
+  status: "active",
+  lockTime: "kickoff",
+  recentActivity: "No activity yet",
+  createdAt: new Date().toISOString(),
+};
+
+/** Reset the real mock-data store to a single known poll before each test. */
+function resetMockDataStore() {
+  useMockData.setState({ polls: [{ ...TEST_POLL }], matches: [] });
 }
 
 function setupTransactionMocks() {
@@ -113,7 +110,7 @@ describe("useStaking.placeStake", () => {
     vi.clearAllMocks();
     resetStore();
     setupWalletMocks();
-    setupMockDataMocks();
+    resetMockDataStore();
     setupTransactionMocks();
   });
 
@@ -148,19 +145,48 @@ describe("useStaking.placeStake", () => {
     expect(stake.id).toBe("stake-hash9876");
   });
 
-  it("calls updatePollPool with the correct side and amount", async () => {
+  it("updates the real poll pool, stakeCount and stakers on a NO stake", async () => {
     mockSendTransaction.mockResolvedValue({ hash: "txhash000" });
 
     await useStaking
       .getState()
       .placeStake("poll-1", "match-1", "Match", "Question?", "no", 75);
 
-    expect(mockUpdatePollPool).toHaveBeenCalledWith(
-      "poll-1",
-      "no",
-      75,
-      TEST_ADDRESS,
-    );
+    const poll = useMockData.getState().getPoll("poll-1");
+    expect(poll?.yesPool).toBe(100); // untouched
+    expect(poll?.noPool).toBe(175); // 100 + 75
+    expect(poll?.stakeCount).toBe(1);
+    expect(poll?.stakers).toEqual([TEST_ADDRESS]);
+  });
+
+  it("counts participants as distinct wallets, not stake count", async () => {
+    mockSendTransaction.mockResolvedValue({ hash: "txhash000" });
+
+    // Two stakes from the same wallet: stakeCount grows, participants does not.
+    await useStaking
+      .getState()
+      .placeStake("poll-1", "match-1", "Match", "Question?", "yes", 10);
+    await useStaking
+      .getState()
+      .placeStake("poll-1", "match-1", "Match", "Question?", "yes", 20);
+
+    let poll = useMockData.getState().getPoll("poll-1");
+    expect(poll?.stakeCount).toBe(2);
+    expect(poll?.yesPool).toBe(130);
+    expect(poll?.participants).toBe(1);
+    expect(poll?.stakers).toEqual([TEST_ADDRESS]);
+
+    // A stake from a different wallet adds a participant.
+    setupWalletMocks({ address: "GOTHERWALLET000000000000" });
+    await useStaking
+      .getState()
+      .placeStake("poll-1", "match-1", "Match", "Question?", "no", 5);
+
+    poll = useMockData.getState().getPoll("poll-1");
+    expect(poll?.stakeCount).toBe(3);
+    expect(poll?.noPool).toBe(105);
+    expect(poll?.participants).toBe(2);
+    expect(poll?.stakers).toHaveLength(2);
   });
 
   it("returns the created stake and the transaction receipt", async () => {
@@ -207,7 +233,6 @@ describe("useStaking.claimStake", () => {
     vi.clearAllMocks();
     resetStore();
     setupWalletMocks();
-    setupMockDataMocks();
     setupTransactionMocks();
   });
 
