@@ -64,6 +64,7 @@ describe("Batch #328 - #331 UI enhancements", () => {
         status: "active",
         lockTime: "kickoff",
         recentActivity: "Recent stake",
+        createdAt: new Date().toISOString(),
       };
 
       const dummyMatch: Match = {

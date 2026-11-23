@@ -28,11 +28,24 @@ export type { StellarErrorCode };
 
 /**
  * Toggle between mock and live on-chain data.
- * Defaults to true if NEXT_PUBLIC_USE_MOCK_DATA is 'true' or not explicitly 'false',
- * or if contract ID is not configured.
+ *
+ * Parsed strictly: only the exact string "true" enables mock mode. Unset
+ * defaults to mock only outside production; any other value ("0", "FALSE",
+ * typos) resolves to live mode so a config mistake can never silently
+ * fabricate on-chain transaction receipts.
  */
+const MOCK_DATA_ENV = process.env.NEXT_PUBLIC_USE_MOCK_DATA;
 export const USE_MOCK =
-  process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "false";
+  MOCK_DATA_ENV === "true" ||
+  (MOCK_DATA_ENV === undefined && process.env.NODE_ENV !== "production");
+
+if (USE_MOCK && process.env.NODE_ENV === "production") {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[predictx] NEXT_PUBLIC_USE_MOCK_DATA is enabled in a production build — " +
+      "all contract writes will return fabricated SUCCESS receipts.",
+  );
+}
 
 export const PREDICTION_MARKET_CONTRACT =
   process.env.NEXT_PUBLIC_CONTRACT_PREDICTION_MARKET ||

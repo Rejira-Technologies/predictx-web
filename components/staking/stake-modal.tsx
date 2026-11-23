@@ -201,7 +201,6 @@ function WalletConfirmPopup({
 function ProcessingOverlay() {
   const shouldReduceMotion = useReducedMotion();
   return (
-return (
     <motion.div
       role="alert"
       aria-live="polite"
@@ -1172,7 +1171,7 @@ export function StakeModal({
                                 }}
                               >
                                 <AnimatedCounter
-                                  value={winnings.profit}
+                                  value={Math.abs(winnings.profit)}
                                   prefix={winnings.profit >= 0 ? "+$" : "-$"}
                                   format="currency"
                                 />
