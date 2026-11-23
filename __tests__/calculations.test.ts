@@ -122,11 +122,14 @@ describe("calculatePotentialWinnings", () => {
     expect(result.roi).toBeCloseTo((result.profit / 100) * 100, 4);
   });
 
-  it("produces positive profit when the stake wins a majority pool", () => {
-    // yes side heavily dominant — staking yes should be profitable
+  it("returns a small loss when staking the dominant side of the pool", () => {
+    // Betting "no" into a 200-strong no pool: gross = (10/210)*220 ≈ 10.476,
+    // net ≈ 9.952 after the 5% fee — a ≈$0.05 loss, not a profit.
     const result = calculatePotentialWinnings(10, "no", 10, 200);
-    // noPool is large; staking no should win less relative to the pool contribution
-    expect(result.netWinnings).toBeGreaterThan(0);
+    expect(result.grossWinnings).toBeCloseTo(10.476190, 4);
+    expect(result.netWinnings).toBeCloseTo(9.952381, 4);
+    expect(result.profit).toBeCloseTo(-0.047619, 4);
+    expect(result.roi).toBeCloseTo(-0.476190, 4);
   });
 
   it("produces a positive ROI when stake wins entire opposite pool", () => {

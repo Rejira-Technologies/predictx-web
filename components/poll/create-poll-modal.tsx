@@ -25,6 +25,7 @@ import {
     CREATE_POLL_FEE_XLM,
     POLL_QUESTION_MIN_LENGTH,
     POLL_QUESTION_MAX_LENGTH,
+    isValidPollQuestionLength,
     XLM_USD_RATE,
 } from "@/lib/constants";
 import { getLockTargetISO } from "@/lib/calculations";
@@ -228,6 +229,7 @@ function PollPreview({ form, matchLabel }: { form: FormState; matchLabel: string
             form.lockTime === "custom" && form.customLockTime
                 ? form.customLockTime
                 : undefined,
+        createdAt: new Date().toISOString(),
     };
 
     return (
@@ -293,7 +295,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     const canGoNext = useCallback(() => {
         if (step === 1) return !!form.matchId;
         if (step === 2) return !!form.category;
-        if (step === 3) return form.question.length >= POLL_QUESTION_MIN_LENGTH && form.question.length <= POLL_QUESTION_MAX_LENGTH;
+        if (step === 3) return isValidPollQuestionLength(form.question);
         if (step === 4) return !!form.lockTime && (form.lockTime !== "custom" || !!form.customLockTime);
         return false;
     }, [step, form]);
@@ -591,7 +593,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                             <div className="relative">
                                                 <textarea
                                                     value={form.question}
-                                                    onChange={(e) => updateForm({ question: e.target.value.slice(0, POLL_QUESTION_MAX_LENGTH) })}
+                                                    onChange={(e) => updateForm({ question: e.target.value })}
                                                     placeholder="e.g., Will Palmer score a goal?"
                                                     rows={3}
                                                     className={cn(

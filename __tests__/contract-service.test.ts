@@ -20,7 +20,7 @@ import {
   StellarError,
   USE_MOCK,
 } from "@/lib/contract";
-import { nativeToScVal } from "@stellar/stellar-sdk";
+import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 
 describe("lib/soroban-types", () => {
   it("converts XLM to stroops correctly", () => {
@@ -36,19 +36,30 @@ describe("lib/soroban-types", () => {
     expect(stroopsToXlm(10_000_000)).toBe(1);
   });
 
-  it("converts stakeToScVal", () => {
+  it("encodes stakeToScVal as an i128 stroop amount", () => {
     const scVal = stakeToScVal(10);
-    expect(scVal).toBeDefined();
+    expect(scVal.type).toBe("scvI128");
+    // 10 XLM = 100_000_000 stroops; a missing xlmToStroops conversion would
+    // encode 10n instead and fail this assertion.
+    expect(scValToNative(scVal)).toBe(100_000_000n);
   });
 
-  it("converts pollToScVal", () => {
+  it("encodes pollToScVal with the contract's field names and units", () => {
     const scVal = pollToScVal({
       matchId: "m1",
       question: "Will Arsenal win?",
       options: ["yes", "no"],
       stakeAmount: 50,
     });
-    expect(scVal).toBeDefined();
+    expect(scVal.type).toBe("scvMap");
+    // 50 XLM = 500_000_000 stroops. Deep-equality catches renamed fields,
+    // dropped options, or a stake_amount left in XLM instead of stroops.
+    expect(scValToNative(scVal)).toEqual({
+      match_id: "m1",
+      question: "Will Arsenal win?",
+      options: ["yes", "no"],
+      stake_amount: 500_000_000n,
+    });
   });
 
   it("converts scVal to Poll and Stake", () => {

@@ -60,7 +60,7 @@ vi.mock("@/hooks/use-transactions", () => ({
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 import { useStaking } from "@/hooks/use-staking";
-import { calculateCompletedPayout } from "@/lib/calculations";
+import { calculateCompletedPayout, calculateGrossPayout } from "@/lib/calculations";
 import { XLM_USD_RATE } from "@/lib/constants";
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
@@ -261,13 +261,30 @@ describe("useStaking.claimStake", () => {
   });
 
   it("derives grossPayout from profit when grossPayout is not stored", async () => {
-    // profit is post-fee; gross = stake + profit/(1-0.05)
-    seedWonStake({ profit: 90 }); // implies gross ≈ 100 + 90/0.95 = 194.74
+    // profit is post-fee, so gross = (stake + profit) / (1 - fee)
+    // = (100 + 90) / 0.95 = 200, and net = 200 * 0.95 = 190.
+    seedWonStake({ profit: 90 });
 
     const result = await useStaking.getState().claimStake("stake-won-001");
 
-    expect(result.netPayout).toBeGreaterThan(0);
-    expect(mockUpdateBalance).toHaveBeenCalled();
+    const expectedGross = calculateGrossPayout(100, 90, undefined);
+    const expected = calculateCompletedPayout(100, expectedGross);
+    expect(expectedGross).toBeCloseTo(200, 4);
+    expect(expected.net).toBeCloseTo(190, 4);
+
+    expect(result.netPayout).toBeCloseTo(expected.net, 4);
+    expect(result.netPayoutXLM).toBeCloseTo(expected.net / XLM_USD_RATE, 4);
+    expect(mockUpdateBalance).toHaveBeenCalledWith(
+      expect.closeTo(expected.net / XLM_USD_RATE, 4),
+    );
+    expect(mockAddTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "claim",
+        amount: expect.closeTo(expected.net, 4),
+        amountXLM: expect.closeTo(expected.net / XLM_USD_RATE, 4),
+        description: expect.stringContaining("gross $200.00"),
+      }),
+    );
   });
 
   it("falls back to stake amount as gross when neither grossPayout nor profit is set", async () => {

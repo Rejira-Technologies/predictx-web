@@ -76,11 +76,6 @@ export class StellarError extends Error {
   }
 }
 
-export interface StellarClient {
-  getHorizonUrl: (network?: StellarNetwork) => string;
-  getAccountBalance: (publicKey: string, network?: StellarNetwork) => Promise<number>;
-  getAccountSequence: (publicKey: string, network?: StellarNetwork) => Promise<string>;
-  signAndSubmitTransaction: (txXdr: string) => Promise<never>;
 /**
  * Returns the Horizon REST endpoint for the requested network.
  *
