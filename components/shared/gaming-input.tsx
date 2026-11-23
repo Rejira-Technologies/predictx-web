@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Minus, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,26 @@ interface GamingInputProps {
   "aria-label"?: string;
 }
 
+// Allows empty string, standalone minus/decimal/minus-decimal while mid-keystroke,
+// and partial decimals like "10.", "0.0", ".5", "-0.25".
+const INTERMEDIATE_NUMBER_REGEX = /^-?(?:\d+(?:\.\d*)?|\.\d*)$/;
+
+function isIncompleteNumberToken(raw: string): boolean {
+  return raw === "" || raw === "-" || raw === "." || raw === "-.";
+}
+
+function clampNumericValue(num: number, min?: number, max?: number): number {
+  let clamped = num;
+  if (min !== undefined) clamped = Math.max(min, clamped);
+  if (max !== undefined) clamped = Math.min(max, clamped);
+  return clamped;
+}
+
+function formatExternalNumber(val: string | number): string {
+  if (val === "" || val === undefined || val === null) return "";
+  return String(val);
+}
+
 export function GamingInput({
   type = "text",
   value,
@@ -43,6 +63,13 @@ export function GamingInput({
   const shouldReduceMotion = useReducedMotion();
   const [isFocused, setIsFocused] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
+  const [draftValue, setDraftValue] = useState<string>(() =>
+    type === "number" ? formatExternalNumber(value) : String(value ?? "")
+  );
+
+  // Track the last numeric value we emitted so parent re-renders of that same
+  // value don't clobber an active draft like "10." or "0.0".
+  const lastEmittedNumberRef = useRef<number | null>(null);
 
   // Trigger shake animation when error appears
   useEffect(() => {
@@ -53,25 +80,127 @@ export function GamingInput({
     }
   }, [error]);
 
+  // Sync from external `value` prop when not actively editing or when parent sets
+  // a genuinely new external value (e.g., reset, preset button, or initial mount).
+  useEffect(() => {
+    if (type !== "number") {
+      setDraftValue(String(value ?? ""));
+      return;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      if (isFocused && lastEmittedNumberRef.current === value) {
+        return;
+      }
+      lastEmittedNumberRef.current = value;
+      setDraftValue(String(value));
+      return;
+    }
+
+    if (value === "") {
+      if (!isFocused) {
+        lastEmittedNumberRef.current = null;
+        setDraftValue("");
+      }
+      return;
+    }
+
+    if (!isFocused) {
+      setDraftValue(String(value));
+    }
+  }, [value, type, isFocused]);
+
   const handleNumberChange = (newValue: number) => {
     if (type !== "number") return;
 
-    let clampedValue = newValue;
-    if (min !== undefined) clampedValue = Math.max(min, clampedValue);
-    if (max !== undefined) clampedValue = Math.min(max, clampedValue);
-
+    const clampedValue = clampNumericValue(newValue, min, max);
+    lastEmittedNumberRef.current = clampedValue;
+    setDraftValue(String(clampedValue));
     onChange(clampedValue);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+
+    if (type !== "number") {
+      onChange(raw);
+      return;
+    }
+
+    if (!INTERMEDIATE_NUMBER_REGEX.test(raw)) {
+      return;
+    }
+
+    setDraftValue(raw);
+
+    if (isIncompleteNumberToken(raw)) {
+      // Preserve empty string or trailing/leading decimal while typing;
+      // emit 0 if cleared so numeric consumers don't see stale non-zero values,
+      // without overwriting `draftValue`.
+      if (raw === "") {
+        lastEmittedNumberRef.current = 0;
+        onChange(0);
+      }
+      return;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+      lastEmittedNumberRef.current = parsed;
+      onChange(parsed);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (type === "number") {
+      setDraftValue(formatExternalNumber(value));
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+
+    if (type !== "number") return;
+
+    const trimmed = draftValue.trim();
+
+    if (isIncompleteNumberToken(trimmed)) {
+      const fallback = min !== undefined ? clampNumericValue(0, min, max) : 0;
+      lastEmittedNumberRef.current = fallback;
+      setDraftValue("");
+      onChange(fallback);
+      return;
+    }
+
+    const parsed = Number(trimmed);
+    if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+      const clamped = clampNumericValue(parsed, min, max);
+      lastEmittedNumberRef.current = clamped;
+      setDraftValue(String(clamped));
+      onChange(clamped);
+    }
+  };
+
   const increment = () => {
-    const current = typeof value === "number" ? value : 0;
+    const current =
+      typeof value === "number"
+        ? value
+        : parseFloat(draftValue) || 0;
     handleNumberChange(current + step);
   };
 
   const decrement = () => {
-    const current = typeof value === "number" ? value : 0;
+    const current =
+      typeof value === "number"
+        ? value
+        : parseFloat(draftValue) || 0;
     handleNumberChange(current - step);
   };
+
+  const displayedValue = type === "number" ? draftValue : value;
+  const isEmptyForCursor =
+    type === "number" ? draftValue === "" : !value;
 
   return (
     <div className={cn("relative", className)}>
@@ -91,8 +220,8 @@ export function GamingInput({
               ? "0 0 20px rgba(255, 0, 110, 0.5), inset 0 0 10px rgba(255, 0, 110, 0.2)"
               : "0 0 20px rgba(0, 217, 255, 0.5), inset 0 0 10px rgba(0, 217, 255, 0.2)"
             : error
-            ? "0 0 10px rgba(255, 0, 110, 0.3), inset 0 0 5px rgba(255, 0, 110, 0.1)"
-            : "0 0 10px rgba(0, 217, 255, 0.2), inset 0 0 5px rgba(0, 217, 255, 0.1)",
+              ? "0 0 10px rgba(255, 0, 110, 0.3), inset 0 0 5px rgba(255, 0, 110, 0.1)"
+              : "0 0 10px rgba(0, 217, 255, 0.2), inset 0 0 5px rgba(0, 217, 255, 0.1)",
           border: error
             ? "1px solid rgba(255, 0, 110, 0.5)"
             : "1px solid rgba(0, 217, 255, 0.3)",
@@ -103,8 +232,8 @@ export function GamingInput({
               ? "rgba(255, 0, 110, 0.8)"
               : "rgba(0, 217, 255, 0.8)"
             : error
-            ? "rgba(255, 0, 110, 0.5)"
-            : "rgba(0, 217, 255, 0.3)",
+              ? "rgba(255, 0, 110, 0.5)"
+              : "rgba(0, 217, 255, 0.3)",
         }}
         transition={{ duration: 0.2 }}
       >
@@ -122,12 +251,11 @@ export function GamingInput({
           aria-describedby={error ? `${id ?? "gaming-input"}-error` : undefined}
           aria-invalid={error ? true : undefined}
           type={type === "number" ? "text" : type}
-          value={value}
-          onChange={(e) =>
-            onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)
-          }
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          inputMode={type === "number" ? "decimal" : undefined}
+          value={displayedValue}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
@@ -177,7 +305,7 @@ export function GamingInput({
 
         {/* Typing cursor animation overlay for placeholder */}
         <AnimatePresence>
-          {isFocused && !value && placeholder && (
+          {isFocused && isEmptyForCursor && placeholder && (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
