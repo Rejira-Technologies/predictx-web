@@ -56,6 +56,13 @@ export const AUTO_APPROVE_THRESHOLD = 0.85; // 85% consensus
 export const ADMIN_REVIEW_THRESHOLD = 0.6; // 60% consensus
 
 /**
+ * Hours that community voting stays open after a poll locks.
+ * Mirrors `voting_window_seconds` (7200) in the contract — same window as
+ * `VOTING_WINDOW_MS` in lib/calculations.
+ */
+export const VOTING_WINDOW_HOURS = 2;
+
+/**
  * Hours after a poll enters `resolved` status during which participants may
  * raise a formal on-chain dispute. After this window, resolution is final.
  * Soroban: mirrors `dispute_window_seconds` (86400) in the contract.

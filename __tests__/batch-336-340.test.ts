@@ -13,7 +13,12 @@ describe("Batch #336, #338, #339, #340 regression tests", () => {
     expect(winCount).toBe(4);
     expect(lossCount).toBe(2);
 
-    const totalProfit = completedStakes.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+    const totalProfit = completedStakes.reduce((sum, s) => {
+      if (s.outcome === "won" && s.grossPayout != null) {
+        return sum + calculateCompletedPayout(s.amount, s.grossPayout).profit;
+      }
+      return sum - s.amount;
+    }, 0);
     expect(Math.round(totalProfit)).toBe(447);
   });
 
