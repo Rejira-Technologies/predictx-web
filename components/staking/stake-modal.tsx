@@ -412,6 +412,7 @@ function SuccessOverlay({
             window.open(
               `${activeExplorerUrl}/tx/${receipt.hash}`,
               "_blank",
+              "noopener,noreferrer",
             )
           }
         >
@@ -553,10 +554,6 @@ export function StakeModal({
   // Pool preview (after user's stake is added)
   const previewYes = side === "yes" ? poll.yesPool + stakeAmount : poll.yesPool;
   const previewNo = side === "no" ? poll.noPool + stakeAmount : poll.noPool;
-  const previewPct = useMemo(
-    () => calculatePoolPercentages(previewYes, previewNo),
-    [previewYes, previewNo],
-  );
 
   const isOnMajoritySide =
     (side === "yes" && poolPct.yes >= 50) ||
@@ -768,8 +765,7 @@ export function StakeModal({
         <>
           {/* Overlay */}
           <motion.div
-            role="dialog"
-            aria-modal="true"
+            aria-hidden="true"
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             style={{
               backgroundImage:
@@ -784,6 +780,10 @@ export function StakeModal({
           {/* Slide-in panel */}
           <motion.div
             ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stake-modal-question"
+            tabIndex={-1}
             className={cn(
               "fixed z-50 top-0 right-0 h-full",
               "w-full md:w-[520px] lg:w-[560px]",
@@ -853,7 +853,10 @@ export function StakeModal({
                     {categoryLabel(poll.category)}
                   </span>
 
-                  <h2 className="font-display text-2xl md:text-3xl font-black text-foreground leading-tight">
+                  <h2
+                    id="stake-modal-question"
+                    className="font-display text-2xl md:text-3xl font-black text-foreground leading-tight"
+                  >
                     {poll.question}
                   </h2>
 
@@ -1247,7 +1250,7 @@ export function StakeModal({
                           Yes Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.yesPool)} ({previewPct.yes}%)
+                          {formatCurrency(poll.yesPool)} ({poolPct.yes}%)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1256,7 +1259,7 @@ export function StakeModal({
                           No Pool
                         </span>
                         <span className="ml-auto text-foreground">
-                          {formatCurrency(poll.noPool)} ({previewPct.no}%)
+                          {formatCurrency(poll.noPool)} ({poolPct.no}%)
                         </span>
                       </div>
                       {stakeAmount > 0 && (

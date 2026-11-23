@@ -466,10 +466,10 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                     <div className="flex flex-1 min-h-0">
                         {/* Form column */}
                         <div className="flex-1 flex flex-col min-h-0 overflow-auto">
-                            <div className="flex-1 px-6 pb-4" aria-live="polite" aria-atomic="true">
-                                <span className="sr-only">
+                            <div className="flex-1 px-6 pb-4">
+                                <p className="sr-only" aria-live="polite">
                                     Step {step} of 4: {STEPS[step - 1]}
-                                </span>
+                                </p>
                                 <AnimatePresence mode="wait">
                                     {step === 1 && (
                                         <motion.div
