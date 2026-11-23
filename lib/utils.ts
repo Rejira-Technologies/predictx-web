@@ -23,3 +23,21 @@ export function categoryLabel(category: string): string {
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+/**
+ * Shortens a public address (such as a Stellar public key) for compact display.
+ *
+ * Returns the original value unchanged when empty or shorter than `prefixLength + suffixLength`
+ * to avoid malformed output or overlapping slices.
+ */
+export function shortenAddress(
+  address: string,
+  prefixLength = 6,
+  suffixLength = 4,
+): string {
+  if (!address || address.length < prefixLength + suffixLength) {
+    return address;
+  }
+
+  return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`;
+}
