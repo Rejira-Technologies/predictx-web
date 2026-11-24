@@ -185,10 +185,20 @@ export function VotingCard({ poll, match }: VotingCardProps) {
                 <div className="flex items-center gap-4">
                     <TeamBadge team={homeTeam} size="sm" />
                     <div className="text-center px-4">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Final Score</div>
-                        <div className="font-display font-black text-xl">
-                            {match.score?.home ?? 0} <span className="text-muted-foreground font-normal mx-1">—</span> {match.score?.away ?? 0}
-                        </div>
+                        {match.score != null ? (
+                            <>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                                    {match.status === "completed" ? "Final Score" : match.status === "live" ? "Live" : "Kickoff"}
+                                </div>
+                                <div className="font-display font-black text-xl">
+                                    {match.score.home} <span className="text-muted-foreground font-normal mx-1">—</span> {match.score.away}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider">
+                                {match.status === "live" ? "Live" : "Kickoff"}
+                            </div>
+                        )}
                     </div>
                     <TeamBadge team={awayTeam} size="sm" />
                 </div>

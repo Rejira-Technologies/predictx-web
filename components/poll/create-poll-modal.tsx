@@ -250,9 +250,20 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     const { addPoll } = useMockData();
     const { isConnected, sendTransaction, address } = useWallet();
 
+    // Determine whether the preselected match (if any) is a valid upcoming match.
+    // A live or completed match cannot be used for a new poll, so we blank it here
+    // and seed the form accordingly so canGoNext() and resolvedMatch stay in sync.
+    const preselectedMatchObj = preselectedMatchId
+        ? MATCHES.find((m) => m.id === preselectedMatchId)
+        : undefined;
+    const effectivePreselectedMatchId =
+        preselectedMatchObj && preselectedMatchObj.status !== "upcoming"
+            ? ""
+            : (preselectedMatchId ?? "");
+
     const [step, setStep] = useState<number>(1);
     const [form, setForm] = useState<FormState>({
-        matchId: preselectedMatchId ?? "",
+        matchId: effectivePreselectedMatchId,
         category: "",
         question: "",
         lockTime: "",
@@ -276,14 +287,10 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     }, []);
 
     const upcomingMatches = MATCHES.filter((m) => m.status === "upcoming");
+
     const selectedMatch = MATCHES.find((m) => m.id === form.matchId);
-    // If a preselected match is not upcoming (live/completed), ignore it so
-    // the wizard never receives a matchId that bypasses the upcoming-only filter.
-    const effectiveMatchId =
-        selectedMatch && selectedMatch.status !== "upcoming" ? "" : form.matchId;
-    const resolvedMatch = effectiveMatchId
-        ? MATCHES.find((m) => m.id === effectiveMatchId)
-        : undefined;
+    const resolvedMatch =
+        selectedMatch && selectedMatch.status === "upcoming" ? selectedMatch : undefined;
     const matchLabel = resolvedMatch
         ? `${resolvedMatch.homeTeam} vs ${resolvedMatch.awayTeam}`
         : "";
@@ -291,12 +298,12 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
     // ── Validation ─────────────────────────────────────────────────────────────
 
     const canGoNext = useCallback(() => {
-        if (step === 1) return !!form.matchId;
+        if (step === 1) return !!resolvedMatch;
         if (step === 2) return !!form.category;
         if (step === 3) return form.question.length >= POLL_QUESTION_MIN_LENGTH && form.question.length <= POLL_QUESTION_MAX_LENGTH;
         if (step === 4) return !!form.lockTime && (form.lockTime !== "custom" || !!form.customLockTime);
         return false;
-    }, [step, form]);
+    }, [step, form, resolvedMatch]);
 
     const nextStep = () => { if (canGoNext()) setStep((s) => s + 1 as 1 | 2 | 3 | 4); };
     const prevStep = () => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3 | 4);
@@ -310,7 +317,14 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
             setShowWalletModal(true);
             return;
         }
-        if (!resolvedMatch || !form.category || !form.lockTime) return;
+        if (!resolvedMatch || !form.category || !form.lockTime) {
+            setSubmitError(
+                !resolvedMatch
+                    ? "Please select a valid upcoming match before submitting."
+                    : "Missing required fields. Please complete all steps."
+            );
+            return;
+        }
 
         setSubmitting(true);
         setSubmitError("");
@@ -384,7 +398,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
             successTimerRef.current = null;
         }
         setStep(1);
-        setForm({ matchId: preselectedMatchId ?? "", category: "", question: "", lockTime: "", customLockTime: "" });
+        setForm({ matchId: effectivePreselectedMatchId, category: "", question: "", lockTime: "", customLockTime: "" });
         setSubmitting(false);
         setSubmitError("");
         setSuccess(false);
