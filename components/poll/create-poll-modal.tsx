@@ -35,6 +35,22 @@ import { GamingButton } from "@/components/shared/gaming-button";
 import { PollCard } from "@/components/poll-card";
 import { cn } from "@/lib/utils";
 
+/**
+ * Format a `Date` as a `datetime-local` string using local wall-clock getters.
+ *
+ * `datetime-local` inputs read and write local time strings (`YYYY-MM-DDTHH:mm`),
+ * so the `max` attribute must also be in local time. Using `toISOString()` returns
+ * UTC, which produces a cap that is offset by the user's timezone — too early for
+ * users east of UTC, too late for users west of it.
+ */
+function toLocalDateTimeString(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+    );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CreatePollModalProps {
@@ -717,7 +733,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                             type="datetime-local"
                                                             value={form.customLockTime}
                                                             onChange={(e) => updateForm({ customLockTime: e.target.value })}
-                                                            max={resolvedMatch ? new Date(new Date(resolvedMatch.kickoff).getTime() + 105 * 60000).toISOString().slice(0, 16) : undefined}
+                                                            max={resolvedMatch ? toLocalDateTimeString(new Date(new Date(resolvedMatch.kickoff).getTime() + 105 * 60000)) : undefined}
                                                             className="w-full bg-[#1a1f3a]/80 text-foreground border-2 border-border rounded-lg p-3 outline-none focus:border-primary transition-all text-sm"
                                                         />
                                                     </motion.div>

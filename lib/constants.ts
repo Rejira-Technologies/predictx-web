@@ -209,3 +209,10 @@ export const POLL_QUESTION_MIN_LENGTH = 10; // characters
  * @example sendTransaction(CREATE_POLL_FEE_XLM * XLM_USD_RATE, `Create poll: ${question}`)
  */
 export const CREATE_POLL_FEE_XLM = 0.001; // XLM
+
+/**
+ * Number of hours that community voting remains open after a poll locks.
+ * Mirrors `VOTING_WINDOW_MS` in `lib/calculations.ts` (7200 seconds = 2 hours).
+ * Used for display copy in the voting UI.
+ */
+export const VOTING_WINDOW_HOURS = 2; // hours

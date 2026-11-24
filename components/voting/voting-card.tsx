@@ -161,13 +161,21 @@ export function VotingCard({ poll, match }: VotingCardProps) {
      * the buttons beside it stayed fully enabled. A one-second tick derives it
      * from the shared helper instead, so the countdown and the gate cannot
      * disagree.
+     *
+     * The interval runs only while the card is idle and voting is potentially
+     * open. Once `cardState` moves to "voted", or once the first tick reveals
+     * that voting has closed, the interval is cleared and never restarted —
+     * preventing every mounted card from burning a render per second for the
+     * lifetime of the page.
      */
     const [, tick] = useReducer((n: number) => n + 1, 0);
+    const votingOpen = isVotingOpen(poll, match);
     useEffect(() => {
+        // No need to tick once voting has closed or the user has already voted.
+        if (!votingOpen || cardState === "voted") return;
         const id = setInterval(tick, 1_000);
         return () => clearInterval(id);
-    }, []);
-    const votingOpen = isVotingOpen(poll, match);
+    }, [votingOpen, cardState]);
 
     const getCategoryColor = (cat: string) => {
         switch (cat) {

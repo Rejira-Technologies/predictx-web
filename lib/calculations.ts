@@ -266,3 +266,43 @@ export function getVotingDeadline(
 	if (Number.isNaN(lock)) return Number.NaN;
 	return lock + VOTING_WINDOW_MS;
 }
+
+/**
+ * ISO string of the voting deadline — a thin wrapper around `getVotingDeadline`
+ * for use in `<CountdownTimer targetTime={...}>` and `<time>` elements that
+ * expect an ISO string rather than epoch ms.
+ *
+ * Returns the current time as a fallback string if the deadline cannot be
+ * derived (unparseable kickoff), so callers never receive `NaN` or `undefined`.
+ */
+export function getVotingDeadlineISO(
+	poll: { lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+): string {
+	const ms = getVotingDeadline(poll, match);
+	if (Number.isNaN(ms)) return new Date().toISOString();
+	return new Date(ms).toISOString();
+}
+
+/**
+ * Whether community voting is currently open for a poll.
+ *
+ * Voting is open when:
+ *  1. The poll is locked (the staking window has closed), and
+ *  2. The voting window (`VOTING_WINDOW_MS`) has not yet elapsed.
+ *
+ * @param now Injected for testing; defaults to `Date.now()`.
+ */
+export function isVotingOpen(
+	poll: { status?: string; lockTime: LockTimeKey | string; lockTargetISO?: string },
+	match: { kickoff: string } | undefined,
+	now: number = Date.now(),
+): boolean {
+	if (!match) return false;
+	// Must be locked before voting can start
+	if (!isPollLocked(poll, match, now)) return false;
+	// Must be within the voting window
+	const deadline = getVotingDeadline(poll, match);
+	if (Number.isNaN(deadline)) return false;
+	return now < deadline;
+}
