@@ -6,6 +6,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: [],
+    env: {
+      NEXT_PUBLIC_USE_MOCK_DATA: "true",
+    },
   },
   resolve: {
     alias: {
