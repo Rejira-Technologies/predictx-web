@@ -201,7 +201,6 @@ function WalletConfirmPopup({
 function ProcessingOverlay() {
   const shouldReduceMotion = useReducedMotion();
   return (
-return (
     <motion.div
       role="alert"
       aria-live="polite"
@@ -628,6 +627,16 @@ export function StakeModal({
     !isPollLocked &&
     txStep === "idle";
 
+  /**
+   * True while any transaction step is active (confirm / processing /
+   * success / failure). The close button, backdrop click and Escape handler
+   * are gated on this so the modal stops looking live-but-inert at the most
+   * sensitive moment of the flow: while active the close button carries
+   * `aria-disabled` plus an explanatory tooltip, and Escape mirrors that
+   * locked state instead of silently doing nothing. See #445.
+   */
+  const isTxActive = txStep !== "idle";
+
   // ── Reset on open/close ────────────────────────────────────────────────
 
   useEffect(() => {
@@ -662,9 +671,11 @@ export function StakeModal({
 
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (txStep === "confirm") {
-          setTxStep("idle");
-        } else if (txStep === "idle") {
+        // Mirrors the close button: dismissal is locked while a transaction
+        // step is active. Backing out of the wallet-confirm prompt is done
+        // via its Reject button; Escape therefore only closes from `idle` and
+        // no longer silently does nothing during processing. See #445.
+        if (txStep === "idle") {
           onClose();
         }
       }
@@ -779,7 +790,7 @@ export function StakeModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => txStep === "idle" && onClose()}
+            onClick={() => { if (!isTxActive) onClose(); }}
           />
 
           {/* Slide-in panel */}
@@ -838,14 +849,34 @@ export function StakeModal({
 
             {/* ─── Content ─── */}
             <div className="relative z-20 flex flex-col h-full">
-              {/* Close button */}
-              <button
-                onClick={() => txStep === "idle" && onClose()}
-                className="absolute top-4 right-4 z-40 p-2 rounded hover:bg-white/5 transition-colors text-[var(--muted-foreground)] hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Close button — disabled (aria-disabled + explanatory tooltip)
+                  while a transaction step is active, so it no longer looks
+                  live but silently does nothing. Escape mirrors this state.
+                  See #445. */}
+              <div className="group absolute top-4 right-4 z-40">
+                <button
+                  type="button"
+                  onClick={() => { if (!isTxActive) onClose(); }}
+                  aria-label={isTxActive ? "Close (disabled while a transaction is in progress)" : "Close"}
+                  aria-disabled={isTxActive ? "true" : undefined}
+                  className={cn(
+                    "p-2 rounded transition-colors text-[var(--muted-foreground)]",
+                    isTxActive
+                      ? "cursor-not-allowed opacity-50"
+                      : "hover:bg-white/5 hover:text-foreground",
+                  )}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                {isTxActive && (
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded border border-border bg-background p-2 text-xs text-muted-foreground opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                  >
+                    Closing is disabled while a transaction is in progress. Wait for it to finish or reject the wallet prompt.
+                  </span>
+                )}
+              </div>
 
               <div className="p-6 md:p-8 space-y-6 flex-1">
                 {/* ─── Section 1: Poll Header ─── */}

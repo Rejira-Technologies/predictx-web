@@ -746,7 +746,13 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                                                     <span className="flex-1">{submitError}</span>
                                                     <button
-                                                        onClick={() => setSubmitError("")}
+                                                        onClick={() => {
+                                                            // Clear the dismissed banner, then re-run the submission so
+                                                            // "Retry" actually re-attempts the transaction (and re-opens the
+                                                            // wallet prompt) instead of leaving a blank banner. See #450.
+                                                            setSubmitError("");
+                                                            void handleSubmit();
+                                                        }}
                                                         className="text-[#ff006e] hover:underline text-xs font-semibold underline"
                                                     >
                                                         Retry

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ExternalLink, Info, PlayCircle, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,16 @@ const getMockEvidence = (matchId: string) => {
 
 export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Per-instance ids. The trigger's `aria-controls` and the panel's `id`
+    // (likewise the tooltip's `aria-describedby`/`id`) were hardcoded literals,
+    // so every EvidenceSection mounted on a page shared one
+    // `evidence-section-panel` id. With two voting cards the document had
+    // duplicate ids and each trigger resolved to the first card's panel.
+    // `useId()` guarantees a unique id per instance instead. See #453.
+    const panelId = useId();
+    const tooltipId = useId();
+
     const evidenceData = getMockEvidence(matchId);
     const events = evidenceData?.timeline || [];
 
@@ -33,7 +43,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
                 aria-expanded={isExpanded}
-                aria-controls="evidence-section-panel"
+                aria-controls={panelId}
                 className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors focus:outline-none"
             >
                 <div className="flex items-center gap-3">
@@ -47,7 +57,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                         <span
                             tabIndex={0}
                             role="button"
-                            aria-describedby="evidence-tooltip"
+                            aria-describedby={tooltipId}
                             aria-label="Evidence instructions"
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => {
@@ -60,7 +70,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
                             <Info className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
                         </span>
                         <div
-                            id="evidence-tooltip"
+                            id={tooltipId}
                             role="tooltip"
                             className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-background border border-border rounded text-xs text-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg"
                         >
@@ -76,7 +86,7 @@ export function EvidenceSection({ matchId, className }: EvidenceSectionProps) {
             <AnimatePresence initial={false}>
                 {isExpanded && (
                     <motion.div
-                        id="evidence-section-panel"
+                        id={panelId}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
