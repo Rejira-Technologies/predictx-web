@@ -10,7 +10,6 @@ export type { Variant };
 
 interface GlowCardProps {
   variant?: Variant;
-  glowColor?: string;
   animated?: boolean;
   className?: string;
   children: ReactNode;
@@ -71,7 +70,6 @@ const variantStyles: Record<
 
 export function GlowCard({
   variant = "default",
-  glowColor,
   animated = true,
   className,
   children,
@@ -79,10 +77,8 @@ export function GlowCard({
   const shouldReduceMotion = useReducedMotion();
   const isAnimated = animated && !shouldReduceMotion;
   const styles = variantStyles[variant as keyof typeof variantStyles] || variantStyles.default;
-  // customGlow is used for full-opacity values; alpha variants are built from channels.
-  const customGlow = glowColor || styles.glow;
-  // When a custom glowColor string is provided we fall back to the variant channels
-  // for alpha-correct variants (we cannot parse an arbitrary CSS color string).
+  // Border, shadow and scanline styles are all built from the variant's RGB
+  // channels so the alpha variants stay consistent.
   const glowCh = styles.channels;
 
   return (

@@ -102,9 +102,6 @@ export function AnimatedCounter({
 
   return (
     <motion.div
-      role="status"
-      aria-live="polite"
-      aria-label={`${prefix}${formattedValue}${suffix}`}
       className={cn(
         "font-mono inline-flex items-baseline",
         isAnimating && !shouldReduceMotion && "glow-text-cyan",
@@ -124,6 +121,11 @@ export function AnimatedCounter({
       }
       transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
     >
+      <span className="sr-only" aria-live="polite">
+        {prefix}
+        {formatValue(value, format)}
+        {suffix}
+      </span>
       {prefix && (
         <span className="text-[var(--accent-cyan)] mr-1" aria-hidden="true">{prefix}</span>
       )}
@@ -160,7 +162,7 @@ export function AnimatedCounter({
       </span>
 
       {suffix && (
-        <span className="text-[var(--muted-foreground)] ml-1">{suffix}</span>
+        <span className="text-[var(--muted-foreground)] ml-1" aria-hidden="true">{suffix}</span>
       )}
 
       {/* Pulse effect overlay */}

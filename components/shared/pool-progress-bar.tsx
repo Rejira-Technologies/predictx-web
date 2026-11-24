@@ -227,7 +227,7 @@ export function PoolProgressBar({
 
       {/* Total pool indicator */}
       {showTotal && (
-        <div className="text-center mt-1">
+        <div className="text-center mt-1" aria-live="polite">
           <span className="text-xs text-[var(--muted-foreground)]">
             Total Pool: ${" "}
             {totalAmount.toLocaleString(undefined, {
@@ -237,15 +237,6 @@ export function PoolProgressBar({
           </span>
         </div>
       )}
-      <div className="text-center mt-1" aria-live="polite">
-        <span className="text-xs text-[var(--muted-foreground)]">
-          Total Pool: ${" "}
-          {totalAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-      </div>
     </div>
   );
 }
