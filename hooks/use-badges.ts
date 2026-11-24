@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useMockData } from "@/hooks/use-mock-data";
 import { useStaking } from "@/hooks/use-staking";
 import { useVoting } from "@/hooks/use-voting";
@@ -101,16 +102,28 @@ export function useBadges(): BadgeDefinition[] {
   const allVotes = useVoting((s) => s.allVotes);
   const userVotes = walletAddress ? (allVotes[walletAddress] ?? {}) : {};
 
-  const ctx: BadgeContext = {
-    userCreatedPollCount,
-    completedWonStakes: completedStakes.filter((s) => s.outcome === "won").length,
-    consecutiveWonStakes: longestConsecutiveWonStreak(completedStakes),
-    totalVotesCast: Object.keys(userVotes).length,
-    hasEarlyStake,
-  };
+  const completedWonStakes = completedStakes.filter((s) => s.outcome === "won").length;
+  const consecutiveWonStakes = longestConsecutiveWonStreak(completedStakes);
+  const totalVotesCast = Object.keys(userVotes).length;
 
-  return BADGE_DEFINITIONS.map((def) => ({
-    ...def,
-    earned: BADGE_RULES[def.id](ctx),
-  }));
+  return useMemo(() => {
+    const ctx: BadgeContext = {
+      userCreatedPollCount,
+      completedWonStakes,
+      consecutiveWonStakes,
+      totalVotesCast,
+      hasEarlyStake,
+    };
+
+    return BADGE_DEFINITIONS.map((def) => ({
+      ...def,
+      earned: BADGE_RULES[def.id](ctx),
+    }));
+  }, [
+    userCreatedPollCount,
+    completedWonStakes,
+    consecutiveWonStakes,
+    totalVotesCast,
+    hasEarlyStake,
+  ]);
 }
