@@ -113,13 +113,28 @@ export const STELLAR_NETWORKS: Record<StellarNetwork, NetworkConfig> = {
   },
 };
 /**
+ * Validates and parses the Stellar network name from environment variable.
+ * Throws an Error if an invalid network is supplied.
+ */
+export function parseStellarNetwork(raw?: string): StellarNetwork {
+  if (!raw || raw === "") {
+    return "testnet";
+  }
+  if (raw === "mainnet" || raw === "testnet") {
+    return raw;
+  }
+  throw new Error(
+    `Invalid NEXT_PUBLIC_STELLAR_NETWORK: "${raw}". Allowed values are "testnet" or "mainnet".`
+  );
+}
+
+/**
  * Stellar network used for all blockchain interactions.
  * Driven by NEXT_PUBLIC_STELLAR_NETWORK env variable, defaulting to "testnet".
  */
-export const STELLAR_NETWORK: StellarNetwork =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK as StellarNetwork) === "mainnet"
-    ? "mainnet"
-    : "testnet";
+export const STELLAR_NETWORK: StellarNetwork = parseStellarNetwork(
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK
+);
 
 /**
  * Active network configuration derived from STELLAR_NETWORK and environment variables.
