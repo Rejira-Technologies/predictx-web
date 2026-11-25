@@ -491,6 +491,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                         <button
                                                             key={match.id}
                                                             onClick={() => updateForm({ matchId: match.id })}
+                                                            aria-pressed={form.matchId === match.id}
                                                             className={cn(
                                                                 "w-full text-left p-3 rounded-lg border-2 transition-all",
                                                                 selected
@@ -545,6 +546,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                         <button
                                                             key={cat.value}
                                                             onClick={() => updateForm({ category: cat.value })}
+                                                            aria-pressed={form.category === cat.value}
                                                             className={cn(
                                                                 "relative text-left p-4 rounded-lg border-2 transition-all group",
                                                                 selected
@@ -677,6 +679,7 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                         <button
                                                             key={opt.value}
                                                             onClick={() => updateForm({ lockTime: opt.value })}
+                                                            aria-pressed={form.lockTime === opt.value}
                                                             className={cn(
                                                                 "w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3",
                                                                 selected
