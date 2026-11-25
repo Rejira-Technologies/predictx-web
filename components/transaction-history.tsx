@@ -89,6 +89,14 @@ function TransactionRow({ tx, index }: { tx: Transaction; index: number }) {
               >
                 {tx.status === "confirmed" ? "Confirmed" : "Failed"}
               </span>
+              {tx.simulated && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded font-semibold bg-muted text-muted-foreground"
+                  title="Simulated entry — not an on-chain Stellar transaction"
+                >
+                  Demo
+                </span>
+              )}
             </div>
 
             <p className="text-sm text-foreground font-medium mt-0.5 truncate">
@@ -97,21 +105,29 @@ function TransactionRow({ tx, index }: { tx: Transaction; index: number }) {
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
               <span>{formatDate(tx.timestamp)}</span>
-              <span className="font-mono">
-                Hash:{" "}
-                <a
-                  href={`https://stellar.expert/explorer/testnet/tx/${tx.hash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center gap-0.5"
-                  aria-label={`View transaction ${tx.hash} on Stellar Expert`}
-                >
-                  {shortenHash(tx.hash)}
-                  <ExternalLink className="h-2.5 w-2.5" />
-                </a>
-              </span>
-              <span>Ledger #{tx.ledger.toLocaleString()}</span>
-              <span>{tx.fee}</span>
+              {tx.simulated ? (
+                <span>Simulated — no on-chain transaction</span>
+              ) : (
+                <>
+                  <span className="font-mono">
+                    Hash:{" "}
+                    <a
+                      href={`https://stellar.expert/explorer/testnet/tx/${tx.hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-0.5"
+                      aria-label={`View transaction ${tx.hash} on Stellar Expert`}
+                    >
+                      {shortenHash(tx.hash)}
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </span>
+                  {tx.ledger !== null && (
+                    <span>Ledger #{tx.ledger.toLocaleString()}</span>
+                  )}
+                  <span>{tx.fee}</span>
+                </>
+              )}
             </div>
           </div>
         </div>

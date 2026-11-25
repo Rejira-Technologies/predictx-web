@@ -17,17 +17,56 @@ import {
  */
 const MAX_TRANSACTIONS = 200;
 
+/**
+ * Input for {@link TransactionsState.addTransaction}.
+ *
+ * `hash` and `ledger` must come from a real transaction receipt (Soroban RPC /
+ * Horizon). When they are omitted the entry is recorded as simulated: it gets
+ * a local id that cannot be mistaken for a Stellar hash, no ledger number, and
+ * the `simulated` flag so the UI labels it as demo data instead of linking to
+ * an explorer.
+ */
+export type NewTransaction = Omit<
+  Transaction,
+  "hash" | "ledger" | "fee" | "simulated"
+> & {
+  hash?: string;
+  ledger?: number;
+  fee?: string;
+};
+
 interface TransactionsState {
   transactions: Transaction[];
-  addTransaction: (tx: Omit<Transaction, "hash" | "ledger" | "fee">) => void;
+  addTransaction: (tx: NewTransaction) => void;
 }
 
-function generateHash(): string {
-  return Array.from({ length: 32 }, () =>
-    Math.floor(Math.random() * 256)
-      .toString(16)
-      .padStart(2, "0"),
-  ).join("");
+const DEFAULT_FEE = "100 stroops (0.0000100 XLM)";
+
+let simulatedCounter = 0;
+
+/** Local, clearly non-hash identifier for a simulated entry. */
+function simulatedId(): string {
+  simulatedCounter += 1;
+  return `sim-${Date.now().toString(36)}-${simulatedCounter.toString(36)}`;
+}
+
+export function buildTransaction(tx: NewTransaction): Transaction {
+  const { hash, ledger, fee, ...rest } = tx;
+  if (hash) {
+    return {
+      ...rest,
+      hash,
+      ledger: ledger ?? null,
+      fee: fee ?? DEFAULT_FEE,
+    };
+  }
+  return {
+    ...rest,
+    hash: simulatedId(),
+    ledger: null,
+    fee: fee ?? DEFAULT_FEE,
+    simulated: true,
+  };
 }
 
 export const useTransactions = create<TransactionsState>()(
@@ -38,12 +77,7 @@ export const useTransactions = create<TransactionsState>()(
       addTransaction: (tx) =>
         set((s) => ({
           transactions: [
-            {
-              ...tx,
-              hash: generateHash(),
-              ledger: 50_000_000 + Math.floor(Math.random() * 1_000_000),
-              fee: "100 stroops (0.0000100 XLM)",
-            },
+            buildTransaction(tx),
             ...s.transactions,
           ].slice(0, MAX_TRANSACTIONS),
         })),
