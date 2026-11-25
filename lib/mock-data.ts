@@ -165,9 +165,16 @@ export interface Transaction {
   amountXLM: number;
   description: string;
   timestamp: string;
-  ledger: number;
+  /** Ledger sequence the transaction closed in, or null when unknown. */
+  ledger: number | null;
   fee: string;
   status: "confirmed" | "failed";
+  /**
+   * True when the entry was not produced by a real on-chain transaction
+   * (demo/seed data or a simulated action). Simulated entries have no
+   * resolvable hash or ledger and must not be rendered as explorer links.
+   */
+  simulated?: boolean;
 }
 
 export interface PlatformStats {
@@ -1067,7 +1074,7 @@ export const PLATFORM_STATS: PlatformStats = {
 };
 
 // ── Transactions (Stellar format — 64 hex chars, 100 stroops fee) ─────────────
-export const MOCK_TRANSACTIONS: Transaction[] = [
+const SEED_TRANSACTIONS: Transaction[] = [
   {
     hash: "a3f2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
     type: "stake",
@@ -1146,6 +1153,16 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     status: "confirmed",
   },
 ];
+
+/**
+ * Seed history shown before any real activity. These hashes and ledgers are
+ * placeholders that do not exist on any Stellar network, so every entry is
+ * flagged as simulated and rendered as demo data.
+ */
+export const MOCK_TRANSACTIONS: Transaction[] = SEED_TRANSACTIONS.map((tx) => ({
+  ...tx,
+  simulated: true,
+}));
 /**
  * Mock/sample data for development and testing
  */
