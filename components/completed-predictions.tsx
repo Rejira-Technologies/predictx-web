@@ -380,6 +380,7 @@ export function CompletedPredictions() {
               tabs={filterTabs}
               activeTab={filter}
               onChange={(key) => setFilter(key as FilterOption)}
+              ariaLabel="Filter completed predictions"
             />
           </div>
 

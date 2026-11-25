@@ -581,15 +581,22 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                             className="space-y-4"
                                         >
                                             <div>
-                                                <h2 className="font-display text-xl font-bold uppercase tracking-wider text-foreground mb-1">
-                                                    Write Your Question
+                                                <h2 id="poll-question-heading" className="font-display text-xl font-bold uppercase tracking-wider text-foreground mb-1">
+                                                    <label htmlFor="poll-question">Write Your Question</label>
                                                 </h2>
-                                                <p className="text-muted-foreground text-sm">Ask a clear Yes/No question about a specific match event</p>
+                                                <p id="poll-question-help" className="text-muted-foreground text-sm">Ask a clear Yes/No question about a specific match event</p>
                                             </div>
 
                                             {/* Textarea */}
                                             <div className="relative">
                                                 <textarea
+                                                    id="poll-question"
+                                                    aria-describedby={[
+                                                        "poll-question-help",
+                                                        "poll-question-count",
+                                                        charCount > 0 && charCount < POLL_QUESTION_MIN_LENGTH ? "poll-question-min-error" : null,
+                                                    ].filter(Boolean).join(" ")}
+                                                    aria-invalid={charCount > 0 && charCount < POLL_QUESTION_MIN_LENGTH ? true : undefined}
                                                     value={form.question}
                                                     onChange={(e) => updateForm({ question: e.target.value.slice(0, POLL_QUESTION_MAX_LENGTH) })}
                                                     placeholder="e.g., Will Palmer score a goal?"
@@ -602,14 +609,15 @@ export function CreatePollModal({ open, onClose, preselectedMatchId }: CreatePol
                                                     )}
                                                     style={{ caretColor: "#00d9ff" }}
                                                 />
-                                                <span className={cn("absolute bottom-3 right-3 text-xs font-mono", charColor)}>
+                                                <span id="poll-question-count" className={cn("absolute bottom-3 right-3 text-xs font-mono", charColor)}>
+                                                    <span className="sr-only">Characters used: </span>
                                                     {charCount}/{POLL_QUESTION_MAX_LENGTH}
                                                 </span>
                                             </div>
 
                                             {charCount < POLL_QUESTION_MIN_LENGTH && charCount > 0 && (
-                                                <p className="text-xs text-[#ff006e] flex items-center gap-1">
-                                                    <AlertCircle className="h-3 w-3" /> Minimum {POLL_QUESTION_MIN_LENGTH} characters
+                                                <p id="poll-question-min-error" className="text-xs text-[#ff006e] flex items-center gap-1">
+                                                    <AlertCircle className="h-3 w-3" aria-hidden="true" /> Minimum {POLL_QUESTION_MIN_LENGTH} characters
                                                 </p>
                                             )}
 

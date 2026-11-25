@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ interface GamingTabsProps {
   activeTab: string;
   onChange: (key: string) => void;
   className?: string;
+  /** Accessible name for the filter group, e.g. "Filter polls by category". */
+  ariaLabel?: string;
 }
 
 export function GamingTabs({
@@ -22,6 +24,7 @@ export function GamingTabs({
   activeTab,
   onChange,
   className,
+  ariaLabel = "Filter",
 }: GamingTabsProps) {
   const shouldReduceMotion = useReducedMotion();
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
@@ -38,30 +41,10 @@ export function GamingTabs({
     }
   }, [activeTab]);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    let nextIndex = -1;
-    if (e.key === "ArrowRight") {
-      nextIndex = (currentIndex + 1) % tabs.length;
-    } else if (e.key === "ArrowLeft") {
-      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-    } else if (e.key === "Home") {
-      nextIndex = 0;
-    } else if (e.key === "End") {
-      nextIndex = tabs.length - 1;
-    }
-
-    if (nextIndex !== -1) {
-      e.preventDefault();
-      const nextKey = tabs[nextIndex].key;
-      onChange(nextKey);
-      tabRefs.current.get(nextKey)?.focus();
-    }
-  };
-
   return (
     <div
-      role="tablist"
-      aria-orientation="horizontal"
+      role="group"
+      aria-label={ariaLabel}
       className={cn(
         "relative flex items-center gap-1 p-1",
         "bg-[#1a1f3a]/50 rounded-lg",
@@ -98,20 +81,19 @@ export function GamingTabs({
         />
       )}
 
-      {/* Tab buttons */}
-      {tabs.map((tab, idx) => (
+      {/* Filter toggle buttons (aria-pressed inside role="group"; results are
+          rendered as a plain list by the caller, so this is not a tab widget) */}
+      {tabs.map((tab) => (
         <button
           key={tab.key}
-          role="tab"
-          aria-selected={activeTab === tab.key}
-          tabIndex={activeTab === tab.key ? 0 : -1}
+          type="button"
+          aria-pressed={activeTab === tab.key}
           ref={(el) => {
             if (el) {
               tabRefs.current.set(tab.key, el);
             }
           }}
           onClick={() => onChange(tab.key)}
-          onKeyDown={(e) => handleKeyDown(e, idx)}
           onMouseEnter={() => setHoveredTab(tab.key)}
           onMouseLeave={() => setHoveredTab(null)}
           className={cn(

@@ -198,6 +198,7 @@ export function PollsList({ polls, match }: PollsListProps) {
             tabs={tabs}
             activeTab={activeCategory}
             onChange={setActiveCategory}
+            ariaLabel="Filter polls by category"
           />
         </div>
 
