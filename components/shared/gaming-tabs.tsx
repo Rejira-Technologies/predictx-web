@@ -60,7 +60,8 @@ export function GamingTabs({
 
   return (
     <div
-      role="tablist"
+      role="radiogroup"
+      aria-label="Filter tabs"
       aria-orientation="horizontal"
       className={cn(
         "relative flex items-center gap-1 p-1",
@@ -102,8 +103,8 @@ export function GamingTabs({
       {tabs.map((tab, idx) => (
         <button
           key={tab.key}
-          role="tab"
-          aria-selected={activeTab === tab.key}
+          role="radio"
+          aria-checked={activeTab === tab.key}
           tabIndex={activeTab === tab.key ? 0 : -1}
           ref={(el) => {
             if (el) {
